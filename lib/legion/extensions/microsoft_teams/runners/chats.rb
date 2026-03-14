@@ -20,7 +20,7 @@ module Legion
             { result: response.body }
           end
 
-          def create_chat(chat_type: 'oneOnOne', members:, topic: nil, **)
+          def create_chat(members:, chat_type: 'oneOnOne', topic: nil, **)
             payload = { chatType: chat_type, members: members }
             payload[:topic] = topic if topic
             response = graph_connection(**).post('/chats', payload)
@@ -34,8 +34,8 @@ module Legion
 
           def add_chat_member(chat_id:, user_id:, roles: ['owner'], **)
             payload = {
-              '@odata.type'  => '#microsoft.graph.aadUserConversationMember',
-              'roles'        => roles,
+              '@odata.type'     => '#microsoft.graph.aadUserConversationMember',
+              'roles'           => roles,
               'user@odata.bind' => "https://graph.microsoft.com/v1.0/users('#{user_id}')"
             }
             response = graph_connection(**).post("/chats/#{chat_id}/members", payload)

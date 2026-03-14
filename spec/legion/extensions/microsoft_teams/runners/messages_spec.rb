@@ -32,8 +32,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Messages do
     it 'sends a text message to a chat' do
       response = instance_double(Faraday::Response, body: { 'id' => 'm2' })
       allow(graph_conn).to receive(:post).with('/chats/c1/messages', hash_including(
-                                                 body: { contentType: 'text', content: 'Hi there' }
-                                               )).and_return(response)
+                                                                       body: { contentType: 'text', content: 'Hi there' }
+                                                                     )).and_return(response)
 
       result = runner.send_chat_message(chat_id: 'c1', content: 'Hi there')
       expect(result[:result]['id']).to eq('m2')

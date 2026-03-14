@@ -22,9 +22,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Subscriptions do
     it 'creates a change notification subscription' do
       response = instance_double(Faraday::Response, body: { 'id' => 's2', 'resource' => '/chats/c1/messages' })
       allow(graph_conn).to receive(:post).with('/subscriptions', hash_including(
-                                                 changeType: 'created',
-                                                 resource:   '/chats/c1/messages'
-                                               )).and_return(response)
+                                                                   changeType: 'created',
+                                                                   resource:   '/chats/c1/messages'
+                                                                 )).and_return(response)
 
       result = runner.create_subscription(
         resource:         '/chats/c1/messages',
@@ -60,8 +60,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Subscriptions do
     it 'creates a subscription for chat messages' do
       response = instance_double(Faraday::Response, body: { 'id' => 's3', 'resource' => '/chats/c1/messages' })
       allow(graph_conn).to receive(:post).with('/subscriptions', hash_including(
-                                                 resource: '/chats/c1/messages'
-                                               )).and_return(response)
+                                                                   resource: '/chats/c1/messages'
+                                                                 )).and_return(response)
 
       result = runner.subscribe_to_chat_messages(
         chat_id:          'c1',

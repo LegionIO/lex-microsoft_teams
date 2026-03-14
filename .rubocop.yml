@@ -24,6 +24,11 @@ Metrics/ModuleLength:
 
 Metrics/BlockLength:
   Max: 40
+  Exclude:
+    - 'spec/**/*'
+
+Metrics/ParameterLists:
+  Max: 8
 
 Metrics/AbcSize:
   Max: 60

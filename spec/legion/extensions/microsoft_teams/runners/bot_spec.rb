@@ -25,10 +25,10 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
       allow(bot_conn).to receive(:post).with('/v3/conversations/conv1/activities/a1', anything).and_return(response)
 
       result = runner.reply_to_activity(
-        service_url: 'https://smba.trafficmanager.net/teams/',
+        service_url:     'https://smba.trafficmanager.net/teams/',
         conversation_id: 'conv1',
-        activity_id: 'a1',
-        text: 'Reply text'
+        activity_id:     'a1',
+        text:            'Reply text'
       )
       expect(result[:result]['id']).to eq('a2')
     end
@@ -60,13 +60,13 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
     it 'creates a new conversation with a user' do
       response = instance_double(Faraday::Response, body: { 'id' => 'conv2' })
       allow(bot_conn).to receive(:post).with('/v3/conversations', hash_including(
-                                               bot: { id: 'bot-id' }
-                                             )).and_return(response)
+                                                                    bot: { id: 'bot-id' }
+                                                                  )).and_return(response)
 
       result = runner.create_conversation(
         service_url: 'https://smba.trafficmanager.net/teams/',
-        bot_id: 'bot-id',
-        user_id: 'user-id'
+        bot_id:      'bot-id',
+        user_id:     'user-id'
       )
       expect(result[:result]['id']).to eq('conv2')
     end

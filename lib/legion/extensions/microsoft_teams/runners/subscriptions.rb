@@ -46,11 +46,11 @@ module Legion
 
           def subscribe_to_chat_messages(chat_id:, notification_url:, expiration:, client_state: nil, **)
             create_subscription(
-              resource:            "/chats/#{chat_id}/messages",
-              change_type:         'created,updated',
-              notification_url:    notification_url,
-              expiration:          expiration,
-              client_state:        client_state,
+              resource:         "/chats/#{chat_id}/messages",
+              change_type:      'created,updated',
+              notification_url: notification_url,
+              expiration:       expiration,
+              client_state:     client_state,
               **
             )
           end
@@ -58,11 +58,11 @@ module Legion
           def subscribe_to_channel_messages(team_id:, channel_id:, notification_url:, expiration:,
                                             client_state: nil, **)
             create_subscription(
-              resource:            "/teams/#{team_id}/channels/#{channel_id}/messages",
-              change_type:         'created,updated',
-              notification_url:    notification_url,
-              expiration:          expiration,
-              client_state:        client_state,
+              resource:         "/teams/#{team_id}/channels/#{channel_id}/messages",
+              change_type:      'created,updated',
+              notification_url: notification_url,
+              expiration:       expiration,
+              client_state:     client_state,
               **
             )
           end

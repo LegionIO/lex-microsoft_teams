@@ -22,11 +22,11 @@ module Legion
           def acquire_bot_token(client_id:, client_secret:,
                                 scope: 'https://api.botframework.com/.default', **)
             response = oauth_connection(tenant_id: 'botframework.com').post('/oauth2/v2.0/token', {
-                                                                             grant_type:    'client_credentials',
-                                                                             client_id:     client_id,
-                                                                             client_secret: client_secret,
-                                                                             scope:         scope
-                                                                           })
+                                                                              grant_type:    'client_credentials',
+                                                                              client_id:     client_id,
+                                                                              client_secret: client_secret,
+                                                                              scope:         scope
+                                                                            })
             { result: response.body }
           end
 
