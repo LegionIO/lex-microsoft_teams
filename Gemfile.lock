@@ -3,6 +3,7 @@ PATH
   specs:
     lex-microsoft_teams (0.1.0)
       faraday (>= 2.0)
+      snappy (>= 0.5)
 
 GEM
   remote: https://rubygems.org/
@@ -77,6 +78,7 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
+    snappy (0.5.0)
     unicode-display_width (3.2.0)
       unicode-emoji (~> 4.1)
     unicode-emoji (4.2.0)

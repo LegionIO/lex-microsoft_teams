@@ -11,6 +11,8 @@ require 'legion/extensions/microsoft_teams/runners/channel_messages'
 require 'legion/extensions/microsoft_teams/runners/subscriptions'
 require 'legion/extensions/microsoft_teams/runners/adaptive_cards'
 require 'legion/extensions/microsoft_teams/runners/bot'
+require 'legion/extensions/microsoft_teams/runners/local_cache'
+require 'legion/extensions/microsoft_teams/runners/cache_ingest'
 require 'legion/extensions/microsoft_teams/client'
 
 module Legion

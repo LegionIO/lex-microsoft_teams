@@ -25,6 +25,8 @@ module Legion
         include Runners::Subscriptions
         include Runners::AdaptiveCards
         include Runners::Bot
+        include Runners::LocalCache
+        include Runners::CacheIngest
 
         attr_reader :opts
 

@@ -51,3 +51,6 @@ Style/FrozenStringLiteralComment:
 
 Naming/FileName:
   Enabled: false
+
+Naming/PredicateMethod:
+  Enabled: false

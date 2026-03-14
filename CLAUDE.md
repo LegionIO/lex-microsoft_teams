@@ -24,7 +24,16 @@ Legion::Extensions::MicrosoftTeams
 │   ├── ChannelMessages   # Channel message send/read/reply
 │   ├── Subscriptions     # Graph change notification webhooks
 │   ├── AdaptiveCards      # Adaptive Card payload builder
-│   └── Bot               # Bot Framework activity send/reply
+│   ├── Bot               # Bot Framework activity send/reply
+│   ├── LocalCache        # Offline message extraction from local LevelDB cache
+│   └── CacheIngest       # Ingest cached messages into lex-memory as episodic traces
+├── Actors/
+│   ├── CacheBulkIngest   # Once: full cache ingest at startup (with imprint window support)
+│   └── CacheSync         # Every 5min: incremental ingest of new messages
+├── LocalCache/
+│   ├── SSTableReader     # Pure Ruby LevelDB .ldb file reader (Snappy decompression)
+│   ├── RecordParser      # Chromium IndexedDB value parser (field-value pairing)
+│   └── Extractor         # Message extraction, filtering, dedup from local cache
 ├── Helpers/
 │   └── Client            # Three connection builders (Graph, Bot, OAuth)
 └── Client                # Standalone client (includes all runners)
@@ -32,10 +41,11 @@ Legion::Extensions::MicrosoftTeams
 
 ## API Surface
 
-Three distinct APIs accessed via Faraday:
+Three distinct APIs accessed via Faraday + one local data source:
 - **Microsoft Graph API** (`graph.microsoft.com/v1.0`) — chats, channels, messages, teams, subscriptions
 - **Bot Framework Service** (`service_url` per conversation) — send activities, create conversations
 - **Entra ID OAuth** (`login.microsoftonline.com`) — client_credentials token acquisition
+- **Local LevelDB Cache** (Chromium IndexedDB) — offline message extraction from Teams 2.x local storage
 
 ## Graph API Permissions Required
 
@@ -55,6 +65,7 @@ For bot scenarios, register the Entra app as a Teams Bot via Bot Framework porta
 | Gem | Purpose |
 |-----|---------|
 | `faraday` (>= 2.0) | HTTP client for Graph API, Bot Framework, and OAuth |
+| `snappy` (>= 0.5) | Snappy decompression for LevelDB SSTable blocks |
 
 ## Testing
 
