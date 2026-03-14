@@ -3,7 +3,7 @@
 module Legion
   module Extensions
     module MicrosoftTeams
-      module Actors
+      module Actor
         class CacheBulkIngest < Legion::Extensions::Actors::Once
           def runner_class    = Legion::Extensions::MicrosoftTeams::Runners::CacheIngest
           def runner_function = 'ingest_cache'

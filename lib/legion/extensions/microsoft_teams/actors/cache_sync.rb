@@ -3,7 +3,7 @@
 module Legion
   module Extensions
     module MicrosoftTeams
-      module Actors
+      module Actor
         class CacheSync < Legion::Extensions::Actors::Every
           SYNC_INTERVAL = 300 # 5 minutes
 
