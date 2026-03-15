@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'legion/extensions/microsoft_teams/helpers/client'
+require_relative '../helpers/session_manager'
 
 module Legion
   module Extensions
@@ -8,6 +9,7 @@ module Legion
       module Runners
         module Bot
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
+          include Legion::Extensions::MicrosoftTeams::Helpers::PromptResolver
 
           def send_activity(service_url:, conversation_id:, activity:, **)
             conn = bot_connection(service_url: service_url, **)
@@ -65,6 +67,81 @@ module Legion
             conn = bot_connection(service_url: service_url, **)
             response = conn.get("/v3/conversations/#{conversation_id}/members")
             { result: response.body }
+          end
+
+          def handle_message(chat_id:, conversation_id:, text:, owner_id:, mode: :direct, **opts)
+            session = session_manager.get_or_create(
+              conversation_id: conversation_id, owner_id: owner_id, mode: mode
+            )
+            session_manager.add_message(conversation_id: conversation_id, role: :user, content: text)
+
+            response_text = generate_response(text: text, session: session)
+
+            reply_result = send_reply(
+              chat_id:         chat_id,
+              conversation_id: conversation_id,
+              activity_id:     opts[:activity_id],
+              service_url:     opts[:service_url],
+              text:            response_text,
+              token:           opts[:token]
+            )
+
+            session_manager.add_message(conversation_id: conversation_id, role: :assistant, content: response_text)
+            session_manager.touch(conversation_id: conversation_id)
+            session_manager.persist(conversation_id: conversation_id) if session_manager.should_flush?(conversation_id: conversation_id)
+
+            { result: reply_result }
+          end
+
+          def session_manager
+            @session_manager ||= Legion::Extensions::MicrosoftTeams::Helpers::SessionManager.new
+          end
+
+          private
+
+          def generate_response(text:, session:)
+            return llm_respond(text: text, session: session) if llm_available?
+
+            "Echo: #{text}"
+          end
+
+          def llm_respond(text:, session:)
+            config = session[:llm_config] || {}
+            response = llm_chat(
+              text,
+              instructions: session[:system_prompt],
+              model:        config[:model],
+              intent:       config[:intent]
+            )
+            response.content
+          rescue StandardError => e
+            log_error("LLM call failed: #{e.message}")
+            'I encountered an error processing your message. Please try again.'
+          end
+
+          def llm_available?
+            defined?(Legion::LLM) && Legion::LLM.respond_to?(:chat)
+          end
+
+          def send_reply(chat_id:, conversation_id:, activity_id:, service_url:, text:, token:)
+            if service_url && activity_id
+              reply_to_activity(
+                service_url:     service_url, conversation_id: conversation_id,
+                activity_id:     activity_id, text: text, token: token
+              )
+            else
+              send_chat_message_via_graph(chat_id: chat_id, text: text, token: token)
+            end
+          end
+
+          def send_chat_message_via_graph(chat_id:, text:, token: nil, **)
+            conn = graph_connection(token: token)
+            response = conn.post("/chats/#{chat_id}/messages", { body: { contentType: 'text', content: text } })
+            { result: response.body }
+          end
+
+          def log_error(msg)
+            Legion::Logging.error(msg) if defined?(Legion::Logging)
           end
 
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&

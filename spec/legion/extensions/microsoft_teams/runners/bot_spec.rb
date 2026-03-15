@@ -81,4 +81,59 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
       expect(result[:result].first['name']).to eq('User A')
     end
   end
+
+  describe '#handle_message' do
+    let(:bot) { Object.new.extend(described_class) }
+    let(:session_manager) do
+      Legion::Extensions::MicrosoftTeams::Helpers::SessionManager.new
+    end
+    let(:faraday_response) { instance_double(Faraday::Response, body: { 'id' => 'msg-1' }) }
+    let(:conn) { instance_double(Faraday::Connection, post: faraday_response) }
+
+    before do
+      allow(bot).to receive(:session_manager).and_return(session_manager)
+      allow(bot).to receive(:llm_available?).and_return(false)
+      allow(bot).to receive(:graph_connection).and_return(conn)
+    end
+
+    it 'returns a result hash' do
+      result = bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      expect(result).to have_key(:result)
+    end
+
+    it 'echoes when LLM is unavailable' do
+      bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      expect(conn).to have_received(:post).with(
+        '/chats/19:abc/messages',
+        hash_including(:body)
+      )
+    end
+
+    it 'tracks messages in session' do
+      bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      msgs = session_manager.recent_messages(conversation_id: '19:abc')
+      expect(msgs.length).to eq(2) # user + assistant
+      expect(msgs.first[:role]).to eq(:user)
+      expect(msgs.last[:role]).to eq(:assistant)
+    end
+
+    it 'uses Bot Framework reply when service_url is present' do
+      allow(bot).to receive(:reply_to_activity).and_return({ result: { id: 'act-1' } })
+      bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1',
+        service_url: 'https://smba.trafficmanager.net/teams/', activity_id: 'act-123'
+      )
+      expect(bot).to have_received(:reply_to_activity)
+    end
+  end
 end
