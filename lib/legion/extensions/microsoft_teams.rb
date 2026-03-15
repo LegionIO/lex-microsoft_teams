@@ -2,6 +2,7 @@
 
 require 'legion/extensions/microsoft_teams/version'
 require 'legion/extensions/microsoft_teams/helpers/client'
+require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
 require 'legion/extensions/microsoft_teams/runners/auth'
 require 'legion/extensions/microsoft_teams/runners/teams'
 require 'legion/extensions/microsoft_teams/runners/chats'
