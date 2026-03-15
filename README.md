@@ -73,6 +73,20 @@ gem install lex-microsoft_teams
 - `create_conversation` — Create a new bot conversation
 - `get_conversation_members` — List conversation members
 
+### AI Bot (v0.2.0)
+- `handle_message` — LLM-powered response loop for direct 1:1 bot chats (polls Graph API, replies via Graph or Bot Framework)
+- `observe_message` — Conversation observer that extracts tasks, context, and relationship data from subscribed human chats (disabled by default, compliance-gated)
+
+**Actors:**
+- `DirectChatPoller` — Polls bot DM chats every 5s, publishes to AMQP
+- `ObservedChatPoller` — Polls subscribed conversations every 30s (disabled by default)
+- `MessageProcessor` — AMQP subscription actor, routes messages by mode to `handle_message` or `observe_message`
+
+**Helpers:**
+- `SessionManager` — Multi-turn LLM session lifecycle with lex-memory persistence
+- `PromptResolver` — Layered system prompt resolution (settings default -> mode -> per-conversation)
+- `HighWaterMark` — Per-chat message deduplication via legion-cache
+
 ## Standalone Client
 
 ```ruby
