@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require_relative '../helpers/session_manager'
 
@@ -93,6 +94,24 @@ module Legion
             { result: reply_result }
           end
 
+          def observe_message(chat_id:, owner_id:, text:, from:, peer_name:, timestamp: nil, **)
+            return { result: :skipped, reason: :observe_disabled } unless observe_enabled?
+
+            extraction = extract_from_message(text: text, from: from, peer_name: peer_name)
+
+            store_observation(
+              chat_id: chat_id, owner_id: owner_id, text: text,
+              from: from, peer_name: peer_name, extraction: extraction,
+              timestamp: timestamp
+            )
+
+            if extraction && extraction[:action_items]&.any? && notify_enabled?(owner_id: owner_id, chat_id: chat_id)
+              notify_owner(owner_id: owner_id, extraction: extraction, peer_name: peer_name)
+            end
+
+            { result: extraction || { raw_text: text } }
+          end
+
           def session_manager
             @session_manager ||= Legion::Extensions::MicrosoftTeams::Helpers::SessionManager.new
           end
@@ -142,6 +161,77 @@ module Legion
 
           def log_error(msg)
             Legion::Logging.error(msg) if defined?(Legion::Logging)
+          end
+
+          def observe_enabled?
+            return false unless defined?(Legion::Settings)
+
+            Legion::Settings.dig(:microsoft_teams, :bot, :observe, :enabled) == true
+          end
+
+          def notify_enabled?(**_kwargs)
+            return false unless defined?(Legion::Settings)
+
+            Legion::Settings.dig(:microsoft_teams, :bot, :observe, :notify) == true
+          end
+
+          def extract_from_message(text:, from:, peer_name:)
+            return nil unless llm_available?
+
+            prompt = resolve_prompt(mode: :observe, conversation_id: nil)
+            context = "#{from[:name] || peer_name} said: #{text}"
+
+            response = llm_chat(context, instructions: prompt)
+            parse_extraction(response.content)
+          rescue StandardError => e
+            log_error("Observation extraction failed: #{e.message}")
+            nil
+          end
+
+          def parse_extraction(content)
+            parsed = ::JSON.parse(content, symbolize_names: true)
+            parsed if parsed.is_a?(Hash)
+          rescue ::JSON::ParserError
+            { summary: content }
+          end
+
+          def store_observation(chat_id:, owner_id:, text:, from:, peer_name:, extraction:, timestamp:)
+            return unless memory_available?
+
+            memory_runner.store_trace(
+              type:            :episodic,
+              content_payload: {
+                type:       :observed_message,
+                chat_id:    chat_id,
+                owner_id:   owner_id,
+                from:       from,
+                peer_name:  peer_name,
+                text:       text,
+                extraction: extraction,
+                timestamp:  timestamp
+              }.to_s,
+              domain_tags:     ['teams', 'observed', "peer:#{peer_name}", "chat:#{chat_id}"],
+              origin:          :direct_experience,
+              confidence:      0.6
+            )
+          rescue StandardError => e
+            log_error("Observation store failed: #{e.message}")
+          end
+
+          def notify_owner(owner_id:, peer_name:, extraction: nil) # rubocop:disable Lint/UnusedMethodArgument
+            log_info("Would notify #{owner_id} about action items from #{peer_name}")
+          end
+
+          def memory_available?
+            defined?(Legion::Extensions::Memory::Runners::Traces)
+          end
+
+          def memory_runner
+            @memory_runner ||= Object.new.extend(Legion::Extensions::Memory::Runners::Traces)
+          end
+
+          def log_info(msg)
+            Legion::Logging.info(msg) if defined?(Legion::Logging)
           end
 
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&

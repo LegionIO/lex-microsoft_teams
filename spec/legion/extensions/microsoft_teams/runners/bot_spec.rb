@@ -136,4 +136,36 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
       expect(bot).to have_received(:reply_to_activity)
     end
   end
+
+  describe '#observe_message' do
+    let(:bot) { Object.new.extend(described_class) }
+
+    before do
+      allow(bot).to receive(:observe_enabled?).and_return(false)
+    end
+
+    it 'returns skipped when observe is disabled' do
+      result = bot.observe_message(
+        chat_id: '19:xyz', owner_id: 'user1', text: 'send the report',
+        from: { id: 'sarah', name: 'Sarah' }, peer_name: 'Sarah'
+      )
+      expect(result).to eq({ result: :skipped, reason: :observe_disabled })
+    end
+
+    context 'when observe is enabled' do
+      before do
+        allow(bot).to receive(:observe_enabled?).and_return(true)
+        allow(bot).to receive(:llm_available?).and_return(false)
+        allow(bot).to receive(:memory_available?).and_return(false)
+      end
+
+      it 'returns result with raw text when LLM unavailable' do
+        result = bot.observe_message(
+          chat_id: '19:xyz', owner_id: 'user1', text: 'send the report',
+          from: { id: 'sarah', name: 'Sarah' }, peer_name: 'Sarah'
+        )
+        expect(result[:result]).to eq({ raw_text: 'send the report' })
+      end
+    end
+  end
 end
