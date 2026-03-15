@@ -10,6 +10,7 @@ require 'legion/extensions/microsoft_teams/runners/channel_messages'
 require 'legion/extensions/microsoft_teams/runners/subscriptions'
 require 'legion/extensions/microsoft_teams/runners/adaptive_cards'
 require 'legion/extensions/microsoft_teams/runners/bot'
+require 'legion/extensions/microsoft_teams/runners/presence'
 
 module Legion
   module Extensions
@@ -25,6 +26,7 @@ module Legion
         include Runners::Subscriptions
         include Runners::AdaptiveCards
         include Runners::Bot
+        include Runners::Presence
         include Runners::LocalCache
         include Runners::CacheIngest
 
