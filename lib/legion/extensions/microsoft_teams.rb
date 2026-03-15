@@ -2,9 +2,6 @@
 
 require 'legion/extensions/microsoft_teams/version'
 require 'legion/extensions/microsoft_teams/helpers/client'
-require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
-require 'legion/extensions/microsoft_teams/helpers/prompt_resolver'
-require 'legion/extensions/microsoft_teams/helpers/session_manager'
 require 'legion/extensions/microsoft_teams/runners/auth'
 require 'legion/extensions/microsoft_teams/runners/teams'
 require 'legion/extensions/microsoft_teams/runners/chats'
@@ -17,6 +14,19 @@ require 'legion/extensions/microsoft_teams/runners/bot'
 require 'legion/extensions/microsoft_teams/runners/presence'
 require 'legion/extensions/microsoft_teams/runners/local_cache'
 require 'legion/extensions/microsoft_teams/runners/cache_ingest'
+
+# Helpers (bot)
+require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
+require 'legion/extensions/microsoft_teams/helpers/prompt_resolver'
+require 'legion/extensions/microsoft_teams/helpers/session_manager'
+
+# Transport
+if defined?(Legion::Transport)
+  require 'legion/extensions/microsoft_teams/transport/exchanges/messages'
+  require 'legion/extensions/microsoft_teams/transport/queues/messages_process'
+  require 'legion/extensions/microsoft_teams/transport/messages/teams_message'
+end
+
 require 'legion/extensions/microsoft_teams/client'
 
 module Legion

@@ -2,7 +2,7 @@
 
 RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Presence do
   let(:runner) { Object.new.extend(described_class) }
-  let(:mock_client) { double('client') } # rubocop:disable RSpec/VerifiedDoubles
+  let(:mock_client) { double('client') }
 
   before do
     allow(runner).to receive(:client).and_return(mock_client)
