@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0] - 2026-03-15
+
+### Added
+- Token cache helper with 60-second pre-expiry automatic refresh
+- Subscription registry with in-memory store and lex-memory persistence
+- Command handler for bot DMs: watch, unwatch, list, pause, resume
+- Token cache wired into DirectChatPoller and ObservedChatPoller
+- Subscription registry wired into ObservedChatPoller
+
 ## [0.2.0] - 2026-03-15
 
 ### Added

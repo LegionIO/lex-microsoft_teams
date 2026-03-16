@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.2.0
+**Version**: 0.3.0
 
 ## Architecture
 
@@ -25,7 +25,7 @@ Legion::Extensions::MicrosoftTeams
 │   ├── ChannelMessages   # Channel message send/read/reply
 │   ├── Subscriptions     # Graph change notification webhooks
 │   ├── AdaptiveCards     # Adaptive Card payload builder
-│   ├── Bot               # Bot Framework + AI bot (handle_message, observe_message)
+│   ├── Bot               # Bot Framework + AI bot (handle_message, handle_command, observe_message)
 │   ├── Presence          # Graph API user presence
 │   ├── LocalCache        # Offline message extraction from local LevelDB cache
 │   └── CacheIngest       # Ingest cached messages into lex-memory as episodic traces
@@ -47,7 +47,9 @@ Legion::Extensions::MicrosoftTeams
 │   ├── Client            # Three connection builders (Graph, Bot, OAuth)
 │   ├── HighWaterMark     # Per-chat message dedup via legion-cache (with in-memory fallback)
 │   ├── PromptResolver    # Layered system prompt resolution (settings -> mode -> per-conversation)
-│   └── SessionManager    # Multi-turn LLM session lifecycle with lex-memory persistence
+│   ├── SessionManager    # Multi-turn LLM session lifecycle with lex-memory persistence
+│   ├── TokenCache        # In-memory OAuth token cache with 60s pre-expiry refresh
+│   └── SubscriptionRegistry # Conversation observation subscriptions (in-memory + lex-memory)
 └── Client                # Standalone client (includes all runners)
 ```
 
@@ -116,7 +118,22 @@ Per-conversation overrides stored in lex-memory (system_prompt_append, llm model
 - **AMQP-first routing**: Pollers and future webhooks publish to the same exchange. Decouples ingestion from processing.
 - **High-water marks**: Per-chat last-seen timestamp in legion-cache prevents reprocessing. Falls back to in-memory when cache unavailable.
 - **Session persistence**: Multi-turn sessions flush to lex-memory on threshold (20 msgs), idle timeout (15 min), or shutdown. Restored on restart via summary + recent messages.
-- **Design doc**: `docs/plans/2026-03-15-teams-ai-bot-design.md`
+- **Token caching**: In-memory OAuth token cache refreshes 60 seconds before expiry. Both pollers share a `TokenCache` instance instead of hitting OAuth every cycle.
+- **Subscription registry**: In-memory working set of observed conversations, persisted to lex-memory on change. No legion-data migration needed.
+- **Design docs**: `docs/plans/2026-03-15-teams-ai-bot-design.md`, `docs/plans/2026-03-15-teams-bot-commands-design.md`
+
+### Bot Commands (v0.3.0)
+
+Keyword-based command detection in bot DMs, checked before LLM response:
+
+| Command | Action |
+|---------|--------|
+| `watch <name>` | Find chat via Graph API, subscribe to observe |
+| `stop watching <name>` / `unwatch <name>` | Unsubscribe |
+| `watching` / `list` / `subscriptions` | List active subscriptions |
+| `pause <name>` | Disable subscription temporarily |
+| `resume <name>` | Re-enable paused subscription |
+| anything else | LLM response (existing flow) |
 
 ## API Surface
 
@@ -157,7 +174,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 98 specs
+bundle exec rspec     # 132 specs
 bundle exec rubocop   # Clean
 ```
 

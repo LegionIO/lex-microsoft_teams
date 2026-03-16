@@ -34,11 +34,19 @@ module Legion
             false
           end
 
+          def token_cache
+            @token_cache ||= Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.new
+          end
+
+          def subscription_registry
+            @subscription_registry ||= Legion::Extensions::MicrosoftTeams::Helpers::SubscriptionRegistry.new
+          end
+
           def manual
-            token = acquire_graph_token
+            token = token_cache.cached_graph_token
             return unless token
 
-            subscriptions = load_subscriptions
+            subscriptions = subscription_registry.active_subscriptions
             subscriptions.each do |sub|
               poll_observed_chat(
                 chat_id: sub[:chat_id], owner_id: sub[:owner_id],
@@ -89,33 +97,6 @@ module Legion
                 content_type:    m.dig('body', 'contentType') || 'text'
               }
             end
-          end
-
-          def load_subscriptions
-            # TODO: load from legion-data subscription registry table
-            []
-          end
-
-          def acquire_graph_token
-            settings = teams_auth_settings
-            return nil unless settings[:tenant_id] && settings[:client_id] && settings[:client_secret]
-
-            result = Legion::Extensions::MicrosoftTeams::Runners::Auth
-                     .instance_method(:acquire_token)
-                     .bind_call(self,
-                                tenant_id:     settings[:tenant_id],
-                                client_id:     settings[:client_id],
-                                client_secret: settings[:client_secret])
-            result.dig(:result, 'access_token')
-          rescue StandardError => e
-            Legion::Logging.error("ObservedChatPoller auth failed: #{e.message}") if defined?(Legion::Logging)
-            nil
-          end
-
-          def teams_auth_settings
-            return {} unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :auth) || {}
           end
 
           def settings_interval(key, default)

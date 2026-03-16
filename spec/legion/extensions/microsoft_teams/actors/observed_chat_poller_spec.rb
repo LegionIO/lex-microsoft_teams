@@ -42,4 +42,12 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ObservedChatPoller do
   it 'is disabled when Legion::Settings is not defined' do
     expect(actor.enabled?).to be false
   end
+
+  it 'exposes a token_cache' do
+    expect(actor).to respond_to(:token_cache)
+  end
+
+  it 'exposes a subscription_registry' do
+    expect(actor).to respond_to(:subscription_registry)
+  end
 end

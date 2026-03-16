@@ -42,4 +42,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::DirectChatPoller do
   it 'routes to handle_message' do
     expect(actor.runner_function).to eq('handle_message')
   end
+
+  it 'exposes a token_cache' do
+    expect(actor).to respond_to(:token_cache)
+  end
 end

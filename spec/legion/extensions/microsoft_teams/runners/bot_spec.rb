@@ -168,4 +168,119 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
       end
     end
   end
+
+  describe '#handle_command' do
+    let(:bot) { Object.new.extend(described_class) }
+    let(:registry) { Legion::Extensions::MicrosoftTeams::Helpers::SubscriptionRegistry.new }
+    let(:graph_conn) { instance_double(Faraday::Connection) }
+
+    before do
+      allow(bot).to receive(:subscription_registry).and_return(registry)
+      allow(bot).to receive(:graph_connection).and_return(graph_conn)
+    end
+
+    describe 'watch command' do
+      it 'recognizes "watch Sarah"' do
+        allow(bot).to receive(:find_chat_with_person).and_return({ id: 'chat-99' })
+        result = bot.handle_command(text: 'watch Sarah', owner_id: 'user1', chat_id: '19:bot')
+        expect(result).not_to be_nil
+        expect(result[:command]).to eq(:watch)
+      end
+
+      it 'returns nil for non-command text' do
+        result = bot.handle_command(text: 'hello there', owner_id: 'user1', chat_id: '19:bot')
+        expect(result).to be_nil
+      end
+    end
+
+    describe 'unwatch command' do
+      before do
+        registry.subscribe(owner_id: 'user1', chat_id: 'chat-1', peer_name: 'Sarah')
+      end
+
+      it 'recognizes "unwatch Sarah"' do
+        result = bot.handle_command(text: 'unwatch Sarah', owner_id: 'user1', chat_id: '19:bot')
+        expect(result).not_to be_nil
+        expect(result[:command]).to eq(:unwatch)
+      end
+
+      it 'recognizes "stop watching Sarah"' do
+        result = bot.handle_command(text: 'stop watching Sarah', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:unwatch)
+      end
+    end
+
+    describe 'list command' do
+      it 'recognizes "watching"' do
+        result = bot.handle_command(text: 'watching', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:list)
+      end
+
+      it 'recognizes "list"' do
+        result = bot.handle_command(text: 'list', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:list)
+      end
+
+      it 'recognizes "subscriptions"' do
+        result = bot.handle_command(text: 'subscriptions', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:list)
+      end
+    end
+
+    describe 'pause command' do
+      before do
+        registry.subscribe(owner_id: 'user1', chat_id: 'chat-1', peer_name: 'Sarah')
+      end
+
+      it 'recognizes "pause Sarah"' do
+        result = bot.handle_command(text: 'pause Sarah', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:pause)
+      end
+    end
+
+    describe 'resume command' do
+      before do
+        registry.subscribe(owner_id: 'user1', chat_id: 'chat-1', peer_name: 'Sarah')
+        registry.pause(owner_id: 'user1', chat_id: 'chat-1')
+      end
+
+      it 'recognizes "resume Sarah"' do
+        result = bot.handle_command(text: 'resume Sarah', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:resume)
+      end
+    end
+  end
+
+  describe '#handle_message with commands' do
+    let(:bot) { Object.new.extend(described_class) }
+    let(:session_manager) { Legion::Extensions::MicrosoftTeams::Helpers::SessionManager.new }
+    let(:registry) { Legion::Extensions::MicrosoftTeams::Helpers::SubscriptionRegistry.new }
+    let(:faraday_response) { instance_double(Faraday::Response, body: { 'id' => 'msg-1' }) }
+    let(:conn) { instance_double(Faraday::Connection, post: faraday_response) }
+
+    before do
+      allow(bot).to receive(:session_manager).and_return(session_manager)
+      allow(bot).to receive(:subscription_registry).and_return(registry)
+      allow(bot).to receive(:llm_available?).and_return(false)
+      allow(bot).to receive(:graph_connection).and_return(conn)
+    end
+
+    it 'handles list command and sends reply' do
+      result = bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'watching',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      expect(result).to have_key(:result)
+      expect(result[:result][:command]).to eq(:list)
+    end
+
+    it 'falls through to LLM for non-commands' do
+      result = bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello friend',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      expect(result).to have_key(:result)
+      expect(result[:result]).not_to have_key(:command)
+    end
+  end
 end

@@ -3,6 +3,7 @@
 require 'json'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require_relative '../helpers/session_manager'
+require_relative '../helpers/subscription_registry'
 
 module Legion
   module Extensions
@@ -71,6 +72,17 @@ module Legion
           end
 
           def handle_message(chat_id:, conversation_id:, text:, owner_id:, mode: :direct, **opts)
+            command_result = handle_command(text: text, owner_id: owner_id, chat_id: chat_id, **opts)
+            if command_result
+              reply_text = command_result[:message]
+              send_reply(
+                chat_id: chat_id, conversation_id: conversation_id,
+                activity_id: opts[:activity_id], service_url: opts[:service_url],
+                text: reply_text, token: opts[:token]
+              )
+              return { result: command_result }
+            end
+
             session = session_manager.get_or_create(
               conversation_id: conversation_id, owner_id: owner_id, mode: mode
             )
@@ -114,6 +126,27 @@ module Legion
 
           def session_manager
             @session_manager ||= Legion::Extensions::MicrosoftTeams::Helpers::SessionManager.new
+          end
+
+          def subscription_registry
+            @subscription_registry ||= Legion::Extensions::MicrosoftTeams::Helpers::SubscriptionRegistry.new
+          end
+
+          def handle_command(text:, owner_id:, chat_id:, **)
+            stripped = text.strip
+
+            case stripped
+            when /\Awatch\s+(.+)/i
+              cmd_watch(name: ::Regexp.last_match(1).strip, owner_id: owner_id, chat_id: chat_id, **)
+            when /\A(?:stop\s+watching|unwatch)\s+(.+)/i
+              cmd_unwatch(name: ::Regexp.last_match(1).strip, owner_id: owner_id)
+            when /\A(?:watching|list|subscriptions)\z/i
+              cmd_list(owner_id: owner_id)
+            when /\Apause\s+(.+)/i
+              cmd_pause(name: ::Regexp.last_match(1).strip, owner_id: owner_id)
+            when /\Aresume\s+(.+)/i
+              cmd_resume(name: ::Regexp.last_match(1).strip, owner_id: owner_id)
+            end
           end
 
           private
@@ -232,6 +265,70 @@ module Legion
 
           def log_info(msg)
             Legion::Logging.info(msg) if defined?(Legion::Logging)
+          end
+
+          def cmd_watch(name:, owner_id:, chat_id: nil, token: nil, **) # rubocop:disable Lint/UnusedMethodArgument
+            target_chat = find_chat_with_person(name: name, token: token)
+            return { command: :watch, success: false, message: "Could not find a chat with '#{name}'." } unless target_chat
+
+            subscription_registry.subscribe(
+              owner_id: owner_id, chat_id: target_chat[:id], peer_name: name
+            )
+            { command: :watch, success: true,
+              message: "Now watching your conversation with #{name}." }
+          end
+
+          def cmd_unwatch(name:, owner_id:)
+            sub = subscription_registry.find_by_peer_name(owner_id: owner_id, peer_name: name)
+            return { command: :unwatch, success: false, message: "No subscription found for '#{name}'." } unless sub
+
+            subscription_registry.unsubscribe(owner_id: owner_id, chat_id: sub[:chat_id])
+            { command: :unwatch, success: true,
+              message: "Stopped watching #{name}." }
+          end
+
+          def cmd_list(owner_id:)
+            subs = subscription_registry.list(owner_id: owner_id)
+            return { command: :list, success: true, message: 'No active subscriptions.' } if subs.empty?
+
+            lines = subs.map do |s|
+              status = s[:enabled] ? 'active' : 'paused'
+              "- #{s[:peer_name]} (#{status})"
+            end
+            { command: :list, success: true,
+              message: "Subscriptions:\n#{lines.join("\n")}" }
+          end
+
+          def cmd_pause(name:, owner_id:)
+            sub = subscription_registry.find_by_peer_name(owner_id: owner_id, peer_name: name)
+            return { command: :pause, success: false, message: "No subscription found for '#{name}'." } unless sub
+
+            subscription_registry.pause(owner_id: owner_id, chat_id: sub[:chat_id])
+            { command: :pause, success: true, message: "Paused watching #{name}." }
+          end
+
+          def cmd_resume(name:, owner_id:)
+            sub = subscription_registry.find_by_peer_name(owner_id: owner_id, peer_name: name)
+            return { command: :resume, success: false, message: "No subscription found for '#{name}'." } unless sub
+
+            subscription_registry.resume(owner_id: owner_id, chat_id: sub[:chat_id])
+            { command: :resume, success: true, message: "Resumed watching #{name}." }
+          end
+
+          def find_chat_with_person(name:, token: nil)
+            conn = graph_connection(token: token)
+            response = conn.get('/me/chats', { '$filter' => "chatType eq 'oneOnOne'", '$top' => 50 })
+            chats = response.body&.dig('value') || []
+
+            chats.each do |chat|
+              members_resp = conn.get("/chats/#{chat['id']}/members")
+              members = members_resp.body&.dig('value') || members_resp.body || []
+              return { id: chat['id'] } if members.any? { |m| m['displayName']&.downcase&.include?(name.downcase) }
+            end
+            nil
+          rescue StandardError => e
+            log_error("find_chat_with_person failed: #{e.message}")
+            nil
           end
 
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&

@@ -32,8 +32,12 @@ module Legion
             false
           end
 
+          def token_cache
+            @token_cache ||= Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.new
+          end
+
           def manual
-            token = acquire_graph_token
+            token = token_cache.cached_graph_token
             return unless token
 
             chats = fetch_bot_chats(token: token)
@@ -81,28 +85,6 @@ module Legion
                 content_type:    m.dig('body', 'contentType') || 'text'
               }
             end
-          end
-
-          def acquire_graph_token
-            settings = teams_auth_settings
-            return nil unless settings[:tenant_id] && settings[:client_id] && settings[:client_secret]
-
-            result = Legion::Extensions::MicrosoftTeams::Runners::Auth
-                     .instance_method(:acquire_token)
-                     .bind_call(self,
-                                tenant_id:     settings[:tenant_id],
-                                client_id:     settings[:client_id],
-                                client_secret: settings[:client_secret])
-            result.dig(:result, 'access_token')
-          rescue StandardError => e
-            Legion::Logging.error("DirectChatPoller auth failed: #{e.message}") if defined?(Legion::Logging)
-            nil
-          end
-
-          def teams_auth_settings
-            return {} unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :auth) || {}
           end
 
           def bot_id_from_settings
