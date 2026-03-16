@@ -23,6 +23,7 @@ require 'legion/extensions/microsoft_teams/helpers/prompt_resolver'
 require 'legion/extensions/microsoft_teams/helpers/session_manager'
 require 'legion/extensions/microsoft_teams/helpers/subscription_registry'
 require 'legion/extensions/microsoft_teams/helpers/token_cache'
+require 'legion/extensions/microsoft_teams/helpers/callback_server'
 
 # Transport
 if defined?(Legion::Transport)
