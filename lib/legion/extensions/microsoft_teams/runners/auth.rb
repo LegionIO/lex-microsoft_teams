@@ -42,6 +42,7 @@ module Legion
           def poll_device_code(tenant_id:, client_id:, device_code:, interval: 5, timeout: 300, **)
             conn = oauth_connection(tenant_id: tenant_id)
             deadline = Time.now + timeout
+            current_interval = interval
 
             loop do
               response = conn.post('oauth2/v2.0/token', {
@@ -55,11 +56,12 @@ module Legion
 
               case body['error']
               when 'authorization_pending'
-                raise "Device code flow timed out after #{timeout}s" if Time.now > deadline
+                return { error: 'timeout', description: "Device code flow timed out after #{timeout}s" } if Time.now > deadline
 
-                sleep(interval)
+                sleep(current_interval)
               when 'slow_down'
-                sleep(interval + 5)
+                current_interval += 5
+                sleep(current_interval)
               else
                 return { error: body['error'], description: body['error_description'] }
               end

@@ -55,6 +55,18 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Auth do
       expect(result[:result]['access_token']).to eq('eyJ0eXAi...')
     end
 
+    it 'returns timeout error when deadline exceeded' do
+      pending_response = instance_double(Faraday::Response, body: {
+                                           'error'             => 'authorization_pending',
+                                           'error_description' => 'Waiting for user'
+                                         })
+      allow(oauth_conn).to receive(:post).and_return(pending_response)
+
+      result = runner.poll_device_code(tenant_id: 'test-tenant', client_id: 'app-id',
+                                       device_code: 'DEVICE123', interval: 0, timeout: 0)
+      expect(result[:error]).to eq('timeout')
+    end
+
     it 'returns error for denied authorization' do
       error_response = instance_double(Faraday::Response, body: {
                                          'error'             => 'authorization_declined',
