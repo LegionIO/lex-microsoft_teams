@@ -1,5 +1,52 @@
 # frozen_string_literal: true
 
+# Ensure PreferenceProfile stub has VALID_VALUES (may already exist from other spec stubs)
+unless defined?(Legion::Extensions::Mesh::Helpers::PreferenceProfile)
+  module Legion
+    module Extensions
+      module Mesh
+        module Helpers
+          module PreferenceProfile
+          end
+        end
+      end
+    end
+  end
+end
+
+unless defined?(Legion::Extensions::Mesh::Helpers::PreferenceProfile::VALID_VALUES)
+  Legion::Extensions::Mesh::Helpers::PreferenceProfile.const_set(:VALID_VALUES, {
+    'verbosity'       => %i[terse concise normal detailed verbose],
+    'tone'            => %i[casual conversational professional formal],
+    'format'          => %i[plain structured markdown],
+    'technical_depth' => %i[high_level moderate deep implementation]
+  }.freeze)
+end
+
+unless Legion::Extensions::Mesh::Helpers::PreferenceProfile.respond_to?(:resolve)
+  module Legion::Extensions::Mesh::Helpers::PreferenceProfile # rubocop:disable Style/ClassAndModuleChildren
+    module_function
+
+    def resolve(**)
+      { verbosity: :normal, tone: :professional, format: :structured,
+        technical_depth: :moderate, personality: nil, custom: {},
+        sources: [:defaults], resolved_at: Time.now }
+    end
+
+    def store_preference(**)
+      { stored: true }
+    end
+
+    def clear_preferences(**)
+      { cleared: true }
+    end
+
+    def preference_instructions(**)
+      nil
+    end
+  end
+end
+
 RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
   let(:runner) { Object.new.extend(described_class) }
   let(:bot_conn) { instance_double(Faraday::Connection) }
@@ -247,6 +294,60 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
       it 'recognizes "resume Sarah"' do
         result = bot.handle_command(text: 'resume Sarah', owner_id: 'user1', chat_id: '19:bot')
         expect(result[:command]).to eq(:resume)
+      end
+    end
+
+    describe 'prefer command' do
+      it 'recognizes "prefer concise"' do
+        profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
+        allow(profile_mod).to receive(:store_preference)
+          .and_return({ stored: true, domain: 'verbosity', value: 'concise', source: 'explicit' })
+
+        result = bot.handle_command(text: 'prefer concise', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:prefer)
+        expect(result[:success]).to be true
+      end
+
+      it 'recognizes "prefer formal"' do
+        profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
+        allow(profile_mod).to receive(:store_preference)
+          .and_return({ stored: true, domain: 'tone', value: 'formal', source: 'explicit' })
+
+        result = bot.handle_command(text: 'prefer formal', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:prefer)
+        expect(result[:success]).to be true
+      end
+
+      it 'rejects unknown preference value' do
+        result = bot.handle_command(text: 'prefer banana', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:prefer)
+        expect(result[:success]).to be false
+      end
+    end
+
+    describe 'preferences command' do
+      it 'recognizes "preferences"' do
+        profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
+        allow(profile_mod).to receive(:resolve)
+          .and_return({ verbosity: :normal, tone: :professional, format: :structured,
+                        technical_depth: :moderate, sources: [:defaults], resolved_at: Time.now })
+
+        result = bot.handle_command(text: 'preferences', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:preferences)
+        expect(result[:success]).to be true
+        expect(result[:message]).to include('verbosity')
+      end
+    end
+
+    describe 'reset preferences command' do
+      it 'recognizes "reset preferences"' do
+        profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
+        allow(profile_mod).to receive(:clear_preferences)
+          .and_return({ cleared: true })
+
+        result = bot.handle_command(text: 'reset preferences', owner_id: 'user1', chat_id: '19:bot')
+        expect(result[:command]).to eq(:reset_preferences)
+        expect(result[:success]).to be true
       end
     end
   end

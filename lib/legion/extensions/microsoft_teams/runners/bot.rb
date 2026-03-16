@@ -146,6 +146,12 @@ module Legion
               cmd_pause(name: ::Regexp.last_match(1).strip, owner_id: owner_id)
             when /\Aresume\s+(.+)/i
               cmd_resume(name: ::Regexp.last_match(1).strip, owner_id: owner_id)
+            when /\Areset preferences\z/i
+              cmd_reset_preferences(owner_id: owner_id)
+            when /\Aprefer\s+(.+)/i
+              cmd_prefer(value: ::Regexp.last_match(1).strip, owner_id: owner_id)
+            when /\A(?:preferences|my preferences)\z/i
+              cmd_preferences(owner_id: owner_id)
             end
           end
 
@@ -313,6 +319,69 @@ module Legion
 
             subscription_registry.resume(owner_id: owner_id, chat_id: sub[:chat_id])
             { command: :resume, success: true, message: "Resumed watching #{name}." }
+          end
+
+          def cmd_prefer(value:, owner_id:)
+            return preference_not_available unless preference_profile_available?
+
+            domain = resolve_preference_domain(value)
+            unless domain
+              return { command: :prefer, success: false,
+                       message: "Unknown preference '#{value}'. " \
+                                'Try: concise, detailed, verbose, terse, casual, formal, plain, markdown, deep, high_level.' }
+            end
+
+            result = Legion::Extensions::Mesh::Helpers::PreferenceProfile.store_preference(
+              owner_id: owner_id, domain: domain, value: value, source: 'explicit'
+            )
+
+            if result[:stored]
+              { command: :prefer, success: true, message: "Preference set: #{domain} = #{value}." }
+            else
+              { command: :prefer, success: false, message: "Could not save preference: #{result[:reason]}" }
+            end
+          end
+
+          def cmd_preferences(owner_id:)
+            return preference_not_available unless preference_profile_available?
+
+            profile = Legion::Extensions::Mesh::Helpers::PreferenceProfile.resolve(owner_id: owner_id)
+            lines = []
+            lines << "- verbosity: #{profile[:verbosity]}"
+            lines << "- tone: #{profile[:tone]}"
+            lines << "- format: #{profile[:format]}"
+            lines << "- technical_depth: #{profile[:technical_depth]}"
+            lines << "- sources: #{profile[:sources].join(', ')}"
+
+            { command: :preferences, success: true,
+              message: "Current preferences:\n#{lines.join("\n")}" }
+          end
+
+          def cmd_reset_preferences(owner_id:)
+            return preference_not_available unless preference_profile_available?
+
+            Legion::Extensions::Mesh::Helpers::PreferenceProfile.clear_preferences(
+              owner_id: owner_id, source: 'explicit'
+            )
+            { command: :reset_preferences, success: true,
+              message: 'Explicit preferences cleared. Using observed/default preferences.' }
+          end
+
+          def preference_profile_available?
+            defined?(Legion::Extensions::Mesh::Helpers::PreferenceProfile)
+          end
+
+          def preference_not_available
+            { command: :prefer, success: false, message: 'Preference system not available.' }
+          end
+
+          def resolve_preference_domain(value)
+            return nil unless preference_profile_available?
+
+            Legion::Extensions::Mesh::Helpers::PreferenceProfile::VALID_VALUES.each do |domain, values|
+              return domain if values.include?(value.downcase.to_sym)
+            end
+            nil
           end
 
           def find_chat_with_person(name:, token: nil)
