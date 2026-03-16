@@ -5,7 +5,7 @@ module Legion
     module MicrosoftTeams
       module Helpers
         module PromptResolver
-          def resolve_prompt(mode:, conversation_id:)
+          def resolve_prompt(mode:, conversation_id:, owner_id: nil)
             settings = teams_settings
             base = settings.dig(:bot, :system_prompt) || ''
 
@@ -15,10 +15,13 @@ module Legion
             overrides = conversation_overrides(conversation_id: conversation_id)
             prompt = "#{prompt}\n\n#{overrides[:system_prompt_append]}" if overrides && overrides[:system_prompt_append]
 
+            pref_instructions = preference_instructions_for(owner_id: owner_id)
+            prompt = "#{prompt}\n\n#{pref_instructions}" if pref_instructions
+
             prompt
           end
 
-          def resolve_llm_config(conversation_id:, mode: nil) # rubocop:disable Lint/UnusedMethodArgument
+          def resolve_llm_config(conversation_id:, mode: nil, owner_id: nil) # rubocop:disable Lint/UnusedMethodArgument
             settings = teams_settings
             base_llm = settings.dig(:bot, :llm) || {}
 
@@ -43,6 +46,16 @@ module Legion
             return nil unless defined?(Legion::Extensions::Memory::Runners::Traces)
 
             nil # TODO: query lex-memory for conversation_config by conversation_id
+          end
+
+          def preference_instructions_for(owner_id:)
+            return nil unless owner_id
+            return nil unless defined?(Legion::Extensions::Mesh::Helpers::PreferenceProfile)
+
+            profile = Legion::Extensions::Mesh::Helpers::PreferenceProfile.resolve(owner_id: owner_id)
+            Legion::Extensions::Mesh::Helpers::PreferenceProfile.preference_instructions(profile: profile)
+          rescue StandardError
+            nil
           end
         end
       end

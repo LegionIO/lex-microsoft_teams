@@ -2,6 +2,31 @@
 
 require 'spec_helper'
 
+# Stub PreferenceProfile if lex-mesh not loaded
+unless defined?(Legion::Extensions::Mesh::Helpers::PreferenceProfile)
+  module Legion
+    module Extensions
+      module Mesh
+        module Helpers
+          module PreferenceProfile
+            module_function
+
+            def resolve(**)
+              { verbosity: :normal, tone: :professional, format: :structured,
+                technical_depth: :moderate, personality: nil, custom: {},
+                sources: [:defaults], resolved_at: Time.now }
+            end
+
+            def preference_instructions(profile:) # rubocop:disable Lint/UnusedMethodArgument
+              nil
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::PromptResolver do
   let(:resolver) { Object.new.extend(described_class) }
   let(:base_settings) do
@@ -63,6 +88,36 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::PromptResolver do
       config = resolver.resolve_llm_config(mode: :direct, conversation_id: '19:abc')
       expect(config[:model]).to eq('claude-haiku-4-5-20251001')
       expect(config[:intent]).to eq({ capability: :moderate })
+    end
+  end
+
+  describe '#resolve_prompt with preferences' do
+    it 'appends preference instructions when owner_id provided' do
+      profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
+      allow(profile_mod).to receive(:resolve).and_return(
+        { verbosity: :concise, tone: :formal, format: :structured, technical_depth: :moderate,
+          sources: [:explicit], resolved_at: Time.now }
+      )
+      allow(profile_mod).to receive(:preference_instructions).and_return(
+        'Keep responses brief and to the point. Use formal, professional language.'
+      )
+
+      prompt = resolver.resolve_prompt(mode: :direct, conversation_id: '19:abc', owner_id: 'user1')
+      expect(prompt).to include('brief')
+      expect(prompt).to include('formal')
+    end
+
+    it 'works without owner_id (backward compatible)' do
+      prompt = resolver.resolve_prompt(mode: :direct, conversation_id: '19:abc')
+      expect(prompt).to be_a(String)
+    end
+
+    it 'handles PreferenceProfile errors gracefully' do
+      profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
+      allow(profile_mod).to receive(:resolve).and_raise(StandardError, 'boom')
+
+      prompt = resolver.resolve_prompt(mode: :direct, conversation_id: '19:abc', owner_id: 'user1')
+      expect(prompt).to be_a(String)
     end
   end
 end
