@@ -68,6 +68,9 @@ gem install lex-microsoft_teams
 - `get_transcript` — Get transcript metadata
 - `get_transcript_content` — Get transcript content (VTT default, DOCX optional via `format:` param)
 
+### Presence
+- `get_presence` — Get the availability and activity status for a user
+
 ### Subscriptions (Change Notifications)
 - `list_subscriptions` — List active subscriptions
 - `get_subscription` — Get subscription details
@@ -76,6 +79,14 @@ gem install lex-microsoft_teams
 - `delete_subscription` — Delete a subscription
 - `subscribe_to_chat_messages` — Subscribe to chat message events
 - `subscribe_to_channel_messages` — Subscribe to channel message events
+
+### Local Cache (Offline)
+- `extract_local_messages` — Extract messages from the Teams 2.x LevelDB local storage without Graph API credentials
+- `local_cache_available?` — Check whether the local Teams cache exists on disk
+- `local_cache_stats` — Get message count and date range stats from the local cache without extracting
+
+### Cache Ingest
+- `ingest_cache` — Ingest messages from the local Teams cache into lex-memory as episodic traces; returns `{ stored:, skipped:, latest_time: }`
 
 ### Adaptive Cards
 - `build_card` — Build an Adaptive Card payload
@@ -135,6 +146,8 @@ Tokens are stored in Vault (`legionio/microsoft_teams/delegated_token`) and sile
 
 ## Standalone Client
 
+The `Client` class includes all runner modules (Auth, Teams, Chats, Messages, Channels, ChannelMessages, Subscriptions, AdaptiveCards, Bot, Presence, Meetings, Transcripts, LocalCache, CacheIngest).
+
 ```ruby
 client = Legion::Extensions::MicrosoftTeams::Client.new(
   tenant_id:     'your-tenant-id',
@@ -153,6 +166,10 @@ client.send_text(
   conversation_id: 'conv-id',
   text: 'Hello from bot'
 )
+
+# Local cache (no credentials needed)
+client.local_cache_available?
+client.extract_local_messages(since: Time.now - 86_400)
 ```
 
 ## Requirements

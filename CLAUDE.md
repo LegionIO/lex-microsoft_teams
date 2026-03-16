@@ -197,7 +197,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 185 specs
+bundle exec rspec     # 185 specs (as of v0.5.0)
 bundle exec rubocop   # Clean
 ```
 
