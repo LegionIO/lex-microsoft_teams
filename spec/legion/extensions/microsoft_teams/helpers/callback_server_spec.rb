@@ -41,7 +41,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::CallbackServer do
     it 'returns the localhost callback URL with port' do
       server = described_class.new
       server.start
-      expect(server.redirect_uri).to eq("http://localhost:#{server.port}/callback")
+      expect(server.redirect_uri).to eq("http://127.0.0.1:#{server.port}/callback")
       server.shutdown
     end
   end

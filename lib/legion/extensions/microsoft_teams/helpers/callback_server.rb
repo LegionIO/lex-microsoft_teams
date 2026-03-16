@@ -38,11 +38,12 @@ module Legion
 
           def shutdown
             @server&.close rescue nil # rubocop:disable Style/RescueModifier
+            @thread&.join(2)
             @thread&.kill
           end
 
           def redirect_uri
-            "http://localhost:#{@port}/callback"
+            "http://127.0.0.1:#{@port}/callback"
           end
 
           private
