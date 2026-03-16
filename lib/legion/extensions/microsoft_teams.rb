@@ -12,6 +12,7 @@ require 'legion/extensions/microsoft_teams/runners/subscriptions'
 require 'legion/extensions/microsoft_teams/runners/adaptive_cards'
 require 'legion/extensions/microsoft_teams/runners/bot'
 require 'legion/extensions/microsoft_teams/runners/presence'
+require 'legion/extensions/microsoft_teams/runners/meetings'
 require 'legion/extensions/microsoft_teams/runners/local_cache'
 require 'legion/extensions/microsoft_teams/runners/cache_ingest'
 
