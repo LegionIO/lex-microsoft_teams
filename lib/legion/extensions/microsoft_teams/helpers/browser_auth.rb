@@ -68,11 +68,12 @@ module Legion
 
             server = CallbackServer.new
             server.start
+            callback_uri = server.redirect_uri
 
             url = @auth.authorize_url(
               tenant_id:      tenant_id,
               client_id:      client_id,
-              redirect_uri:   server.redirect_uri,
+              redirect_uri:   callback_uri,
               scope:          scopes,
               state:          state,
               code_challenge: challenge
@@ -81,12 +82,10 @@ module Legion
             log_info('Opening browser for authentication...')
             unless open_browser(url)
               log_info('Could not open browser. Falling back to device code flow.')
-              server.shutdown
               return authenticate_device_code
             end
 
             result = server.wait_for_callback(timeout: 120)
-            server.shutdown
 
             return { error: 'timeout', description: 'No callback received within timeout' } unless result && result[:code]
 
@@ -96,10 +95,12 @@ module Legion
               tenant_id:     tenant_id,
               client_id:     client_id,
               code:          result[:code],
-              redirect_uri:  server.redirect_uri,
+              redirect_uri:  callback_uri,
               code_verifier: verifier,
               scope:         scopes
             )
+          ensure
+            server&.shutdown
           end
 
           def authenticate_device_code
@@ -108,6 +109,8 @@ module Legion
               client_id: client_id,
               scope:     scopes
             )
+            return { error: dc[:error], description: dc[:description] } if dc[:error]
+
             body = dc[:result]
 
             log_info("Go to:  #{body['verification_uri']}")
