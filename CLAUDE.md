@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.4.0
+**Version**: 0.4.1
 
 ## Architecture
 
@@ -135,6 +135,9 @@ Keyword-based command detection in bot DMs, checked before LLM response:
 | `watching` / `list` / `subscriptions` | List active subscriptions |
 | `pause <name>` | Disable subscription temporarily |
 | `resume <name>` | Re-enable paused subscription |
+| `prefer <value>` | Set preference (concise, detailed, formal, casual, etc.) |
+| `preferences` / `my preferences` | Show current resolved preferences |
+| `reset preferences` | Clear explicit preferences, fall back to observed/defaults |
 | anything else | LLM response (existing flow) |
 
 ## API Surface
@@ -173,12 +176,13 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 - `legion-llm` — LLM routing for bot responses (`llm_chat`, `llm_session`)
 - `legion-cache` — High-water mark storage for message dedup
 - `lex-memory` — Session persistence and episodic trace storage
+- `lex-mesh` — PreferenceProfile for per-user preference resolution
 
 ## Testing
 
 ```bash
 bundle install
-bundle exec rspec     # 146 specs
+bundle exec rspec     # 157 specs
 bundle exec rubocop   # Clean
 ```
 
