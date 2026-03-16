@@ -74,4 +74,77 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
       expect(cache).to have_received(:acquire_fresh_token).twice
     end
   end
+
+  describe '#cached_delegated_token' do
+    it 'returns nil when no delegated token is cached' do
+      expect(cache.cached_delegated_token).to be_nil
+    end
+
+    it 'returns the cached delegated token' do
+      cache.store_delegated_token(
+        access_token:  'delegated-token-123',
+        refresh_token: 'refresh-123',
+        expires_in:    3600,
+        scopes:        'OnlineMeetings.Read'
+      )
+      expect(cache.cached_delegated_token).to eq('delegated-token-123')
+    end
+
+    it 'returns nil when the delegated token is expired and refresh fails' do
+      cache.store_delegated_token(
+        access_token:  'old-token',
+        refresh_token: 'refresh-123',
+        expires_in:    -1,
+        scopes:        'OnlineMeetings.Read'
+      )
+      expect(cache.cached_delegated_token).to be_nil
+    end
+  end
+
+  describe '#store_delegated_token' do
+    it 'stores token data in memory' do
+      cache.store_delegated_token(
+        access_token:  'token-abc',
+        refresh_token: 'refresh-abc',
+        expires_in:    3600,
+        scopes:        'scope1'
+      )
+      expect(cache.cached_delegated_token).to eq('token-abc')
+    end
+  end
+
+  describe '#clear_delegated_token!' do
+    it 'clears the delegated token cache' do
+      cache.store_delegated_token(
+        access_token:  'token-abc',
+        refresh_token: 'refresh-abc',
+        expires_in:    3600,
+        scopes:        'scope1'
+      )
+      cache.clear_delegated_token!
+      expect(cache.cached_delegated_token).to be_nil
+    end
+  end
+
+  describe '#load_from_vault' do
+    it 'returns false when Legion::Crypt is not defined' do
+      expect(cache.load_from_vault).to be false
+    end
+  end
+
+  describe '#save_to_vault' do
+    it 'returns false when Legion::Crypt is not defined' do
+      cache.store_delegated_token(
+        access_token:  'token-abc',
+        refresh_token: 'refresh-abc',
+        expires_in:    3600,
+        scopes:        'scope1'
+      )
+      expect(cache.save_to_vault).to be false
+    end
+
+    it 'returns false when no delegated token is stored' do
+      expect(cache.save_to_vault).to be false
+    end
+  end
 end
