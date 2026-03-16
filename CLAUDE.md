@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.3.0
+**Version**: 0.4.0
 
 ## Architecture
 
@@ -27,6 +27,8 @@ Legion::Extensions::MicrosoftTeams
 │   ├── AdaptiveCards     # Adaptive Card payload builder
 │   ├── Bot               # Bot Framework + AI bot (handle_message, handle_command, observe_message)
 │   ├── Presence          # Graph API user presence
+│   ├── Meetings          # Online meeting CRUD, join URL lookup, attendance reports
+│   ├── Transcripts       # Meeting transcript list/get/content (VTT/DOCX)
 │   ├── LocalCache        # Offline message extraction from local LevelDB cache
 │   └── CacheIngest       # Ingest cached messages into lex-memory as episodic traces
 ├── Actors/
@@ -154,6 +156,8 @@ Four distinct APIs accessed via Faraday + one local data source:
 | `Team.ReadBasic.All` | Application | List teams and members |
 | `Channel.ReadBasic.All` | Application | List channels |
 | `Presence.Read.All` | Application | Read user presence |
+| `OnlineMeeting.Read.All` | Application | Read online meetings |
+| `OnlineMeetingTranscript.Read.All` | Application | Read meeting transcripts |
 
 For bot scenarios, register the Entra app as a Teams Bot via Bot Framework portal.
 
@@ -174,7 +178,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 132 specs
+bundle exec rspec     # 146 specs
 bundle exec rubocop   # Clean
 ```
 

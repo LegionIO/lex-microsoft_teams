@@ -48,6 +48,21 @@ gem install lex-microsoft_teams
 - `reply_to_channel_message` — Reply to a channel message
 - `list_channel_message_replies` — List replies to a channel message
 
+### Meetings
+- `list_meetings` — List online meetings for a user
+- `get_meeting` — Get meeting details
+- `create_meeting` — Create an online meeting
+- `update_meeting` — Update meeting properties
+- `delete_meeting` — Delete a meeting
+- `get_meeting_by_join_url` — Find a meeting by its join URL
+- `list_attendance_reports` — List attendance reports for a meeting
+- `get_attendance_report` — Get a specific attendance report with attendee records
+
+### Transcripts
+- `list_transcripts` — List available transcripts for a meeting
+- `get_transcript` — Get transcript metadata
+- `get_transcript_content` — Get transcript content (VTT default, DOCX optional via `format:` param)
+
 ### Subscriptions (Change Notifications)
 - `list_subscriptions` — List active subscriptions
 - `get_subscription` — Get subscription details

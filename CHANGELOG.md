@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0] - 2026-03-15
+
+### Added
+- Meetings runner: list, get, create, update, delete online meetings, lookup by join URL, attendance reports
+- Transcripts runner: list, get metadata, get content (VTT/DOCX format support)
+- New Graph API permissions: `OnlineMeeting.Read.All`, `OnlineMeetingTranscript.Read.All`
+
 ## [0.3.0] - 2026-03-15
 
 ### Added
