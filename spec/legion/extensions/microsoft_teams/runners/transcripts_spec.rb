@@ -74,5 +74,11 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Transcripts do
       runner.get_transcript_content(user_id: 'u1', meeting_id: 'm1', transcript_id: 't1', format: :docx)
       expect(headers['Accept']).to eq('application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     end
+
+    it 'raises KeyError for unknown format' do
+      expect do
+        runner.get_transcript_content(user_id: 'u1', meeting_id: 'm1', transcript_id: 't1', format: :pdf)
+      end.to raise_error(KeyError)
+    end
   end
 end

@@ -27,7 +27,7 @@ module Legion
           end
 
           def get_transcript_content(user_id:, meeting_id:, transcript_id:, format: :vtt, **)
-            accept = CONTENT_TYPES.fetch(format, CONTENT_TYPES[:vtt])
+            accept = CONTENT_TYPES.fetch(format)
             response = graph_connection(**).get(
               "/users/#{user_id}/onlineMeetings/#{meeting_id}/transcripts/#{transcript_id}/content"
             ) do |req|
