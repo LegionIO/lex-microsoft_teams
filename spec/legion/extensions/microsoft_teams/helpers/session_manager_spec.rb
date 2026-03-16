@@ -69,4 +69,25 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::SessionManager do
       expect(manager.active_sessions).to eq(0)
     end
   end
+
+  describe '#refresh_prompt' do
+    it 'rebuilds system prompt without clearing messages' do
+      manager.get_or_create(conversation_id: '19:abc', owner_id: 'user1', mode: :direct)
+      manager.add_message(conversation_id: '19:abc', role: :user, content: 'hello')
+      manager.refresh_prompt(conversation_id: '19:abc')
+      msgs = manager.recent_messages(conversation_id: '19:abc')
+      expect(msgs.length).to eq(1)
+    end
+
+    it 'returns nil for unknown conversation' do
+      result = manager.refresh_prompt(conversation_id: 'unknown')
+      expect(result).to be_nil
+    end
+
+    it 'returns the new system prompt' do
+      manager.get_or_create(conversation_id: '19:abc', owner_id: 'user1', mode: :direct)
+      result = manager.refresh_prompt(conversation_id: '19:abc')
+      expect(result).to be_a(String)
+    end
+  end
 end

@@ -29,11 +29,21 @@ module Legion
               message_count: 0,
               last_active:   Time.now,
               messages:      [],
-              system_prompt: resolve_prompt(mode: mode, conversation_id: conversation_id),
-              llm_config:    resolve_llm_config(mode: mode, conversation_id: conversation_id)
+              system_prompt: resolve_prompt(mode: mode, conversation_id: conversation_id, owner_id: owner_id),
+              llm_config:    resolve_llm_config(mode: mode, conversation_id: conversation_id, owner_id: owner_id)
             }
 
             @sessions[conversation_id] = session
+          end
+
+          def refresh_prompt(conversation_id:)
+            return nil unless @sessions.key?(conversation_id)
+
+            session = @sessions[conversation_id]
+            session[:system_prompt] = resolve_prompt(
+              mode: session[:mode], conversation_id: conversation_id, owner_id: session[:owner_id]
+            )
+            session[:system_prompt]
           end
 
           def touch(conversation_id:)
