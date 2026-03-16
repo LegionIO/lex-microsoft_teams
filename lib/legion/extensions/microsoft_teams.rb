@@ -24,6 +24,7 @@ require 'legion/extensions/microsoft_teams/helpers/session_manager'
 require 'legion/extensions/microsoft_teams/helpers/subscription_registry'
 require 'legion/extensions/microsoft_teams/helpers/token_cache'
 require 'legion/extensions/microsoft_teams/helpers/callback_server'
+require 'legion/extensions/microsoft_teams/helpers/browser_auth'
 
 # Transport
 if defined?(Legion::Transport)

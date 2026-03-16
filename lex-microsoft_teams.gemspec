@@ -26,6 +26,7 @@ Gem::Specification.new do |spec|
   end
   spec.require_paths = ['lib']
 
+  spec.add_dependency 'base64', '>= 0.1'
   spec.add_dependency 'faraday', '>= 2.0'
   spec.add_dependency 'snappy', '>= 0.5'
 end
