@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1] - 2026-03-15
+
+### Added
+- Preference commands: `prefer <value>`, `preferences`, `reset preferences`
+- PromptResolver queries PreferenceProfile for per-user system prompt customization
+- SessionManager passes owner_id through to PromptResolver
+- `SessionManager#refresh_prompt` rebuilds system prompt without clearing history
+
 ## [0.4.0] - 2026-03-15
 
 ### Added
