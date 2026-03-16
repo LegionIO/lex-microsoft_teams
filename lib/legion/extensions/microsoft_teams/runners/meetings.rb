@@ -44,7 +44,7 @@ module Legion
           end
 
           def get_meeting_by_join_url(user_id:, join_url:, **)
-            params = { '$filter' => "joinWebUrl eq '#{join_url}'" }
+            params = { '$filter' => "joinWebUrl eq '#{join_url.gsub("'", "''")}'" }
             response = graph_connection(**).get("/users/#{user_id}/onlineMeetings", params)
             { result: response.body }
           end

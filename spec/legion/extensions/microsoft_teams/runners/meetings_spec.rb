@@ -71,7 +71,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Meetings do
       response = instance_double(Faraday::Response,
                                  body: { 'value' => [{ 'id' => 'm1', 'joinWebUrl' => 'https://teams.microsoft.com/l/meetup/123' }] })
       allow(graph_conn).to receive(:get)
-        .with('/users/u1/onlineMeetings', hash_including('$filter'))
+        .with('/users/u1/onlineMeetings',
+              { '$filter' => "joinWebUrl eq 'https://teams.microsoft.com/l/meetup/123'" })
         .and_return(response)
 
       result = runner.get_meeting_by_join_url(user_id: 'u1', join_url: 'https://teams.microsoft.com/l/meetup/123')
