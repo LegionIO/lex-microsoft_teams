@@ -13,6 +13,11 @@ gem install lex-microsoft_teams
 ### Auth
 - `acquire_token` — OAuth2 client credentials token for Graph API
 - `acquire_bot_token` — OAuth2 token for Bot Framework
+- `authorize_url` — Build Authorization Code + PKCE authorize URL for delegated consent
+- `exchange_code` — Exchange authorization code for delegated access/refresh tokens
+- `refresh_delegated_token` — Refresh a delegated token using a refresh token
+- `request_device_code` — Start Device Code flow (headless fallback)
+- `poll_device_code` — Poll for Device Code completion (RFC 8628 compliant)
 
 ### Teams
 - `list_joined_teams` — List teams the user has joined
@@ -101,6 +106,32 @@ gem install lex-microsoft_teams
 - `SessionManager` — Multi-turn LLM session lifecycle with lex-memory persistence
 - `PromptResolver` — Layered system prompt resolution (settings default -> mode -> per-conversation)
 - `HighWaterMark` — Per-chat message deduplication via legion-cache
+- `TokenCache` — In-memory OAuth token cache with pre-expiry refresh (app + delegated slots)
+- `SubscriptionRegistry` — Conversation observation subscriptions (in-memory + lex-memory)
+- `BrowserAuth` — Delegated OAuth orchestrator (PKCE, headless detection, browser launch)
+- `CallbackServer` — Ephemeral TCP server for OAuth redirect callback
+
+### Delegated Authentication (v0.5.0)
+
+Opt-in browser-based OAuth for delegated Microsoft Graph permissions (e.g., meeting transcripts).
+
+**Authorization Code + PKCE** (primary): Opens the user's browser for Entra ID login, captures the callback on an ephemeral local port, exchanges the code with PKCE verification.
+
+**Device Code** (fallback): Automatically selected in headless/SSH environments (no `DISPLAY`/`WAYLAND_DISPLAY`). Displays a URL and code for the user to enter on any device.
+
+```ruby
+# Via CLI
+# legion auth teams --tenant-id TENANT --client-id CLIENT
+
+# Via code
+auth = Legion::Extensions::MicrosoftTeams::Helpers::BrowserAuth.new(
+  tenant_id: 'your-tenant-id',
+  client_id: 'your-client-id'
+)
+result = auth.authenticate  # returns token hash with access_token, refresh_token, expires_in
+```
+
+Tokens are stored in Vault (`legionio/microsoft_teams/delegated_token`) and silently refreshed before expiry.
 
 ## Standalone Client
 

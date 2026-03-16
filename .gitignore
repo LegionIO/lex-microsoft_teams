@@ -9,3 +9,7 @@
 
 # rspec failure tracking
 .rspec_status
+
+# local credentials
+.env
+test_device_code.rb

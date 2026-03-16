@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.4.1
+**Version**: 0.5.0
 
 ## Architecture
 
@@ -50,10 +50,23 @@ Legion::Extensions::MicrosoftTeams
 │   ├── HighWaterMark     # Per-chat message dedup via legion-cache (with in-memory fallback)
 │   ├── PromptResolver    # Layered system prompt resolution (settings -> mode -> per-conversation)
 │   ├── SessionManager    # Multi-turn LLM session lifecycle with lex-memory persistence
-│   ├── TokenCache        # In-memory OAuth token cache with 60s pre-expiry refresh
-│   └── SubscriptionRegistry # Conversation observation subscriptions (in-memory + lex-memory)
+│   ├── TokenCache        # In-memory OAuth token cache with pre-expiry refresh (app + delegated slots)
+│   ├── SubscriptionRegistry # Conversation observation subscriptions (in-memory + lex-memory)
+│   ├── BrowserAuth       # Delegated OAuth orchestrator (PKCE, headless detection, browser launch)
+│   └── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
 └── Client                # Standalone client (includes all runners)
 ```
+
+## Delegated Authentication (v0.5.0)
+
+Opt-in browser-based OAuth for delegated Microsoft Graph permissions. Two flows:
+
+- **Authorization Code + PKCE** (primary): Opens browser for Entra ID login, captures callback on ephemeral local port, exchanges code with PKCE verification
+- **Device Code** (fallback): Auto-selected in headless/SSH environments (no `DISPLAY`/`WAYLAND_DISPLAY`)
+
+Tokens stored in Vault (`legionio/microsoft_teams/delegated_token`) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Sinatra route: `GET /api/oauth/microsoft_teams/callback` for daemon re-auth.
+
+Key files: `Helpers::BrowserAuth` (orchestrator), `Helpers::CallbackServer` (ephemeral TCP), `Runners::Auth` (authorize_url, exchange_code, refresh_delegated_token), `Helpers::TokenCache` (delegated slot).
 
 ## AI Bot (v0.2.0)
 
@@ -159,8 +172,9 @@ Four distinct APIs accessed via Faraday + one local data source:
 | `Team.ReadBasic.All` | Application | List teams and members |
 | `Channel.ReadBasic.All` | Application | List channels |
 | `Presence.Read.All` | Application | Read user presence |
-| `OnlineMeeting.Read.All` | Application | Read online meetings |
-| `OnlineMeetingTranscript.Read.All` | Application | Read meeting transcripts |
+| `OnlineMeetings.Read` | Delegated | Read online meetings (user context) |
+| `OnlineMeetings.Read.All` | Application | Read online meetings |
+| `OnlineMeetingTranscript.Read.All` | Application/Delegated | Read meeting transcripts |
 
 For bot scenarios, register the Entra app as a Teams Bot via Bot Framework portal.
 
@@ -170,6 +184,7 @@ For bot scenarios, register the Entra app as a Teams Bot via Bot Framework porta
 |-----|---------|
 | `faraday` (>= 2.0) | HTTP client for Graph API, Bot Framework, and OAuth |
 | `snappy` (>= 0.5) | Snappy decompression for LevelDB SSTable blocks |
+| `base64` (>= 0.1) | Base64 encoding for PKCE (removed from Ruby 3.4 default gems) |
 
 Optional framework dependencies (guarded with `defined?`, not in gemspec):
 - `legion-transport` — AMQP exchange/queue/message for bot message routing
@@ -182,7 +197,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 157 specs
+bundle exec rspec     # 185 specs
 bundle exec rubocop   # Clean
 ```
 

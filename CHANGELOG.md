@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0] - 2026-03-16
+
+### Added
+- Delegated OAuth browser flow with Authorization Code + PKCE
+- Automatic Device Code fallback for headless environments
+- `Helpers::BrowserAuth` orchestrator (PKCE generation, headless detection, browser opening)
+- `Helpers::CallbackServer` ephemeral TCP server for OAuth redirect
+- `Runners::Auth#authorize_url`, `#exchange_code`, `#refresh_delegated_token` methods
+- `Helpers::TokenCache` delegated token slot with Vault persistence and silent refresh
+- `legion auth teams` CLI command (in LegionIO) for interactive authentication
+- `GET /api/oauth/microsoft_teams/callback` Sinatra route (in LegionIO) for daemon re-auth
+
+### Fixed
+- `poll_device_code` now persists `slow_down` interval increase per RFC 8628
+- `poll_device_code` returns error hash on timeout instead of raising RuntimeError
+
 ## [0.4.1] - 2026-03-15
 
 ### Added
