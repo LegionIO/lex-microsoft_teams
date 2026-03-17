@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2026-03-17
+
+### Added
+- `Transport` module extending `Legion::Extensions::Transport` to provide the `build` method expected by LegionIO's `build_transport`
+
 ## [0.5.0] - 2026-03-16
 
 ### Added

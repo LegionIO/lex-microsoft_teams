@@ -3,7 +3,9 @@
 module Legion
   module Extensions
     module MicrosoftTeams
-      VERSION = '0.5.1'
+      module Transport
+        extend Legion::Extensions::Transport
+      end
     end
   end
 end
