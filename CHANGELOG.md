@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2] - 2026-03-18
+
+### Fixed
+- CallbackServer Ruby 4.0 compatibility: replaced `CGI.parse` with `URI.decode_www_form` (avoids extracted cgi gem dependency)
+- CallbackServer header drain loop: fixed infinite loop when client disconnects before sending empty line
+- Broadened rescue in listen thread to `StandardError` to prevent silent thread death
+
 ## [0.5.1] - 2026-03-17
 
 ### Added

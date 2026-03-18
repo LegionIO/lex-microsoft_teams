@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'socket'
-require 'cgi'
+require 'uri'
 
 module Legion
   module Extensions
@@ -53,16 +53,19 @@ module Legion
               client = @server.accept
               request_line = client.gets
               # drain headers
-              nil until client.gets&.strip&.empty?
+              loop do
+                line = client.gets
+                break if line.nil? || line.strip.empty?
+              end
 
               if request_line&.include?('/callback?')
                 query = request_line.split[1].split('?', 2).last
-                params = CGI.parse(query)
+                params = URI.decode_www_form(query).to_h
 
                 @mutex.synchronize do
                   @result = {
-                    code:  params['code']&.first,
-                    state: params['state']&.first
+                    code:  params['code'],
+                    state: params['state']
                   }
                   @cv.broadcast
                 end
@@ -72,8 +75,8 @@ module Legion
               client.close
               break if @result
             end
-          rescue IOError
-            nil # server closed
+          rescue StandardError
+            nil # server closed or unexpected error
           end
         end
       end
