@@ -107,6 +107,35 @@ module Legion
             { result: response.body }
           end
 
+          def auth_callback(code: nil, state: nil, **)
+            unless code && state
+              return {
+                result:   { error: 'missing_params' },
+                response: { status: 400, content_type: 'text/html',
+                            body: '<html><body><h2>Missing code or state parameter</h2></body></html>' }
+              }
+            end
+
+            Legion::Events.emit('microsoft_teams.oauth.callback', code: code, state: state) if defined?(Legion::Events)
+
+            {
+              result:   { authenticated: true, code: code, state: state },
+              response: { status: 200, content_type: 'text/html',
+                          body: callback_success_html }
+            }
+          end
+
+          private
+
+          def callback_success_html
+            <<~HTML
+              <html><body style="font-family:sans-serif;text-align:center;padding:40px;">
+              <h2>Authentication complete</h2>
+              <p>You can close this window.</p>
+              </body></html>
+            HTML
+          end
+
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
                                                       Legion::Extensions::Helpers.const_defined?(:Lex)
         end

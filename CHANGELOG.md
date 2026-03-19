@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.5] - 2026-03-19
+
+### Added
+- `Hooks::Auth` hook class with `mount '/callback'` for OAuth redirect via expanded hooks system
+- `Runners::Auth#auth_callback` method handling OAuth callback with HTML response and event emission
+- OAuth callback now routes through `Ingress.run` for RBAC and audit support
+
+### Changed
+- OAuth callback URL moves from hardcoded `/api/oauth/microsoft_teams/callback` to `/api/hooks/lex/microsoft_teams/auth/callback`
+
 ## [0.5.4] - 2026-03-19
 
 ### Added
