@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.5.2
+**Version**: 0.5.4
 
 ## Architecture
 
@@ -36,7 +36,9 @@ Legion::Extensions::MicrosoftTeams
 │   ├── CacheSync             # Every 5min: incremental ingest of new messages
 │   ├── DirectChatPoller      # Every 5s: polls bot DM chats via Graph API
 │   ├── ObservedChatPoller    # Every 30s: polls subscribed human conversations (compliance-gated)
-│   └── MessageProcessor      # Subscription: consumes AMQP queue, routes by mode
+│   ├── MessageProcessor      # Subscription: consumes AMQP queue, routes by mode
+│   ├── AuthValidator         # Once: validates/restores delegated tokens on boot (2s delay)
+│   └── TokenRefresher        # Every 15min (configurable): keeps delegated tokens fresh
 ├── Transport/
 │   ├── Exchanges/Messages    # teams.messages topic exchange
 │   ├── Queues/MessagesProcess # teams.messages.process durable queue
@@ -50,7 +52,7 @@ Legion::Extensions::MicrosoftTeams
 │   ├── HighWaterMark     # Per-chat message dedup via legion-cache (with in-memory fallback)
 │   ├── PromptResolver    # Layered system prompt resolution (settings -> mode -> per-conversation)
 │   ├── SessionManager    # Multi-turn LLM session lifecycle with lex-memory persistence
-│   ├── TokenCache        # In-memory OAuth token cache with pre-expiry refresh (app + delegated slots)
+│   ├── TokenCache        # In-memory OAuth token cache with pre-expiry refresh (app + delegated slots, authenticated?/previously_authenticated? predicates)
 │   ├── SubscriptionRegistry # Conversation observation subscriptions (in-memory + lex-memory)
 │   ├── BrowserAuth       # Delegated OAuth orchestrator (PKCE, headless detection, browser launch)
 │   └── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
@@ -67,6 +69,18 @@ Opt-in browser-based OAuth for delegated Microsoft Graph permissions. Two flows:
 Tokens stored in Vault (`legionio/microsoft_teams/delegated_token`) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Sinatra route: `GET /api/oauth/microsoft_teams/callback` for daemon re-auth.
 
 Key files: `Helpers::BrowserAuth` (orchestrator), `Helpers::CallbackServer` (ephemeral TCP), `Runners::Auth` (authorize_url, exchange_code, refresh_delegated_token), `Helpers::TokenCache` (delegated slot).
+
+## Token Lifecycle (v0.5.4)
+
+Automatic delegated token management: validate on boot, refresh on a timer, re-authenticate via browser when a previously authenticated user's token expires.
+
+- **AuthValidator** (Once actor, 2s delay): Loads token from Vault/local file on boot, attempts refresh. If refresh fails and user previously authenticated (`previously_authenticated?` — local file exists), fires BrowserAuth. Silent for users who never opted in.
+- **TokenRefresher** (Every actor, 15min default): Guards with `authenticated?` (live token in memory). Refreshes and persists on each tick. On failure, same re-auth logic as AuthValidator.
+- **TokenCache predicates**: `authenticated?` = live token in `@delegated_cache`. `previously_authenticated?` = local token file exists on disk. This distinction controls auto re-auth (returning users only) vs silence (never-authenticated users).
+
+Configuration: `settings[:microsoft_teams][:auth][:delegated][:refresh_interval]` (default 900 seconds).
+
+Design doc: `docs/plans/2026-03-19-teams-token-lifecycle-design.md`
 
 ## AI Bot (v0.2.0)
 
@@ -104,6 +118,8 @@ microsoft_teams:
     tenant_id: "..."
     client_id: "..."
     client_secret: "vault://secret/teams/client_secret"
+    delegated:
+      refresh_interval: 900    # seconds (TokenRefresher interval)
   bot:
     bot_id: "28:your-bot-id"
     direct_poll_interval: 5      # seconds
@@ -197,7 +213,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 185 specs (as of v0.5.2)
+bundle exec rspec     # 209 specs (as of v0.5.4)
 bundle exec rubocop   # Clean
 ```
 
