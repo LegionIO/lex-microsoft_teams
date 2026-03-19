@@ -189,4 +189,42 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
       expect(cache.load_from_local).to be false
     end
   end
+
+  describe '#authenticated?' do
+    it 'returns false when no delegated token is cached' do
+      expect(cache.authenticated?).to be false
+    end
+
+    it 'returns true when a delegated token is stored' do
+      cache.store_delegated_token(
+        access_token: 'tok', refresh_token: 'ref',
+        expires_in: 3600, scopes: 'scope1'
+      )
+      expect(cache.authenticated?).to be true
+    end
+
+    it 'returns false after clearing delegated token' do
+      cache.store_delegated_token(
+        access_token: 'tok', refresh_token: 'ref',
+        expires_in: 3600, scopes: 'scope1'
+      )
+      cache.clear_delegated_token!
+      expect(cache.authenticated?).to be false
+    end
+  end
+
+  describe '#previously_authenticated?' do
+    it 'returns false when no local file exists' do
+      expect(cache.previously_authenticated?).to be false
+    end
+
+    it 'returns true after save_to_local' do
+      cache.store_delegated_token(
+        access_token: 'tok', refresh_token: 'ref',
+        expires_in: 3600, scopes: 'scope1'
+      )
+      cache.save_to_local
+      expect(cache.previously_authenticated?).to be true
+    end
+  end
 end

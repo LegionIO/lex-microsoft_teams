@@ -62,6 +62,14 @@ module Legion
             @mutex.synchronize { @delegated_cache = nil }
           end
 
+          def authenticated?
+            @mutex.synchronize { !@delegated_cache.nil? }
+          end
+
+          def previously_authenticated?
+            File.exist?(local_token_path)
+          end
+
           def load_from_vault
             return load_from_local unless defined?(Legion::Crypt)
 
