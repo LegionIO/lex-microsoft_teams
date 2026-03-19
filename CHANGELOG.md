@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.3] - 2026-03-19
+
+### Added
+- `user_path` helper in `Helpers::Client` for Graph API `/me/` vs `/users/{id}/` flexibility
+- `user_id: 'me'` default on all meeting, transcript, presence, chat, and team runner methods
+- `user_id:` parameter on `Client` constructor for application-permission workflows
+
+### Fixed
+- RecordParser 3-byte varint decoding: added missing `& 0x7F` mask on third byte
+- MessageProcessor actor namespace: `Actors` to `Actor` for consistency with all other actors
+- `Client#authenticate!` nil guard preventing `NoMethodError` on failed token acquisition
+- CallbackServer error handling: separate `IOError` (shutdown) from unexpected errors
+- SubscriptionRegistry now calls `load` on initialization to restore persisted subscriptions
+- Device code polling: collapsed duplicate case branches for cleaner error handling
+
+### Removed
+- Dead `transport.rb` file (never required by any code path)
+- Dead `.tap` block in CacheSync `args` method
+- Dead `conversation_overrides` TODO stub in PromptResolver (simplified to nil return)
+
+### Changed
+- `strip_html` in CacheIngest moved from public to private
+- Token cache spec cleanup: atomic file operations, `Process.pid` over `$$`
+
 ## [0.5.2] - 2026-03-18
 
 ### Fixed
