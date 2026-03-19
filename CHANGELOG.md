@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.4] - 2026-03-19
+
+### Added
+- `TokenCache#authenticated?` predicate for runtime delegated token state
+- `TokenCache#previously_authenticated?` predicate for persistent auth history
+- `AuthValidator` actor (Once): validates and restores delegated tokens on boot
+- `TokenRefresher` actor (Every, 15min configurable): keeps delegated tokens fresh
+- Automatic browser re-auth when previously authenticated user's token expires
+- `refresh_interval` config key at `settings[:microsoft_teams][:auth][:delegated]`
+
 ## [0.5.3] - 2026-03-19
 
 ### Added
