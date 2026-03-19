@@ -11,7 +11,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ChannelMessages do
   describe '#list_channel_messages' do
     it 'lists messages in a channel' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'cm1' }] })
-      allow(graph_conn).to receive(:get).with('/teams/t1/channels/ch1/messages', { '$top' => 50 }).and_return(response)
+      allow(graph_conn).to receive(:get).with('teams/t1/channels/ch1/messages', { '$top' => 50 }).and_return(response)
 
       result = runner.list_channel_messages(team_id: 't1', channel_id: 'ch1')
       expect(result[:result]['value'].first['id']).to eq('cm1')
@@ -22,7 +22,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ChannelMessages do
     it 'sends a message to a channel' do
       response = instance_double(Faraday::Response, body: { 'id' => 'cm2' })
       allow(graph_conn).to receive(:post).with(
-        '/teams/t1/channels/ch1/messages',
+        'teams/t1/channels/ch1/messages',
         hash_including(body: { contentType: 'text', content: 'Channel msg' })
       ).and_return(response)
 
@@ -35,7 +35,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ChannelMessages do
     it 'replies to a channel message' do
       response = instance_double(Faraday::Response, body: { 'id' => 'cm3' })
       allow(graph_conn).to receive(:post).with(
-        '/teams/t1/channels/ch1/messages/cm1/replies', anything
+        'teams/t1/channels/ch1/messages/cm1/replies', anything
       ).and_return(response)
 
       result = runner.reply_to_channel_message(team_id: 't1', channel_id: 'ch1', message_id: 'cm1', content: 'Reply')

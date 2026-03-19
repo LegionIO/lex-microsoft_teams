@@ -17,7 +17,7 @@ module Legion
         class Extractor
           Message = Struct.new(
             :content,         # HTML message body
-            :sender,          # display name (e.g. "Iverson, Matthew D")
+            :sender,          # display name (e.g. "Doe, Jane A")
             :sender_id,       # orgid URI (e.g. "8:orgid:uuid")
             :message_type,    # RichText/Html, RichText/Media_Card, Text
             :content_type,    # Text

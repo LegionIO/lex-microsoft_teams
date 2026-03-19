@@ -10,6 +10,6 @@
 # rspec failure tracking
 .rspec_status
 
-# local credentials
+# local credentials and test scripts
 .env
-test_device_code.rb
+test_*.rb

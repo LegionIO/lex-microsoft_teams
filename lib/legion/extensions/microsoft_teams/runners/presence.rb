@@ -9,9 +9,9 @@ module Legion
         module Presence
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
-          def get_presence(user_id:, **)
+          def get_presence(user_id: 'me', **)
             conn = graph_connection(**)
-            response = conn.get("/users/#{user_id}/presence")
+            response = conn.get("#{user_path(user_id)}/presence")
             body = response.body || {}
             {
               availability: body['availability'],

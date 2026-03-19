@@ -23,7 +23,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Presence do
 
     it 'calls the correct graph endpoint' do
       runner.get_presence(user_id: 'user-123')
-      expect(conn).to have_received(:get).with('/users/user-123/presence')
+      expect(conn).to have_received(:get).with('users/user-123/presence')
     end
 
     it 'returns Offline when API call fails' do

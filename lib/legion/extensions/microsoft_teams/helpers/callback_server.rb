@@ -75,8 +75,13 @@ module Legion
               client.close
               break if @result
             end
-          rescue StandardError
-            nil # server closed or unexpected error
+          rescue IOError
+            nil # server closed during shutdown
+          rescue StandardError => e
+            @mutex.synchronize do
+              @result ||= { error: e.message }
+              @cv.broadcast
+            end
           end
         end
       end

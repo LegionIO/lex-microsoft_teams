@@ -11,24 +11,24 @@ module Legion
 
           def list_chats(user_id: 'me', top: 50, **)
             params = { '$top' => top }
-            response = graph_connection(**).get("/#{user_id}/chats", params)
+            response = graph_connection(**).get("#{user_path(user_id)}/chats", params)
             { result: response.body }
           end
 
           def get_chat(chat_id:, **)
-            response = graph_connection(**).get("/chats/#{chat_id}")
+            response = graph_connection(**).get("chats/#{chat_id}")
             { result: response.body }
           end
 
           def create_chat(members:, chat_type: 'oneOnOne', topic: nil, **)
             payload = { chatType: chat_type, members: members }
             payload[:topic] = topic if topic
-            response = graph_connection(**).post('/chats', payload)
+            response = graph_connection(**).post('chats', payload)
             { result: response.body }
           end
 
           def list_chat_members(chat_id:, **)
-            response = graph_connection(**).get("/chats/#{chat_id}/members")
+            response = graph_connection(**).get("chats/#{chat_id}/members")
             { result: response.body }
           end
 
@@ -38,7 +38,7 @@ module Legion
               'roles'           => roles,
               'user@odata.bind' => "https://graph.microsoft.com/v1.0/users('#{user_id}')"
             }
-            response = graph_connection(**).post("/chats/#{chat_id}/members", payload)
+            response = graph_connection(**).post("chats/#{chat_id}/members", payload)
             { result: response.body }
           end
 

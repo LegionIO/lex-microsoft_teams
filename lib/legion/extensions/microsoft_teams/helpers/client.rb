@@ -25,6 +25,10 @@ module Legion
             end
           end
 
+          def user_path(user_id = 'me')
+            user_id == 'me' ? 'me' : "users/#{user_id}"
+          end
+
           def oauth_connection(tenant_id: 'common', **_opts)
             Faraday.new(url: "https://login.microsoftonline.com/#{tenant_id}") do |conn|
               conn.request :url_encoded

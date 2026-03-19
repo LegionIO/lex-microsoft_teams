@@ -36,9 +36,10 @@ module Legion
 
         attr_reader :opts
 
-        def initialize(tenant_id: nil, client_id: nil, client_secret: nil, token: nil, **extra)
+        def initialize(tenant_id: nil, client_id: nil, client_secret: nil, token: nil,
+                       user_id: 'me', **extra)
           @opts = { tenant_id: tenant_id, client_id: client_id, client_secret: client_secret,
-                    token: token, **extra }
+                    token: token, user_id: user_id, **extra }
         end
 
         def graph_connection(**override)
@@ -59,6 +60,8 @@ module Legion
             client_id:     @opts[:client_id],
             client_secret: @opts[:client_secret]
           )
+          return result unless result&.dig(:result, 'access_token')
+
           @opts[:token] = result[:result]['access_token']
           result
         end

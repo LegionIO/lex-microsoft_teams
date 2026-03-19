@@ -13,7 +13,7 @@ $LOADED_FEATURES << 'legion/extensions/actors/subscription'
 
 require_relative '../../../../../lib/legion/extensions/microsoft_teams/actors/message_processor'
 
-RSpec.describe Legion::Extensions::MicrosoftTeams::Actors::MessageProcessor do
+RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::MessageProcessor do
   subject(:actor) { described_class.allocate }
 
   it 'uses the Bot runner class' do

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'time'
+require 'json'
+require 'fileutils'
 require 'legion/extensions/microsoft_teams/runners/auth'
 
 module Legion
@@ -10,6 +12,8 @@ module Legion
         class TokenCache
           REFRESH_BUFFER = 60
           DEFAULT_VAULT_PATH = 'legionio/microsoft_teams/delegated_token'
+          DEFAULT_LOCAL_DIR = File.join(Dir.home, '.legionio', 'tokens')
+          DEFAULT_LOCAL_FILE = File.join(DEFAULT_LOCAL_DIR, 'microsoft_teams.json')
 
           def initialize
             @token_cache = nil
@@ -59,10 +63,10 @@ module Legion
           end
 
           def load_from_vault
-            return false unless defined?(Legion::Crypt)
+            return load_from_local unless defined?(Legion::Crypt)
 
             data = Legion::Crypt.get(vault_path)
-            return false unless data && data[:access_token]
+            return load_from_local unless data && data[:access_token]
 
             @mutex.synchronize do
               @delegated_cache = {
@@ -75,10 +79,12 @@ module Legion
             true
           rescue StandardError => e
             log_error("Failed to load delegated token from Vault: #{e.message}")
-            false
+            load_from_local
           end
 
           def save_to_vault
+            save_to_local
+
             return false unless defined?(Legion::Crypt)
 
             data = @mutex.synchronize { @delegated_cache&.dup }
@@ -92,6 +98,47 @@ module Legion
             true
           rescue StandardError => e
             log_error("Failed to save delegated token to Vault: #{e.message}")
+            false
+          end
+
+          def load_from_local
+            path = local_token_path
+            return false unless File.exist?(path)
+
+            raw = File.read(path)
+            data = ::JSON.parse(raw)
+            return false unless data['access_token'] && data['refresh_token']
+
+            @mutex.synchronize do
+              @delegated_cache = {
+                token:         data['access_token'],
+                refresh_token: data['refresh_token'],
+                expires_at:    Time.parse(data['expires_at']),
+                scopes:        data['scopes']
+              }
+            end
+            true
+          rescue StandardError => e
+            log_error("Failed to load delegated token from local file: #{e.message}")
+            false
+          end
+
+          def save_to_local
+            data = @mutex.synchronize { @delegated_cache&.dup }
+            return false unless data
+
+            path = local_token_path
+            FileUtils.mkdir_p(File.dirname(path))
+            File.write(path, ::JSON.pretty_generate(
+                               'access_token'  => data[:token],
+                               'refresh_token' => data[:refresh_token],
+                               'expires_at'    => data[:expires_at].utc.iso8601,
+                               'scopes'        => data[:scopes]
+                             ))
+            File.chmod(0o600, path)
+            true
+          rescue StandardError => e
+            log_error("Failed to save delegated token to local file: #{e.message}")
             false
           end
 
@@ -118,6 +165,14 @@ module Legion
             return DEFAULT_VAULT_PATH unless delegated.is_a?(Hash)
 
             delegated[:vault_path] || DEFAULT_VAULT_PATH
+          end
+
+          def local_token_path
+            settings = teams_auth_settings
+            delegated = settings[:delegated]
+            return DEFAULT_LOCAL_FILE unless delegated.is_a?(Hash)
+
+            delegated[:local_token_path] || DEFAULT_LOCAL_FILE
           end
 
           def refresh_app_token

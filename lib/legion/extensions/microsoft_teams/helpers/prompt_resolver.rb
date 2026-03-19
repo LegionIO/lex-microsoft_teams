@@ -41,11 +41,8 @@ module Legion
             end
           end
 
-          def conversation_overrides(conversation_id: nil)
-            return nil unless conversation_id
-            return nil unless defined?(Legion::Extensions::Memory::Runners::Traces)
-
-            nil # TODO: query lex-memory for conversation_config by conversation_id
+          def conversation_overrides(conversation_id: nil) # rubocop:disable Lint/UnusedMethodArgument
+            nil
           end
 
           def preference_instructions_for(owner_id:)

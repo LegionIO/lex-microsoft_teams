@@ -61,7 +61,7 @@ module Legion
 
           def poll_observed_chat(chat_id:, owner_id:, peer_name:, token:)
             conn = graph_connection(token: token)
-            response = conn.get("/chats/#{chat_id}/messages",
+            response = conn.get("chats/#{chat_id}/messages",
                                 { '$top' => 10, '$orderby' => 'createdDateTime desc' })
             messages = response.body&.dig('value') || []
 

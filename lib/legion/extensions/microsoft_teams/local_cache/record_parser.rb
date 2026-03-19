@@ -178,7 +178,7 @@ module Legion
                 third = data.getbyte(pos + 2)
                 return nil unless third
 
-                actual_len = (len & 0x7F) | ((next_byte & 0x7F) << 7) | (third << 14)
+                actual_len = (len & 0x7F) | ((next_byte & 0x7F) << 7) | ((third & 0x7F) << 14)
                 str_start = pos + 3
               end
             end

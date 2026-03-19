@@ -7,15 +7,6 @@ module Legion
     module MicrosoftTeams
       module Runners
         module CacheIngest
-          # Strip HTML tags from message content for clean memory traces.
-          def strip_html(html)
-            return '' if html.nil? || html.empty?
-
-            html.gsub(/<[^>]+>/, ' ').gsub('&nbsp;', ' ').gsub('&amp;', '&')
-                .gsub('&lt;', '<').gsub('&gt;', '>').gsub('&quot;', '"')
-                .gsub(/\s+/, ' ').strip
-          end
-
           # Ingest Teams messages from local cache into lex-memory traces.
           # Returns count of new traces stored and the latest compose_time seen.
           def ingest_cache(since: nil, skip_bots: true, db_path: nil, imprint_active: false, **)
@@ -59,6 +50,14 @@ module Legion
                                                       Legion::Extensions::Helpers.const_defined?(:Lex)
 
           private
+
+          def strip_html(html)
+            return '' if html.nil? || html.empty?
+
+            html.gsub(/<[^>]+>/, ' ').gsub('&nbsp;', ' ').gsub('&amp;', '&')
+                .gsub('&lt;', '<').gsub('&gt;', '>').gsub('&quot;', '"')
+                .gsub(/\s+/, ' ').strip
+          end
 
           def memory_available?
             defined?(Legion::Extensions::Memory::Runners::Traces)

@@ -5,6 +5,14 @@ require 'spec_helper'
 RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
   subject(:cache) { described_class.new }
 
+  let(:tmp_token_path) { "/tmp/token_cache_spec_#{Process.pid}.json" }
+
+  before do
+    allow(cache).to receive(:local_token_path).and_return(tmp_token_path)
+  end
+
+  after { FileUtils.rm_f(tmp_token_path) }
+
   describe '#cached_graph_token' do
     let(:auth_result) do
       { result: { 'access_token' => 'tok-abc', 'expires_in' => 3600 } }
@@ -127,13 +135,13 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
   end
 
   describe '#load_from_vault' do
-    it 'returns false when Legion::Crypt is not defined' do
+    it 'falls back to local when Legion::Crypt is not defined' do
       expect(cache.load_from_vault).to be false
     end
   end
 
   describe '#save_to_vault' do
-    it 'returns false when Legion::Crypt is not defined' do
+    it 'saves to local file when Legion::Crypt is not defined' do
       cache.store_delegated_token(
         access_token:  'token-abc',
         refresh_token: 'refresh-abc',
@@ -141,10 +149,44 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
         scopes:        'scope1'
       )
       expect(cache.save_to_vault).to be false
+      expect(File.exist?(cache.send(:local_token_path))).to be true
     end
 
     it 'returns false when no delegated token is stored' do
       expect(cache.save_to_vault).to be false
+    end
+  end
+
+  describe '#save_to_local / #load_from_local' do
+    it 'round-trips token data through a local file' do
+      cache.store_delegated_token(
+        access_token:  'local-token',
+        refresh_token: 'local-refresh',
+        expires_in:    3600,
+        scopes:        'OnlineMeetings.Read'
+      )
+      cache.save_to_local
+
+      new_cache = described_class.new
+      allow(new_cache).to receive(:local_token_path).and_return(cache.send(:local_token_path))
+      expect(new_cache.load_from_local).to be true
+      expect(new_cache.cached_delegated_token).to eq('local-token')
+    end
+
+    it 'sets file permissions to 0600' do
+      cache.store_delegated_token(
+        access_token:  'token',
+        refresh_token: 'refresh',
+        expires_in:    3600,
+        scopes:        'scope1'
+      )
+      cache.save_to_local
+      mode = File.stat(cache.send(:local_token_path)).mode & 0o777
+      expect(mode).to eq(0o600)
+    end
+
+    it 'returns false when no local file exists' do
+      expect(cache.load_from_local).to be false
     end
   end
 end

@@ -29,11 +29,7 @@ module Legion
           end
 
           def args
-            { since: @last_sync_time, skip_bots: true }.tap do |a|
-              # After manual call returns, update high-water mark
-              # This works because Base#manual calls runner_class.send(runner_function, **args)
-              # and we update @last_sync_time in the overridden manual method
-            end
+            { since: @last_sync_time, skip_bots: true }
           end
 
           def manual

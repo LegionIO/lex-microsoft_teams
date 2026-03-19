@@ -12,6 +12,7 @@ module Legion
           def initialize
             @subscriptions = {}
             @mutex = Mutex.new
+            load
           end
 
           def subscribe(owner_id:, chat_id:, peer_name:)

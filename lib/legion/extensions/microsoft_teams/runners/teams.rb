@@ -10,17 +10,17 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def list_joined_teams(user_id: 'me', **)
-            response = graph_connection(**).get("/#{user_id}/joinedTeams")
+            response = graph_connection(**).get("#{user_path(user_id)}/joinedTeams")
             { result: response.body }
           end
 
           def get_team(team_id:, **)
-            response = graph_connection(**).get("/teams/#{team_id}")
+            response = graph_connection(**).get("teams/#{team_id}")
             { result: response.body }
           end
 
           def list_team_members(team_id:, **)
-            response = graph_connection(**).get("/teams/#{team_id}/members")
+            response = graph_connection(**).get("teams/#{team_id}/members")
             { result: response.body }
           end
 

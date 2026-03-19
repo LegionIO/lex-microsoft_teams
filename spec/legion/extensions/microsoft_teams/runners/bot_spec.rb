@@ -157,7 +157,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
         from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
       )
       expect(conn).to have_received(:post).with(
-        '/chats/19:abc/messages',
+        'chats/19:abc/messages',
         hash_including(:body)
       )
     end

@@ -10,12 +10,12 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def list_subscriptions(**)
-            response = graph_connection(**).get('/subscriptions')
+            response = graph_connection(**).get('subscriptions')
             { result: response.body }
           end
 
           def get_subscription(subscription_id:, **)
-            response = graph_connection(**).get("/subscriptions/#{subscription_id}")
+            response = graph_connection(**).get("subscriptions/#{subscription_id}")
             { result: response.body }
           end
 
@@ -29,18 +29,18 @@ module Legion
               includeResourceData: include_resource_data
             }
             payload[:clientState] = client_state if client_state
-            response = graph_connection(**).post('/subscriptions', payload)
+            response = graph_connection(**).post('subscriptions', payload)
             { result: response.body }
           end
 
           def renew_subscription(subscription_id:, expiration:, **)
             payload = { expirationDateTime: expiration }
-            response = graph_connection(**).patch("/subscriptions/#{subscription_id}", payload)
+            response = graph_connection(**).patch("subscriptions/#{subscription_id}", payload)
             { result: response.body }
           end
 
           def delete_subscription(subscription_id:, **)
-            response = graph_connection(**).delete("/subscriptions/#{subscription_id}")
+            response = graph_connection(**).delete("subscriptions/#{subscription_id}")
             { result: response.body }
           end
 

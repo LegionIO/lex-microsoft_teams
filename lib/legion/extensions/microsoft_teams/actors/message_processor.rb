@@ -3,7 +3,7 @@
 module Legion
   module Extensions
     module MicrosoftTeams
-      module Actors
+      module Actor
         class MessageProcessor < Legion::Extensions::Actors::Subscription
           def runner_class    = 'Legion::Extensions::MicrosoftTeams::Runners::Bot'
           def runner_function = 'handle_message'

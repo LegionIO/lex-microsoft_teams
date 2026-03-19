@@ -194,7 +194,7 @@ module Legion
 
           def send_chat_message_via_graph(chat_id:, text:, token: nil, **)
             conn = graph_connection(token: token)
-            response = conn.post("/chats/#{chat_id}/messages", { body: { contentType: 'text', content: text } })
+            response = conn.post("chats/#{chat_id}/messages", { body: { contentType: 'text', content: text } })
             { result: response.body }
           end
 
@@ -384,13 +384,13 @@ module Legion
             nil
           end
 
-          def find_chat_with_person(name:, token: nil)
+          def find_chat_with_person(name:, user_id: 'me', token: nil)
             conn = graph_connection(token: token)
-            response = conn.get('/me/chats', { '$filter' => "chatType eq 'oneOnOne'", '$top' => 50 })
+            response = conn.get("#{user_path(user_id)}/chats", { '$filter' => "chatType eq 'oneOnOne'", '$top' => 50 })
             chats = response.body&.dig('value') || []
 
             chats.each do |chat|
-              members_resp = conn.get("/chats/#{chat['id']}/members")
+              members_resp = conn.get("chats/#{chat['id']}/members")
               members = members_resp.body&.dig('value') || members_resp.body || []
               return { id: chat['id'] } if members.any? { |m| m['displayName']&.downcase&.include?(name.downcase) }
             end

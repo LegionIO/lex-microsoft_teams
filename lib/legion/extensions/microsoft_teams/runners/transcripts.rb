@@ -14,22 +14,22 @@ module Legion
             docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           }.freeze
 
-          def list_transcripts(user_id:, meeting_id:, **)
-            response = graph_connection(**).get("/users/#{user_id}/onlineMeetings/#{meeting_id}/transcripts")
+          def list_transcripts(meeting_id:, user_id: 'me', **)
+            response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/transcripts")
             { result: response.body }
           end
 
-          def get_transcript(user_id:, meeting_id:, transcript_id:, **)
+          def get_transcript(meeting_id:, transcript_id:, user_id: 'me', **)
             response = graph_connection(**).get(
-              "/users/#{user_id}/onlineMeetings/#{meeting_id}/transcripts/#{transcript_id}"
+              "#{user_path(user_id)}/onlineMeetings/#{meeting_id}/transcripts/#{transcript_id}"
             )
             { result: response.body }
           end
 
-          def get_transcript_content(user_id:, meeting_id:, transcript_id:, format: :vtt, **)
+          def get_transcript_content(meeting_id:, transcript_id:, user_id: 'me', format: :vtt, **)
             accept = CONTENT_TYPES.fetch(format)
             response = graph_connection(**).get(
-              "/users/#{user_id}/onlineMeetings/#{meeting_id}/transcripts/#{transcript_id}/content"
+              "#{user_path(user_id)}/onlineMeetings/#{meeting_id}/transcripts/#{transcript_id}/content"
             ) do |req|
               req.headers['Accept'] = accept
             end
