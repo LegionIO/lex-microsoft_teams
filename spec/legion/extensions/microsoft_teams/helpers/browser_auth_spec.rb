@@ -79,4 +79,46 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::BrowserAuth do
       expect(result[:result]['access_token']).to eq('tok')
     end
   end
+
+  describe '#api_hook_available?' do
+    it 'returns false when Legion::API is not defined' do
+      expect(browser_auth.api_hook_available?).to be false
+    end
+  end
+
+  describe '#hook_redirect_uri' do
+    it 'builds the hook URL with default port' do
+      expect(browser_auth.hook_redirect_uri).to eq(
+        'http://127.0.0.1:4567/api/hooks/lex/microsoft_teams/auth/callback'
+      )
+    end
+  end
+
+  describe '#authenticate_browser' do
+    context 'when API hook is not available' do
+      before do
+        allow(browser_auth).to receive(:api_hook_available?).and_return(false)
+        allow(browser_auth).to receive(:authenticate_via_server)
+          .and_return({ result: { 'access_token' => 'tok' } })
+      end
+
+      it 'delegates to authenticate_via_server' do
+        expect(browser_auth).to receive(:authenticate_via_server)
+        browser_auth.send(:authenticate_browser)
+      end
+    end
+
+    context 'when API hook is available' do
+      before do
+        allow(browser_auth).to receive(:api_hook_available?).and_return(true)
+        allow(browser_auth).to receive(:authenticate_via_hook)
+          .and_return({ result: { 'access_token' => 'tok' } })
+      end
+
+      it 'delegates to authenticate_via_hook' do
+        expect(browser_auth).to receive(:authenticate_via_hook)
+        browser_auth.send(:authenticate_browser)
+      end
+    end
+  end
 end

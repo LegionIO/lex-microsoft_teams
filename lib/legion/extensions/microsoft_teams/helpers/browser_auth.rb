@@ -32,6 +32,19 @@ module Legion
             end
           end
 
+          def api_hook_available?
+            !!(defined?(Legion::API) && defined?(Legion::Events))
+          end
+
+          def hook_redirect_uri
+            port = if defined?(Legion::Settings)
+                     Legion::Settings.dig(:api, :port) || 4567
+                   else
+                     4567
+                   end
+            "http://127.0.0.1:#{port}/api/hooks/lex/microsoft_teams/auth/callback"
+          end
+
           def generate_pkce
             verifier  = SecureRandom.urlsafe_base64(32)
             challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
@@ -66,17 +79,62 @@ module Legion
             verifier, challenge = generate_pkce
             state = SecureRandom.hex(32)
 
+            if api_hook_available?
+              authenticate_via_hook(verifier: verifier, challenge: challenge, state: state)
+            else
+              authenticate_via_server(verifier: verifier, challenge: challenge, state: state)
+            end
+          end
+
+          def authenticate_via_hook(verifier:, challenge:, state:)
+            callback_uri = hook_redirect_uri
+            result_holder = { result: nil }
+            mutex = Mutex.new
+            cv = ConditionVariable.new
+
+            listener = Legion::Events.once('microsoft_teams.oauth.callback') do |event|
+              mutex.synchronize do
+                result_holder[:result] = event
+                cv.broadcast
+              end
+            end
+
+            url = @auth.authorize_url(
+              tenant_id: tenant_id, client_id: client_id,
+              redirect_uri: callback_uri, scope: scopes,
+              state: state, code_challenge: challenge
+            )
+
+            log_info('Opening browser for authentication (using API hook)...')
+            unless open_browser(url)
+              Legion::Events.off('microsoft_teams.oauth.callback', listener)
+              log_info('Could not open browser. Falling back to device code flow.')
+              return authenticate_device_code
+            end
+
+            mutex.synchronize { cv.wait(mutex, 120) unless result_holder[:result] }
+            result = result_holder[:result]
+
+            return { error: 'timeout', description: 'No callback received within timeout' } unless result && result[:code]
+
+            return { error: 'state_mismatch', description: 'CSRF state parameter mismatch' } unless result[:state] == state
+
+            @auth.exchange_code(
+              tenant_id: tenant_id, client_id: client_id,
+              code: result[:code], redirect_uri: callback_uri,
+              code_verifier: verifier, scope: scopes
+            )
+          end
+
+          def authenticate_via_server(verifier:, challenge:, state:)
             server = CallbackServer.new
             server.start
             callback_uri = server.redirect_uri
 
             url = @auth.authorize_url(
-              tenant_id:      tenant_id,
-              client_id:      client_id,
-              redirect_uri:   callback_uri,
-              scope:          scopes,
-              state:          state,
-              code_challenge: challenge
+              tenant_id: tenant_id, client_id: client_id,
+              redirect_uri: callback_uri, scope: scopes,
+              state: state, code_challenge: challenge
             )
 
             log_info('Opening browser for authentication...')
@@ -92,12 +150,9 @@ module Legion
             return { error: 'state_mismatch', description: 'CSRF state parameter mismatch' } unless result[:state] == state
 
             @auth.exchange_code(
-              tenant_id:     tenant_id,
-              client_id:     client_id,
-              code:          result[:code],
-              redirect_uri:  callback_uri,
-              code_verifier: verifier,
-              scope:         scopes
+              tenant_id: tenant_id, client_id: client_id,
+              code: result[:code], redirect_uri: callback_uri,
+              code_verifier: verifier, scope: scopes
             )
           ensure
             server&.shutdown

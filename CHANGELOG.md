@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.6] - 2026-03-19
+
+### Added
+- BrowserAuth API hook detection: uses hook URL when Legion::API is running instead of ephemeral CallbackServer
+- `api_hook_available?` and `hook_redirect_uri` methods on BrowserAuth
+- `authenticate_via_hook` path using `Legion::Events` for callback notification
+- `authenticate_via_server` extracted from original `authenticate_browser` as fallback path
+
+### Changed
+- `authenticate_browser` now delegates to hook path (API running) or server path (standalone)
+
 ## [0.5.5] - 2026-03-19
 
 ### Added
