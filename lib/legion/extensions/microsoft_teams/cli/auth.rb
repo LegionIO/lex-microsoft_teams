@@ -14,7 +14,7 @@ module Legion
 
           def self.descriptions
             {
-              login: 'Authenticate with Microsoft Teams via browser OAuth',
+              login:  'Authenticate with Microsoft Teams via browser OAuth',
               status: 'Show current Teams authentication state'
             }
           end

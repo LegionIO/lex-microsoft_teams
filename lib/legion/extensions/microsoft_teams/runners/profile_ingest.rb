@@ -31,11 +31,11 @@ module Legion
             profile = conn.get('me').body
 
             memory_runner.store_trace(
-              type: :identity,
+              type:            :identity,
               content_payload: ::JSON.dump(profile),
-              domain_tags: ['teams', 'self', 'owner'],
-              confidence: 1.0,
-              origin: :direct_experience
+              domain_tags:     %w[teams self owner],
+              confidence:      1.0,
+              origin:          :direct_experience
             )
 
             presence = begin
@@ -45,11 +45,11 @@ module Legion
             end
             unless presence.empty?
               memory_runner.store_trace(
-                type: :sensory,
+                type:            :sensory,
                 content_payload: ::JSON.dump(presence),
-                domain_tags: ['teams', 'presence', 'self'],
-                confidence: 0.8,
-                origin: :direct_experience
+                domain_tags:     %w[teams presence self],
+                confidence:      0.8,
+                origin:          :direct_experience
               )
             end
 
@@ -75,12 +75,12 @@ module Legion
             people.each do |person|
               name = person['displayName'] || 'Unknown'
               memory_runner.store_trace(
-                type: :semantic,
+                type:            :semantic,
                 content_payload: ::JSON.dump(person.slice('displayName', 'jobTitle', 'department',
                                                           'officeLocation', 'scoredEmailAddresses')),
-                domain_tags: ['teams', 'peer', "peer:#{name}"],
-                confidence: 0.7,
-                origin: :direct_experience
+                domain_tags:     ['teams', 'peer', "peer:#{name}"],
+                confidence:      0.7,
+                origin:          :direct_experience
               )
             end
 
@@ -111,14 +111,14 @@ module Legion
               next unless extraction
 
               memory_runner.store_trace(
-                type: :episodic,
+                type:            :episodic,
                 content_payload: ::JSON.dump({
-                  peer: person['displayName'], chat_id: chat['id'],
+                                               peer: person['displayName'], chat_id: chat['id'],
                   summary: extraction, last_active: messages.first&.dig('createdDateTime')
-                }),
-                domain_tags: ['teams', 'conversation', "peer:#{person['displayName']}"],
-                confidence: 0.6,
-                origin: :direct_experience
+                                             }),
+                domain_tags:     ['teams', 'conversation', "peer:#{person['displayName']}"],
+                confidence:      0.6,
+                origin:          :direct_experience
               )
 
               update_extended_hwm(chat_id: chat['id'],
@@ -145,12 +145,12 @@ module Legion
                 members_resp = conn.get("teams/#{team['id']}/members")
                 members = (members_resp.body || {}).fetch('value', [])
                 memory_runner.store_trace(
-                  type: :semantic,
+                  type:            :semantic,
                   content_payload: ::JSON.dump({ team: team['displayName'], member_count: members.length,
                                                  members: members.map { |m| m['displayName'] } }),
-                  domain_tags: ['teams', 'org', "team:#{team['displayName']}"],
-                  confidence: 0.8,
-                  origin: :direct_experience
+                  domain_tags:     ['teams', 'org', "team:#{team['displayName']}"],
+                  confidence:      0.8,
+                  origin:          :direct_experience
                 )
                 teams_count += 1
               end
@@ -162,12 +162,12 @@ module Legion
               meetings = (meetings_resp.body || {}).fetch('value', [])
               meetings.each do |meeting|
                 memory_runner.store_trace(
-                  type: :episodic,
+                  type:            :episodic,
                   content_payload: ::JSON.dump(meeting.slice('subject', 'startDateTime', 'endDateTime',
-                                                              'participants')),
-                  domain_tags: ['teams', 'meeting'],
-                  confidence: 0.5,
-                  origin: :direct_experience
+                                                             'participants')),
+                  domain_tags:     %w[teams meeting],
+                  confidence:      0.5,
+                  origin:          :direct_experience
                 )
                 meetings_count += 1
               end
@@ -216,10 +216,10 @@ module Legion
             return nil if messages.empty?
 
             definition = Helpers::TransformDefinitions.conversation_extract
-            text = messages.map { |m|
+            text = messages.map do |m|
               from = m.dig('from', 'user', 'displayName') || 'Unknown'
               "#{from}: #{m['body']&.dig('content') || ''}"
-            }.join("\n")
+            end.join("\n")
 
             if defined?(Legion::Extensions::Transformer::Client)
               client = Legion::Extensions::Transformer::Client.new

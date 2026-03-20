@@ -14,10 +14,10 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::People do
   describe '#get_profile' do
     let(:profile_body) do
       {
-        'displayName' => 'Jane Doe',
-        'mail' => 'jane.doe@example.com',
-        'jobTitle' => 'Senior Engineer',
-        'department' => 'Platform Engineering',
+        'displayName'    => 'Jane Doe',
+        'mail'           => 'jane.doe@example.com',
+        'jobTitle'       => 'Senior Engineer',
+        'department'     => 'Platform Engineering',
         'officeLocation' => 'Minneapolis'
       }
     end

@@ -24,7 +24,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::PermissionGuard do
 
   describe '#record_denial' do
     it 'logs a warning' do
-      expect(guard).to receive(:log_warn).with(/permission denied.*\/me\/people/i)
+      expect(guard).to receive(:log_warn).with(%r{permission denied.*/me/people}i)
       guard.record_denial('/me/people', 'Insufficient privileges')
     end
 
@@ -63,7 +63,10 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::PermissionGuard do
     it 'skips the block when endpoint is denied' do
       guard.record_denial('/me/people', 'denied')
       called = false
-      result = guard.guarded_request('/me/people') { called = true; { result: 'ok' } }
+      result = guard.guarded_request('/me/people') do
+        called = true
+        { result: 'ok' }
+      end
       expect(called).to be false
       expect(result).to include(skipped: true)
     end
@@ -75,7 +78,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::PermissionGuard do
 
     it 'records denial on 403 response' do
       response_body = { 'error' => { 'code' => 'Authorization_RequestDenied', 'message' => 'denied' } }
-      result = guard.guarded_request('/me/people') { { result: response_body, status: 403 } }
+      guard.guarded_request('/me/people') { { result: response_body, status: 403 } }
       expect(guard.permission_denied?('/me/people')).to be true
     end
   end

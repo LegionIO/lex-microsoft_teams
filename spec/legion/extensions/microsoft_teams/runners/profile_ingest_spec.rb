@@ -33,9 +33,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ProfileIngest do
 
     it 'stores an identity trace with self tags' do
       expect(memory_runner).to receive(:store_trace).with(hash_including(
-        type: :identity,
-        domain_tags: ['teams', 'self', 'owner']
-      ))
+                                                            type:        :identity,
+                                                            domain_tags: %w[teams self owner]
+                                                          ))
       runner.ingest_self(token: 'tok')
     end
 

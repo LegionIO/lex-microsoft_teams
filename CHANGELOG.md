@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.0] - 2026-03-20
+
+### Added
+- `Runners::People` with `get_profile` and `list_people` (Graph API `/me` and `/me/people`)
+- `Runners::ProfileIngest` four-phase pipeline (self, people, conversations, teams/meetings)
+- `Helpers::PermissionGuard` circuit breaker for 403 errors with exponential backoff
+- `Helpers::TransformDefinitions` for lex-transformer conversation extraction and person summary
+- `Actors::ProfileIngest` (Once): four-phase data pipeline at boot after auth
+- `Actors::IncrementalSync` (Every, 15min): periodic re-sync with HWM dedup
+- `CLI::Auth` module for `legion lex teams auth login/status`
+- Extended high-water mark with dual timestamps and procedural trace persistence
+- `People.Read` delegated permission scope
+
+### Changed
+- `Helpers::HighWaterMark` extended with `get/set/update_extended_hwm`, trace persistence, restore
+
 ## [0.5.6] - 2026-03-19
 
 ### Added

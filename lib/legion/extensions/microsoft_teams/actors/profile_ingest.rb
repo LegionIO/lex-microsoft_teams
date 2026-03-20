@@ -29,10 +29,10 @@ module Legion
             rescue StandardError
               {}
             end
-            ingest = settings.dig(:ingest) || {}
+            ingest = settings[:ingest] || {}
             {
-              token: token,
-              top_people: ingest.fetch(:top_people, 10),
+              token:         token,
+              top_people:    ingest.fetch(:top_people, 10),
               message_depth: ingest.fetch(:message_depth, 50)
             }
           end

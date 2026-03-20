@@ -33,9 +33,7 @@ module Legion
           end
 
           def guarded_request(endpoint)
-            if permission_denied?(endpoint)
-              return { skipped: true, endpoint: endpoint, reason: :permission_denied }
-            end
+            return { skipped: true, endpoint: endpoint, reason: :permission_denied } if permission_denied?(endpoint)
 
             result = yield
             if result.is_a?(Hash) && result[:status] == 403

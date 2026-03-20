@@ -87,11 +87,11 @@ module Legion
             return unless hwm
 
             memory_runner.store_trace(
-              type: :procedural,
+              type:            :procedural,
               content_payload: ::JSON.dump({ chat_id: chat_id }.merge(hwm)),
-              domain_tags: ['teams', 'hwm', "chat:#{chat_id}"],
-              confidence: 1.0,
-              origin: :direct_experience
+              domain_tags:     ['teams', 'hwm', "chat:#{chat_id}"],
+              confidence:      1.0,
+              origin:          :direct_experience
             )
           end
 

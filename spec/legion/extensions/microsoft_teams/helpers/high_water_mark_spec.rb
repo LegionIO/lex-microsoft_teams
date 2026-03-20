@@ -78,9 +78,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::HighWaterMark do
       memory_runner = double('memory_runner')
       allow(helper).to receive(:memory_runner).and_return(memory_runner)
       expect(memory_runner).to receive(:store_trace).with(hash_including(
-        type: :procedural,
-        domain_tags: ['teams', 'hwm', 'chat:chat-1']
-      ))
+                                                            type:        :procedural,
+                                                            domain_tags: ['teams', 'hwm', 'chat:chat-1']
+                                                          ))
       helper.set_extended_hwm(chat_id: 'chat-1', last_message_at: '2026-03-20T15:00:00Z',
                               last_ingested_at: '2026-03-20T15:00:00Z', message_count: 10)
       helper.persist_hwm_as_trace(chat_id: 'chat-1')
@@ -91,12 +91,14 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::HighWaterMark do
     it 'populates extended hwm from procedural traces' do
       memory_runner = double('memory_runner')
       allow(helper).to receive(:memory_runner).and_return(memory_runner)
+      payload = '{"chat_id":"chat-1","last_message_at":"2026-03-20T15:00:00Z",' \
+                '"last_ingested_at":"2026-03-20T14:55:00Z","message_count":10}'
       allow(memory_runner).to receive(:retrieve_by_domain).with(
         hash_including(domain_tag: 'teams')
       ).and_return([
-        { content_payload: '{"chat_id":"chat-1","last_message_at":"2026-03-20T15:00:00Z","last_ingested_at":"2026-03-20T14:55:00Z","message_count":10}',
-          domain_tags: ['teams', 'hwm', 'chat:chat-1'], trace_type: :procedural }
-      ])
+                     { content_payload: payload,
+                       domain_tags: %w[teams hwm chat:chat-1], trace_type: :procedural }
+                   ])
       helper.restore_hwm_from_traces
       result = helper.get_extended_hwm(chat_id: 'chat-1')
       expect(result[:last_message_at]).to eq('2026-03-20T15:00:00Z')

@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.5.6
+**Version**: 0.6.0
 
 ## Architecture
 
@@ -30,7 +30,9 @@ Legion::Extensions::MicrosoftTeams
 │   ├── Meetings          # Online meeting CRUD, join URL lookup, attendance reports
 │   ├── Transcripts       # Meeting transcript list/get/content (VTT/DOCX)
 │   ├── LocalCache        # Offline message extraction from local LevelDB cache
-│   └── CacheIngest       # Ingest cached messages into lex-memory as episodic traces
+│   ├── CacheIngest       # Ingest cached messages into lex-memory as episodic traces
+│   ├── People            # Graph API /me and /me/people (profile + relevant contacts)
+│   └── ProfileIngest     # Four-phase cognitive pipeline (self, people, conversations, teams/meetings)
 ├── Actors/
 │   ├── CacheBulkIngest       # Once: full cache ingest at startup (imprint window support)
 │   ├── CacheSync             # Every 5min: incremental ingest of new messages
@@ -38,7 +40,9 @@ Legion::Extensions::MicrosoftTeams
 │   ├── ObservedChatPoller    # Every 30s: polls subscribed human conversations (compliance-gated)
 │   ├── MessageProcessor      # Subscription: consumes AMQP queue, routes by mode
 │   ├── AuthValidator         # Once: validates/restores delegated tokens on boot (2s delay)
-│   └── TokenRefresher        # Every 15min (configurable): keeps delegated tokens fresh
+│   ├── TokenRefresher        # Every 15min (configurable): keeps delegated tokens fresh
+│   ├── ProfileIngest         # Once (5s delay): four-phase data pipeline after auth
+│   └── IncrementalSync       # Every 15min: periodic re-sync with HWM dedup
 ├── Transport/
 │   ├── Exchanges/Messages    # teams.messages topic exchange
 │   ├── Queues/MessagesProcess # teams.messages.process durable queue
@@ -55,9 +59,13 @@ Legion::Extensions::MicrosoftTeams
 │   ├── TokenCache        # In-memory OAuth token cache with pre-expiry refresh (app + delegated slots, authenticated?/previously_authenticated? predicates)
 │   ├── SubscriptionRegistry # Conversation observation subscriptions (in-memory + lex-memory)
 │   ├── BrowserAuth       # Delegated OAuth orchestrator (PKCE, headless detection, browser launch, API hook detection)
-│   └── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
+│   ├── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
+│   ├── PermissionGuard   # Circuit breaker for 403 errors with exponential backoff
+│   └── TransformDefinitions # lex-transformer definitions for conversation extraction and person summary
 ├── Hooks/
 │   └── Auth              # OAuth callback hook (mount '/callback') → /api/hooks/lex/microsoft_teams/auth/callback
+├── CLI/
+│   └── Auth              # CLI module for `legion lex teams auth login/status`
 └── Client                # Standalone client (includes all runners)
 ```
 
@@ -83,6 +91,33 @@ Automatic delegated token management: validate on boot, refresh on a timer, re-a
 Configuration: `settings[:microsoft_teams][:auth][:delegated][:refresh_interval]` (default 900 seconds).
 
 Design doc: `docs/plans/2026-03-19-teams-token-lifecycle-design.md`
+
+## Cognitive Pipeline (v0.6.0)
+
+Four-phase data ingestion that runs after delegated auth to build the agent's social context:
+
+1. **Self** (`ingest_self`): Fetches `/me` profile and `/me/presence`, stores as identity trace
+2. **People** (`ingest_people`): Fetches `/me/people` (top 25), stores each as semantic trace
+3. **Conversations** (`ingest_conversations`): For top N people, fetches recent chat messages, stores as episodic traces
+4. **Teams & Meetings** (`ingest_teams_and_meetings`): Fetches joined teams and recent meetings, stores as semantic + episodic traces
+
+### Actors
+
+- **ProfileIngest** (Once, 5s delay): Fires `full_ingest` after boot. Only enabled when lex-memory is available and a delegated token exists.
+- **IncrementalSync** (Every, 15min): Fires `incremental_sync` using extended high-water marks for dedup. Configurable via `settings[:microsoft_teams][:ingest][:incremental_interval]`.
+
+### Supporting Components
+
+- **Runners::People**: Graph API `/me` and `/me/people` endpoints with `user_id:` flexibility
+- **Helpers::PermissionGuard**: Circuit breaker for Graph API 403 errors with exponential backoff (60s → 5min → 30min → 2hr → 8hr cap). Wraps API calls via `guarded_request(endpoint) { block }`.
+- **Helpers::TransformDefinitions**: Structured extraction schemas for lex-transformer (`conversation_extract`, `person_summary`)
+- **Extended HWM**: `get/set/update_extended_hwm` with dual timestamps (last_message_at + last_ingested_at) and `persist_hwm_as_trace` / `restore_hwm_from_traces` for cross-boot memory
+
+### CLI
+
+`CLI::Auth` provides `legion lex teams auth login` and `legion lex teams auth status` via the LEX CLI manifest system. Uses `cli_alias: 'teams'` for short-form dispatch.
+
+Design doc: `docs/plans/2026-03-20-teams-cognitive-pipeline-implementation.md`
 
 ## AI Bot (v0.2.0)
 
@@ -193,6 +228,7 @@ Four distinct APIs accessed via Faraday + one local data source:
 | `OnlineMeetings.Read` | Delegated | Read online meetings (user context) |
 | `OnlineMeetings.Read.All` | Application | Read online meetings |
 | `OnlineMeetingTranscript.Read.All` | Application/Delegated | Read meeting transcripts |
+| `People.Read` | Delegated | Read relevant people for cognitive pipeline |
 
 For bot scenarios, register the Entra app as a Teams Bot via Bot Framework portal.
 
@@ -215,7 +251,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 223 specs across 31 spec files (as of v0.5.6)
+bundle exec rspec     # 268 specs across 38 spec files (as of v0.6.0)
 bundle exec rubocop   # Clean
 ```
 
