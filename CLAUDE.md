@@ -65,7 +65,7 @@ Legion::Extensions::MicrosoftTeams
 ├── Hooks/
 │   └── Auth              # OAuth callback hook (mount '/callback') → /api/hooks/lex/microsoft_teams/auth/callback
 ├── CLI/
-│   └── Auth              # CLI module for `legion lex teams auth login/status`
+│   └── Auth              # CLI module for `legion lex exec teams auth login/status`
 └── Client                # Standalone client (includes all runners)
 ```
 
@@ -115,7 +115,7 @@ Four-phase data ingestion that runs after delegated auth to build the agent's so
 
 ### CLI
 
-`CLI::Auth` provides `legion lex teams auth login` and `legion lex teams auth status` via the LEX CLI manifest system. Uses `cli_alias: 'teams'` for short-form dispatch.
+`CLI::Auth` provides `legion lex exec teams auth login` and `legion lex exec teams auth status` via the LEX CLI manifest system. Uses `cli_alias: 'teams'` for short-form dispatch. The Thor command is `invoke_ext` with `exec` as an alias (`run` is a Thor reserved word).
 
 Design doc: `docs/plans/2026-03-20-teams-cognitive-pipeline-implementation.md`
 
