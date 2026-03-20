@@ -16,6 +16,7 @@ require 'legion/extensions/microsoft_teams/runners/meetings'
 require 'legion/extensions/microsoft_teams/runners/transcripts'
 require 'legion/extensions/microsoft_teams/runners/local_cache'
 require 'legion/extensions/microsoft_teams/runners/cache_ingest'
+require 'legion/extensions/microsoft_teams/runners/people'
 
 # Helpers (bot)
 require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
@@ -25,6 +26,8 @@ require 'legion/extensions/microsoft_teams/helpers/subscription_registry'
 require 'legion/extensions/microsoft_teams/helpers/token_cache'
 require 'legion/extensions/microsoft_teams/helpers/callback_server'
 require 'legion/extensions/microsoft_teams/helpers/browser_auth'
+require 'legion/extensions/microsoft_teams/helpers/permission_guard'
+require 'legion/extensions/microsoft_teams/helpers/transform_definitions'
 
 # Transport
 if defined?(Legion::Transport)
