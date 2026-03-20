@@ -17,6 +17,7 @@ require 'legion/extensions/microsoft_teams/runners/transcripts'
 require 'legion/extensions/microsoft_teams/runners/local_cache'
 require 'legion/extensions/microsoft_teams/runners/cache_ingest'
 require 'legion/extensions/microsoft_teams/runners/people'
+require 'legion/extensions/microsoft_teams/runners/profile_ingest'
 
 # Helpers (bot)
 require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
