@@ -10,14 +10,14 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.5.4
+**Version**: 0.5.5
 
 ## Architecture
 
 ```
 Legion::Extensions::MicrosoftTeams
 ├── Runners/
-│   ├── Auth              # OAuth2 client credentials (Graph + Bot Framework)
+│   ├── Auth              # OAuth2 client credentials (Graph + Bot Framework) + auth_callback for hook
 │   ├── Teams             # List/get teams, members
 │   ├── Chats             # 1:1 and group chat CRUD
 │   ├── Messages          # Chat message send/read/reply
@@ -56,6 +56,8 @@ Legion::Extensions::MicrosoftTeams
 │   ├── SubscriptionRegistry # Conversation observation subscriptions (in-memory + lex-memory)
 │   ├── BrowserAuth       # Delegated OAuth orchestrator (PKCE, headless detection, browser launch)
 │   └── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
+├── Hooks/
+│   └── Auth              # OAuth callback hook (mount '/callback') → /api/hooks/lex/microsoft_teams/auth/callback
 └── Client                # Standalone client (includes all runners)
 ```
 
@@ -66,9 +68,9 @@ Opt-in browser-based OAuth for delegated Microsoft Graph permissions. Two flows:
 - **Authorization Code + PKCE** (primary): Opens browser for Entra ID login, captures callback on ephemeral local port, exchanges code with PKCE verification
 - **Device Code** (fallback): Auto-selected in headless/SSH environments (no `DISPLAY`/`WAYLAND_DISPLAY`)
 
-Tokens stored in Vault (`legionio/microsoft_teams/delegated_token`) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Sinatra route: `GET /api/oauth/microsoft_teams/callback` for daemon re-auth.
+Tokens stored in Vault (`legionio/microsoft_teams/delegated_token`) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Hook route: `GET|POST /api/hooks/lex/microsoft_teams/auth/callback` for daemon re-auth (routed through Ingress for RBAC/audit).
 
-Key files: `Helpers::BrowserAuth` (orchestrator), `Helpers::CallbackServer` (ephemeral TCP), `Runners::Auth` (authorize_url, exchange_code, refresh_delegated_token), `Helpers::TokenCache` (delegated slot).
+Key files: `Helpers::BrowserAuth` (orchestrator), `Helpers::CallbackServer` (ephemeral TCP), `Runners::Auth` (authorize_url, exchange_code, refresh_delegated_token, auth_callback), `Helpers::TokenCache` (delegated slot), `Hooks::Auth` (hook class with mount path).
 
 ## Token Lifecycle (v0.5.4)
 
@@ -213,7 +215,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 209 specs (as of v0.5.4)
+bundle exec rspec     # 219 specs (as of v0.5.5)
 bundle exec rubocop   # Clean
 ```
 
