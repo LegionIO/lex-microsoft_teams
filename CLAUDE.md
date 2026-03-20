@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.5.5
+**Version**: 0.5.6
 
 ## Architecture
 
@@ -54,7 +54,7 @@ Legion::Extensions::MicrosoftTeams
 │   ├── SessionManager    # Multi-turn LLM session lifecycle with lex-memory persistence
 │   ├── TokenCache        # In-memory OAuth token cache with pre-expiry refresh (app + delegated slots, authenticated?/previously_authenticated? predicates)
 │   ├── SubscriptionRegistry # Conversation observation subscriptions (in-memory + lex-memory)
-│   ├── BrowserAuth       # Delegated OAuth orchestrator (PKCE, headless detection, browser launch)
+│   ├── BrowserAuth       # Delegated OAuth orchestrator (PKCE, headless detection, browser launch, API hook detection)
 │   └── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
 ├── Hooks/
 │   └── Auth              # OAuth callback hook (mount '/callback') → /api/hooks/lex/microsoft_teams/auth/callback
@@ -65,7 +65,7 @@ Legion::Extensions::MicrosoftTeams
 
 Opt-in browser-based OAuth for delegated Microsoft Graph permissions. Two flows:
 
-- **Authorization Code + PKCE** (primary): Opens browser for Entra ID login, captures callback on ephemeral local port, exchanges code with PKCE verification
+- **Authorization Code + PKCE** (primary): Opens browser for Entra ID login. When the Legion API is running, uses the hook URL (`/api/hooks/lex/microsoft_teams/auth/callback`) with `Legion::Events` for callback notification; otherwise falls back to an ephemeral local port via `CallbackServer`
 - **Device Code** (fallback): Auto-selected in headless/SSH environments (no `DISPLAY`/`WAYLAND_DISPLAY`)
 
 Tokens stored in Vault (`legionio/microsoft_teams/delegated_token`) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Hook route: `GET|POST /api/hooks/lex/microsoft_teams/auth/callback` for daemon re-auth (routed through Ingress for RBAC/audit).
@@ -215,7 +215,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 219 specs (as of v0.5.5)
+bundle exec rspec     # 223 specs (as of v0.5.6)
 bundle exec rubocop   # Clean
 ```
 
