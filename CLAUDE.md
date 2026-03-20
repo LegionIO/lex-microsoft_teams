@@ -153,7 +153,7 @@ Per-conversation overrides stored in lex-memory (system_prompt_append, llm model
 - **Session persistence**: Multi-turn sessions flush to lex-memory on threshold (20 msgs), idle timeout (15 min), or shutdown. Restored on restart via summary + recent messages.
 - **Token caching**: In-memory OAuth token cache refreshes 60 seconds before expiry. Both pollers share a `TokenCache` instance instead of hitting OAuth every cycle.
 - **Subscription registry**: In-memory working set of observed conversations, persisted to lex-memory on change. No legion-data migration needed.
-- **Design docs**: `docs/plans/2026-03-15-teams-ai-bot-design.md`, `docs/plans/2026-03-15-teams-bot-commands-design.md`
+- **Design docs**: `docs/work/completed/2026-03-15-teams-ai-bot-design.md`, `docs/work/completed/2026-03-15-teams-bot-commands-design.md`
 
 ### Bot Commands (v0.3.0)
 
