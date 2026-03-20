@@ -37,6 +37,72 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::HighWaterMark do
     end
   end
 
+  describe '#get_extended_hwm' do
+    it 'returns nil for unknown chat' do
+      expect(helper.get_extended_hwm(chat_id: 'chat-1')).to be_nil
+    end
+
+    it 'returns the stored extended hwm hash' do
+      helper.set_extended_hwm(chat_id: 'chat-1', last_message_at: '2026-03-20T15:00:00Z',
+                              last_ingested_at: '2026-03-20T14:55:00Z', message_count: 10)
+      result = helper.get_extended_hwm(chat_id: 'chat-1')
+      expect(result[:last_message_at]).to eq('2026-03-20T15:00:00Z')
+      expect(result[:last_ingested_at]).to eq('2026-03-20T14:55:00Z')
+      expect(result[:message_count]).to eq(10)
+    end
+  end
+
+  describe '#update_extended_hwm' do
+    it 'updates last_message_at and increments message_count' do
+      helper.set_extended_hwm(chat_id: 'chat-1', last_message_at: '2026-03-20T14:00:00Z',
+                              last_ingested_at: '2026-03-20T14:00:00Z', message_count: 5)
+      helper.update_extended_hwm(chat_id: 'chat-1', last_message_at: '2026-03-20T15:00:00Z',
+                                 new_message_count: 3)
+      result = helper.get_extended_hwm(chat_id: 'chat-1')
+      expect(result[:last_message_at]).to eq('2026-03-20T15:00:00Z')
+      expect(result[:message_count]).to eq(8)
+    end
+
+    it 'updates last_ingested_at when ingested flag is true' do
+      helper.set_extended_hwm(chat_id: 'chat-1', last_message_at: '2026-03-20T14:00:00Z',
+                              last_ingested_at: '2026-03-20T13:00:00Z', message_count: 5)
+      helper.update_extended_hwm(chat_id: 'chat-1', last_message_at: '2026-03-20T15:00:00Z',
+                                 new_message_count: 3, ingested: true)
+      result = helper.get_extended_hwm(chat_id: 'chat-1')
+      expect(result[:last_ingested_at]).not_to eq('2026-03-20T13:00:00Z')
+    end
+  end
+
+  describe '#persist_hwm_as_trace' do
+    it 'calls store_trace with procedural type and hwm tags' do
+      memory_runner = double('memory_runner')
+      allow(helper).to receive(:memory_runner).and_return(memory_runner)
+      expect(memory_runner).to receive(:store_trace).with(hash_including(
+        type: :procedural,
+        domain_tags: ['teams', 'hwm', 'chat:chat-1']
+      ))
+      helper.set_extended_hwm(chat_id: 'chat-1', last_message_at: '2026-03-20T15:00:00Z',
+                              last_ingested_at: '2026-03-20T15:00:00Z', message_count: 10)
+      helper.persist_hwm_as_trace(chat_id: 'chat-1')
+    end
+  end
+
+  describe '#restore_hwm_from_traces' do
+    it 'populates extended hwm from procedural traces' do
+      memory_runner = double('memory_runner')
+      allow(helper).to receive(:memory_runner).and_return(memory_runner)
+      allow(memory_runner).to receive(:retrieve_by_domain).with(
+        hash_including(domain_tag: 'teams')
+      ).and_return([
+        { content_payload: '{"chat_id":"chat-1","last_message_at":"2026-03-20T15:00:00Z","last_ingested_at":"2026-03-20T14:55:00Z","message_count":10}',
+          domain_tags: ['teams', 'hwm', 'chat:chat-1'], trace_type: :procedural }
+      ])
+      helper.restore_hwm_from_traces
+      result = helper.get_extended_hwm(chat_id: 'chat-1')
+      expect(result[:last_message_at]).to eq('2026-03-20T15:00:00Z')
+    end
+  end
+
   describe '#update_hwm_from_messages' do
     it 'stores the latest timestamp' do
       messages = [
