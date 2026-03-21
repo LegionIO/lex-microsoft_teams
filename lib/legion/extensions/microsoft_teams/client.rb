@@ -14,6 +14,7 @@ require 'legion/extensions/microsoft_teams/runners/presence'
 require 'legion/extensions/microsoft_teams/runners/meetings'
 require 'legion/extensions/microsoft_teams/runners/transcripts'
 require 'legion/extensions/microsoft_teams/runners/people'
+require 'legion/extensions/microsoft_teams/runners/ownership'
 
 module Legion
   module Extensions
@@ -35,6 +36,7 @@ module Legion
         include Runners::LocalCache
         include Runners::CacheIngest
         include Runners::People
+        include Runners::Ownership
 
         attr_reader :opts
 
