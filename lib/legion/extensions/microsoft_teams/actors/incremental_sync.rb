@@ -14,7 +14,7 @@ module Legion
 
           def delay
             settings = begin
-              Legion::Settings[:microsoft_teams]
+              Legion::Settings[:microsoft_teams] || {}
             rescue StandardError
               {}
             end
@@ -31,7 +31,7 @@ module Legion
           def args
             token = resolve_token
             settings = begin
-              Legion::Settings[:microsoft_teams]
+              Legion::Settings[:microsoft_teams] || {}
             rescue StandardError
               {}
             end

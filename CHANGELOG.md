@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.1] - 2026-03-21
+
+### Fixed
+- Guard nil settings in IncrementalSync actor `args` and `delay` methods — `Legion::Settings[:microsoft_teams]` can return nil without raising
+
 ## [0.6.0] - 2026-03-20
 
 ### Added
