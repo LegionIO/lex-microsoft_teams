@@ -78,7 +78,8 @@ module Legion
           def load
             return unless memory_available?
 
-            stored = memory_runner.recall_trace(domain_tags: [MEMORY_KEY])
+            result = memory_runner.retrieve_by_domain(domain_tag: MEMORY_KEY, limit: 1)
+            stored = result&.dig(:traces)&.first
             return unless stored&.dig(:content_payload)
 
             parsed = parse_stored(stored[:content_payload])
@@ -124,11 +125,11 @@ module Legion
           end
 
           def memory_available?
-            defined?(Legion::Extensions::Memory::Runners::Traces)
+            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def memory_runner
-            @memory_runner ||= Object.new.extend(Legion::Extensions::Memory::Runners::Traces)
+            @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def log_error(msg)

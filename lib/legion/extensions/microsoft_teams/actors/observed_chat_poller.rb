@@ -35,7 +35,7 @@ module Legion
           end
 
           def token_cache
-            @token_cache ||= Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.new
+            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
           end
 
           def subscription_registry

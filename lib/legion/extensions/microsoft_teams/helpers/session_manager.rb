@@ -108,7 +108,7 @@ module Legion
           private
 
           def store_session_to_memory(conversation_id:, session:)
-            return unless defined?(Legion::Extensions::Memory::Runners::Traces)
+            return unless defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
 
             memory_runner.store_trace(
               type:            :episodic,
@@ -129,7 +129,7 @@ module Legion
           end
 
           def memory_runner
-            @memory_runner ||= Object.new.extend(Legion::Extensions::Memory::Runners::Traces)
+            @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def settings_val(key, default)

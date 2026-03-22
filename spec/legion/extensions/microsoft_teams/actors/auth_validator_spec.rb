@@ -23,6 +23,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
 
   before do
     allow(actor).to receive(:token_cache).and_return(token_cache)
+    allow(token_cache).to receive(:authenticated?).and_return(false)
+    allow(token_cache).to receive(:previously_authenticated?).and_return(false)
+    allow(token_cache).to receive(:cached_delegated_token).and_return(nil)
   end
 
   it 'has a 2 second delay' do
@@ -38,13 +41,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
   end
 
   describe '#manual' do
-    before do
-      allow(token_cache).to receive(:previously_authenticated?).and_return(false)
-    end
-
-    context 'when token loads and refreshes successfully' do
+    context 'when authenticated and token valid' do
       before do
-        allow(token_cache).to receive(:load_from_vault).and_return(true)
+        allow(token_cache).to receive(:authenticated?).and_return(true)
         allow(token_cache).to receive(:cached_delegated_token).and_return('valid-token')
       end
 
@@ -54,9 +53,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
       end
     end
 
-    context 'when token loads but refresh fails and previously authenticated' do
+    context 'when authenticated but token expired and previously authenticated' do
       before do
-        allow(token_cache).to receive(:load_from_vault).and_return(true)
+        allow(token_cache).to receive(:authenticated?).and_return(true)
         allow(token_cache).to receive(:cached_delegated_token).and_return(nil)
         allow(token_cache).to receive(:previously_authenticated?).and_return(true)
         allow(actor).to receive(:attempt_browser_reauth).and_return(true)
@@ -68,9 +67,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
       end
     end
 
-    context 'when token loads but refresh fails and never authenticated' do
+    context 'when authenticated but token expired and never authenticated' do
       before do
-        allow(token_cache).to receive(:load_from_vault).and_return(true)
+        allow(token_cache).to receive(:authenticated?).and_return(true)
         allow(token_cache).to receive(:cached_delegated_token).and_return(nil)
         allow(token_cache).to receive(:previously_authenticated?).and_return(false)
         allow(actor).to receive(:auto_authenticate?).and_return(false)
@@ -82,10 +81,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
       end
     end
 
-    context 'when no token file exists' do
+    context 'when not authenticated and no token file exists' do
       before do
-        allow(token_cache).to receive(:load_from_vault).and_return(false)
-        allow(token_cache).to receive(:previously_authenticated?).and_return(false)
         allow(actor).to receive(:auto_authenticate?).and_return(false)
       end
 
@@ -95,10 +92,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
       end
     end
 
-    context 'when no token exists and auto_authenticate is true' do
+    context 'when not authenticated and auto_authenticate is true' do
       before do
-        allow(token_cache).to receive(:load_from_vault).and_return(false)
-        allow(token_cache).to receive(:previously_authenticated?).and_return(false)
         allow(actor).to receive(:auto_authenticate?).and_return(true)
         allow(actor).to receive(:attempt_browser_reauth).and_return(true)
       end
@@ -109,9 +104,21 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
       end
     end
 
-    context 'when token loads but refresh fails, never authenticated, auto_authenticate true' do
+    context 'when not authenticated but previously authenticated' do
       before do
-        allow(token_cache).to receive(:load_from_vault).and_return(true)
+        allow(token_cache).to receive(:previously_authenticated?).and_return(true)
+        allow(actor).to receive(:attempt_browser_reauth).and_return(true)
+      end
+
+      it 'triggers browser re-auth' do
+        actor.manual
+        expect(actor).to have_received(:attempt_browser_reauth)
+      end
+    end
+
+    context 'when authenticated, token expired, never authenticated, auto_authenticate true' do
+      before do
+        allow(token_cache).to receive(:authenticated?).and_return(true)
         allow(token_cache).to receive(:cached_delegated_token).and_return(nil)
         allow(token_cache).to receive(:previously_authenticated?).and_return(false)
         allow(actor).to receive(:auto_authenticate?).and_return(true)
@@ -119,19 +126,6 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
       end
 
       it 'triggers browser auth' do
-        actor.manual
-        expect(actor).to have_received(:attempt_browser_reauth)
-      end
-    end
-
-    context 'when no token loads but previously authenticated' do
-      before do
-        allow(token_cache).to receive(:load_from_vault).and_return(false)
-        allow(token_cache).to receive(:previously_authenticated?).and_return(true)
-        allow(actor).to receive(:attempt_browser_reauth).and_return(true)
-      end
-
-      it 'triggers browser re-auth' do
         actor.manual
         expect(actor).to have_received(:attempt_browser_reauth)
       end

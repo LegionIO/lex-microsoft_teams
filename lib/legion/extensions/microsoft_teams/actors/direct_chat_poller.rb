@@ -33,17 +33,22 @@ module Legion
           end
 
           def token_cache
-            @token_cache ||= Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.new
+            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
           end
 
           def manual
             token = token_cache.cached_graph_token
-            return unless token
+            unless token
+              log_debug('No token available, skipping poll')
+              return
+            end
 
+            log_info('Polling bot DM chats')
             chats = fetch_bot_chats(token: token)
+            log_info("Found #{chats.length} bot chats")
             chats.each { |chat| poll_chat(chat_id: chat[:id], token: token) }
           rescue StandardError => e
-            Legion::Logging.error("DirectChatPoller: #{e.message}") if defined?(Legion::Logging)
+            log_error("DirectChatPoller: #{e.message}")
           end
 
           private
@@ -64,6 +69,7 @@ module Legion
             new_msgs.reject! { |m| m[:from_id] == @bot_id }
             return if new_msgs.empty?
 
+            log_info("Chat #{chat_id}: #{new_msgs.length} new message(s)")
             new_msgs.each { |msg| publish_message(msg.merge(chat_id: chat_id, mode: :direct)) }
             update_hwm_from_messages(chat_id: chat_id, messages: new_msgs)
           end
@@ -71,7 +77,7 @@ module Legion
           def publish_message(payload)
             Legion::Extensions::MicrosoftTeams::Transport::Messages::TeamsMessage.new.publish(payload)
           rescue StandardError => e
-            Legion::Logging.error("DirectChatPoller publish failed: #{e.message}") if defined?(Legion::Logging)
+            log_error("DirectChatPoller publish failed: #{e.message}")
           end
 
           def normalize_messages(messages)
@@ -97,6 +103,18 @@ module Legion
             return default unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :bot, key) || default
+          end
+
+          def log_debug(msg)
+            Legion::Logging.debug("[Teams::DirectChatPoller] #{msg}") if defined?(Legion::Logging)
+          end
+
+          def log_info(msg)
+            Legion::Logging.info("[Teams::DirectChatPoller] #{msg}") if defined?(Legion::Logging)
+          end
+
+          def log_error(msg)
+            Legion::Logging.error("[Teams::DirectChatPoller] #{msg}") if defined?(Legion::Logging)
           end
         end
       end

@@ -60,11 +60,11 @@ module Legion
           end
 
           def memory_available?
-            defined?(Legion::Extensions::Memory::Runners::Traces)
+            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def memory_runner
-            @memory_runner ||= Object.new.extend(Legion::Extensions::Memory::Runners::Traces)
+            @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def store_message_trace(msg, text, imprint_active: false)
@@ -99,9 +99,9 @@ module Legion
 
           # Seed Hebbian coactivation links between messages in the same thread.
           def coactivate_thread_traces(thread_groups)
-            return unless defined?(Legion::Extensions::Memory::Helpers::Store)
+            return unless defined?(Legion::Extensions::Agentic::Memory::Trace::Helpers::Store)
 
-            store = Legion::Extensions::Memory::Helpers::Store.new
+            store = Legion::Extensions::Agentic::Memory::Trace::Helpers::Store.new
             thread_groups.each_value do |trace_ids|
               next if trace_ids.length < 2
 

@@ -16,7 +16,7 @@ module Legion
           end
 
           def enabled?
-            defined?(Legion::Extensions::Memory::Runners::Traces)
+            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           rescue StandardError
             false
           end

@@ -262,11 +262,11 @@ module Legion
           end
 
           def memory_available?
-            defined?(Legion::Extensions::Memory::Runners::Traces)
+            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def memory_runner
-            @memory_runner ||= Object.new.extend(Legion::Extensions::Memory::Runners::Traces)
+            @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
           def log_info(msg)

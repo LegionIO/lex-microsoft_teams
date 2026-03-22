@@ -29,17 +29,26 @@ module Legion
           end
 
           def token_cache
-            @token_cache ||= Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.new
+            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
           end
 
           def manual
-            return unless token_cache.authenticated?
+            log_debug('TokenRefresher tick')
+            unless token_cache.authenticated?
+              log_debug('No active delegated token, skipping refresh')
+              return
+            end
 
+            log_info('Checking delegated token freshness')
             token = token_cache.cached_delegated_token
             if token
+              log_info('Delegated token still valid, persisting')
               token_cache.save_to_vault
             elsif token_cache.previously_authenticated?
+              log_warn('Delegated token expired, attempting browser re-auth')
               attempt_browser_reauth(token_cache)
+            else
+              log_warn('Delegated token expired, no previous auth to restore')
             end
           rescue StandardError => e
             log_error("TokenRefresher: #{e.message}")
@@ -49,12 +58,16 @@ module Legion
 
           def attempt_browser_reauth(cache)
             settings = teams_auth_settings
-            return false unless settings[:tenant_id] && settings[:client_id]
+            unless settings[:tenant_id] && settings[:client_id]
+              log_warn("Cannot re-auth: tenant_id=#{settings[:tenant_id] ? 'present' : 'nil'}, client_id=#{settings[:client_id] ? 'present' : 'nil'}")
+              return false
+            end
 
             log_warn('Delegated token expired, opening browser for re-authentication...')
 
             scopes = settings.dig(:delegated, :scopes) ||
                      Legion::Extensions::MicrosoftTeams::Helpers::BrowserAuth::DEFAULT_SCOPES
+            log_debug("Using scopes: #{scopes}")
             browser_auth = Legion::Extensions::MicrosoftTeams::Helpers::BrowserAuth.new(
               tenant_id: settings[:tenant_id],
               client_id: settings[:client_id],
@@ -62,9 +75,13 @@ module Legion
             )
 
             result = browser_auth.authenticate
-            return false if result[:error]
+            if result[:error]
+              log_error("Browser auth returned error: #{result[:error]} - #{result[:description]}")
+              return false
+            end
 
             body = result[:result]
+            log_info("Browser auth succeeded, storing token (expires_in=#{body['expires_in']})")
             cache.store_delegated_token(
               access_token:  body['access_token'],
               refresh_token: body['refresh_token'],
@@ -80,21 +97,30 @@ module Legion
           end
 
           def teams_auth_settings
-            return {} unless defined?(Legion::Settings)
+            settings = if defined?(Legion::Settings)
+                         Legion::Settings.dig(:microsoft_teams, :auth) || {}
+                       else
+                         {}
+                       end
+            settings[:tenant_id] ||= ENV.fetch('AZURE_TENANT_ID', nil)
+            settings[:client_id] ||= ENV.fetch('AZURE_CLIENT_ID', nil)
+            settings
+          end
 
-            Legion::Settings.dig(:microsoft_teams, :auth) || {}
+          def log_debug(msg)
+            Legion::Logging.debug("[Teams::TokenRefresher] #{msg}") if defined?(Legion::Logging)
           end
 
           def log_info(msg)
-            Legion::Logging.info(msg) if defined?(Legion::Logging)
+            Legion::Logging.info("[Teams::TokenRefresher] #{msg}") if defined?(Legion::Logging)
           end
 
           def log_warn(msg)
-            Legion::Logging.warn(msg) if defined?(Legion::Logging)
+            Legion::Logging.warn("[Teams::TokenRefresher] #{msg}") if defined?(Legion::Logging)
           end
 
           def log_error(msg)
-            Legion::Logging.error(msg) if defined?(Legion::Logging)
+            Legion::Logging.error("[Teams::TokenRefresher] #{msg}") if defined?(Legion::Logging)
           end
         end
       end

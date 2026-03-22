@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.6.5] - 2026-03-22
+
+### Added
+- `Actors::ChannelPoller` (Every, 60s): polls joined team channels for new messages with HWM dedup
+- `Actors::MeetingIngest` (Every, 5min): polls online meetings, fetches transcripts (VTT) and AI insights
+- `Actors::PresencePoller` (Every, 60s): polls Graph API presence, logs changes at INFO
+- `Runners::AiInsights` for Graph API meeting AI insights, recordings, and call records
+- All 28 Entra delegated permission scopes in `BrowserAuth::DEFAULT_SCOPES`
+- Comprehensive tagged logging throughout auth, token, and poller lifecycles
+- `TokenCache.instance` singleton pattern for shared token state across all actors
+- `force_local_server` option in `BrowserAuth` for CLI OAuth flow
+- `hook_route_registered?` HTTP probe for daemon OAuth callback detection
+- Environment variable fallback (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`) in CLI and actors
+
+### Fixed
+- Fix memory namespace: `Legion::Extensions::Memory::*` -> `Legion::Extensions::Agentic::Memory::Trace::*` across 6 files
+- Fix `SubscriptionRegistry` using nonexistent `recall_trace` method, now uses `retrieve_by_domain`
+- Fix Vault write attempts when `crypt.vault.enabled` is false (added `vault_available?` guard)
+- Fix token not shared across actors (each created own `TokenCache.new` instead of singleton)
+- Fix app token warning spam with warn-once pattern and delegated token fallback
+
+### Changed
+- Updated `AuthValidator` spec to match rewritten `manual` method logic
+
 ## [0.6.4] - 2026-03-22
 
 ### Added
