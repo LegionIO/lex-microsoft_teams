@@ -36,4 +36,20 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ProfileIngest do
       expect(actor.generate_task?).to be false
     end
   end
+
+  describe '#manual' do
+    it 'returns nil when no token is available' do
+      allow(actor).to receive(:resolve_token).and_return(nil)
+      expect(actor.manual).to be_nil
+    end
+
+    it 'calls full_ingest on runner_class when token is present' do
+      allow(actor).to receive(:resolve_token).and_return('test-token')
+      runner = Legion::Extensions::MicrosoftTeams::Runners::ProfileIngest
+      expect(runner).to receive(:full_ingest).with(
+        token: 'test-token', top_people: 10, message_depth: 50
+      )
+      actor.manual
+    end
+  end
 end

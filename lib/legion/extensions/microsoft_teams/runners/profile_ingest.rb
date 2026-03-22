@@ -14,6 +14,7 @@ module Legion
           include Helpers::Client
           include Helpers::PermissionGuard
           include Helpers::HighWaterMark
+          extend self
 
           def full_ingest(token:, top_people: 10, message_depth: 50, **)
             self_result = ingest_self(token: token)

@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.6.2
+**Version**: 0.6.3
 
 ## Architecture
 
@@ -251,7 +251,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 268 specs across 38 spec files (as of v0.6.0)
+bundle exec rspec     # 290 specs across 39 spec files (as of v0.6.0)
 bundle exec rubocop   # Clean
 ```
 

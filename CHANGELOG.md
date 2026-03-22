@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.3] - 2026-03-22
+
+### Fixed
+- Add `extend self` to `Runners::ProfileIngest` so methods are callable at module level by framework actor dispatch
+- Add token guard to `IncrementalSync` and `ProfileIngest` actors to skip execution when no valid delegated token exists
+
 ## [0.6.1] - 2026-03-21
 
 ### Fixed

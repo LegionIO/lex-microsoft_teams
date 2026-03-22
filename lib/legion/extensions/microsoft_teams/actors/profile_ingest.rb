@@ -22,19 +22,23 @@ module Legion
             false
           end
 
-          def args
+          def manual
             token = resolve_token
+            return unless token
+
             settings = begin
-              Legion::Settings[:microsoft_teams]
+              Legion::Settings[:microsoft_teams] || {}
             rescue StandardError
               {}
             end
             ingest = settings[:ingest] || {}
-            {
+            runner_class.full_ingest(
               token:         token,
               top_people:    ingest.fetch(:top_people, 10),
               message_depth: ingest.fetch(:message_depth, 50)
-            }
+            )
+          rescue StandardError => e
+            Legion::Logging.error("ProfileIngest: #{e.message}") if defined?(Legion::Logging)
           end
 
           private

@@ -3,6 +3,14 @@
 require 'spec_helper'
 
 RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ProfileIngest do
+  it 'responds to full_ingest as a module method' do
+    expect(described_class).to respond_to(:full_ingest)
+  end
+
+  it 'responds to incremental_sync as a module method' do
+    expect(described_class).to respond_to(:incremental_sync)
+  end
+
   let(:runner) { Object.new.extend(described_class) }
   let(:memory_runner) { double('memory_runner') }
   let(:graph_conn) { instance_double(Faraday::Connection) }
