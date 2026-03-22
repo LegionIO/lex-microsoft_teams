@@ -36,11 +36,20 @@ module Legion
             false
           end
 
+          def memory_available?
+            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
+          end
+
+          def memory_runner
+            @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
+          end
+
           def token_cache
             Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
           end
 
           def manual
+            log_info('MeetingIngest polling for meetings')
             token = token_cache.cached_graph_token
             return if token.nil?
 
@@ -104,6 +113,7 @@ module Legion
             content = content_response.body.to_s
             preview = content[0, 200]
             log_debug("Meeting '#{subject}' transcript #{tid}: #{preview}")
+            store_transcript_trace(meeting_id: meeting_id, subject: subject, transcript_id: tid, content: content) if memory_available?
           rescue StandardError => e
             log_warn("Could not fetch transcript content #{tid} for meeting #{meeting_id}: #{e.message}")
           end
@@ -121,9 +131,35 @@ module Legion
               action_items.each do |item|
                 log_info("  - #{item['text'] || item.inspect}")
               end
+
+              store_insight_trace(meeting_id: meeting_id, subject: subject, insight: insight) if memory_available?
             end
           rescue StandardError => e
             log_warn("Could not fetch AI insights for meeting #{meeting_id}: #{e.message}")
+          end
+
+          def store_transcript_trace(meeting_id:, subject:, transcript_id:, content:) # rubocop:disable Lint/UnusedMethodArgument
+            memory_runner.store_trace(
+              type:            :episodic,
+              content_payload: content[0, 10_000],
+              domain_tags:     ['teams', 'transcript', "meeting:#{meeting_id}", "transcript:#{transcript_id}"],
+              origin:          :direct_experience,
+              confidence:      0.9
+            )
+          rescue StandardError => e
+            log_warn("Could not store transcript trace for meeting #{meeting_id}: #{e.message}")
+          end
+
+          def store_insight_trace(meeting_id:, subject:, insight:) # rubocop:disable Lint/UnusedMethodArgument
+            memory_runner.store_trace(
+              type:            :semantic,
+              content_payload: insight.to_s,
+              domain_tags:     ['teams', 'ai-insight', "meeting:#{meeting_id}"],
+              origin:          :inferred,
+              confidence:      0.8
+            )
+          rescue StandardError => e
+            log_warn("Could not store insight trace for meeting #{meeting_id}: #{e.message}")
           end
 
           def log_debug(msg)

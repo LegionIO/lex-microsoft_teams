@@ -71,6 +71,15 @@ module Legion
             { result: response.body }
           end
 
+          def dispatch_message(mode: :direct, **payload)
+            case mode.to_s
+            when 'observe'
+              observe_message(**payload)
+            else
+              handle_message(**payload)
+            end
+          end
+
           def handle_message(chat_id:, conversation_id:, text:, owner_id:, mode: :direct, **opts)
             command_result = handle_command(text: text, owner_id: owner_id, chat_id: chat_id, **opts)
             if command_result

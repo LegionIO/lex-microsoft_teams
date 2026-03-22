@@ -20,8 +20,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::MessageProcessor do
     expect(actor.runner_class).to eq('Legion::Extensions::MicrosoftTeams::Runners::Bot')
   end
 
-  it 'routes to handle_message by default' do
-    expect(actor.runner_function).to eq('handle_message')
+  it 'routes to dispatch_message' do
+    expect(actor.runner_function).to eq('dispatch_message')
   end
 
   it 'does not generate tasks' do

@@ -6,7 +6,7 @@ module Legion
       module Actor
         class MessageProcessor < Legion::Extensions::Actors::Subscription
           def runner_class    = 'Legion::Extensions::MicrosoftTeams::Runners::Bot'
-          def runner_function = 'handle_message'
+          def runner_function = 'dispatch_message'
           def check_subtask?  = false
           def generate_task?  = false
 

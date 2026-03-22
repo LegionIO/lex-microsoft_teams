@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.6] - 2026-03-22
+
+### Added
+- `Bot.dispatch_message` routes AMQP messages by mode (direct -> handle_message, observe -> observe_message)
+- MeetingIngest stores transcripts as episodic traces and AI insights as semantic traces in lex-agentic-memory
+- ChannelPoller stores new channel messages as episodic traces in lex-agentic-memory
+- INFO-level poll logging in MeetingIngest and ChannelPoller for visibility
+
+### Changed
+- MessageProcessor actor now calls `dispatch_message` instead of `handle_message` directly
+
 ## [0.6.5] - 2026-03-22
 
 ### Added

@@ -26,6 +26,14 @@ module Legion
           def check_subtask?  = false
           def generate_task?  = false
 
+          def memory_available?
+            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
+          end
+
+          def memory_runner
+            @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
+          end
+
           def enabled?
             return false unless defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
 
@@ -39,6 +47,7 @@ module Legion
           end
 
           def manual
+            log_info('ChannelPoller polling team channels')
             token = token_cache.cached_graph_token
             unless token
               log_debug('No token available, skipping poll')
@@ -113,7 +122,10 @@ module Legion
             return if new_msgs.empty?
 
             log_info("#{team_name} / #{channel_name}: #{new_msgs.length} new message(s)")
-            new_msgs.each { |msg| log_message(team_name: team_name, channel_name: channel_name, msg: msg) }
+            new_msgs.each do |msg|
+              log_message(team_name: team_name, channel_name: channel_name, msg: msg)
+              store_channel_message_trace(team_name: team_name, channel_name: channel_name, msg: msg) if memory_available?
+            end
 
             latest = new_msgs.map { |m| m['createdDateTime'] }.compact.max
             @channel_hwm[channel_id] = latest if latest
@@ -147,6 +159,20 @@ module Legion
             Legion::Settings.dig(:microsoft_teams, :channels, key) || default
           rescue StandardError
             default
+          end
+
+          def store_channel_message_trace(team_name:, channel_name:, msg:)
+            sender = msg.dig('from', 'user', 'displayName') || 'Unknown'
+            content = (msg.dig('body', 'content') || '').gsub(/<[^>]+>/, '').strip
+            memory_runner.store_trace(
+              type:            :episodic,
+              content_payload: "#{sender} in #{team_name}/##{channel_name}: #{content}"[0, 5000],
+              domain_tags:     ['teams', 'channel', "team:#{team_name}", "channel:#{channel_name}", "sender:#{sender}"],
+              origin:          :direct_experience,
+              confidence:      0.7
+            )
+          rescue StandardError => e
+            log_error("Failed to store channel message trace: #{e.message}")
           end
 
           def log_debug(msg)
