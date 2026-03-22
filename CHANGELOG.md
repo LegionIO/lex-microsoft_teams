@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.4] - 2026-03-22
+
+### Added
+- `auto_authenticate` setting (`settings[:microsoft_teams][:auth][:delegated][:auto_authenticate]`, default `false`) — when true, triggers browser OAuth popup on boot even for first-time users with no prior token
+
 ## [0.6.3] - 2026-03-22
 
 ### Fixed

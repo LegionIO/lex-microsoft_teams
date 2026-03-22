@@ -30,11 +30,14 @@ module Legion
               token = token_cache.cached_delegated_token
               if token
                 log_info('Teams delegated auth restored')
-              elsif token_cache.previously_authenticated?
+              elsif token_cache.previously_authenticated? || auto_authenticate?
                 attempt_browser_reauth(token_cache)
               end
             elsif token_cache.previously_authenticated?
               log_warn('Token file found but could not load, attempting re-authentication')
+              attempt_browser_reauth(token_cache)
+            elsif auto_authenticate?
+              log_info('auto_authenticate enabled, opening browser for initial authentication...')
               attempt_browser_reauth(token_cache)
             else
               log_debug('No Teams delegated auth configured, skipping')
@@ -75,6 +78,11 @@ module Legion
           rescue StandardError => e
             log_error("Browser re-auth failed: #{e.message}")
             false
+          end
+
+          def auto_authenticate?
+            settings = teams_auth_settings
+            settings.dig(:delegated, :auto_authenticate) == true
           end
 
           def teams_auth_settings
