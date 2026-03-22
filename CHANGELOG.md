@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.8] - 2026-03-22
+
+### Fixed
+- TokenCache deadlock: `cached_delegated_token` held `@mutex` while calling `refresh_delegated` -> `save_to_local` which re-acquired `@mutex`. Moved refresh outside synchronize block.
+
+### Added
+- INFO logging in ProfileIngest and CacheBulkIngest `manual` methods for boot-time visibility
+
 ## [0.6.7] - 2026-03-22
 
 ### Fixed

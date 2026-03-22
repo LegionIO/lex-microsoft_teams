@@ -21,6 +21,15 @@ module Legion
             false
           end
 
+          def manual
+            Legion::Logging.info('[Teams::CacheBulkIngest] CacheBulkIngest firing') if defined?(Legion::Logging)
+            result = runner_class.ingest_cache(**args)
+            Legion::Logging.info("[Teams::CacheBulkIngest] Complete: #{result.inspect[0, 200]}") if defined?(Legion::Logging)
+            result
+          rescue StandardError => e
+            Legion::Logging.error("[Teams::CacheBulkIngest] Error: #{e.message}") if defined?(Legion::Logging)
+          end
+
           def args
             { imprint_active: imprint_active? }
           end

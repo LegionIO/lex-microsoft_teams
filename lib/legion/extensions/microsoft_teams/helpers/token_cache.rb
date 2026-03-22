@@ -76,7 +76,7 @@ module Legion
           # --- Delegated token (user auth) ---
 
           def cached_delegated_token
-            @mutex.synchronize do
+            needs_refresh = @mutex.synchronize do
               unless @delegated_cache
                 log_debug('No delegated token in cache')
                 return nil
@@ -87,9 +87,13 @@ module Legion
                 return @delegated_cache[:token]
               end
 
-              log_info('Delegated token expired, attempting refresh')
-              refresh_delegated
+              true
             end
+
+            return unless needs_refresh
+
+            log_info('Delegated token expired, attempting refresh')
+            refresh_delegated
           end
 
           def store_delegated_token(access_token:, refresh_token:, expires_in:, scopes:)

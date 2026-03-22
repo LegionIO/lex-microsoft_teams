@@ -23,8 +23,13 @@ module Legion
           end
 
           def manual
+            Legion::Logging.info('[Teams::ProfileIngest] ProfileIngest firing') if defined?(Legion::Logging)
             token = resolve_token
-            return unless token
+            unless token
+              Legion::Logging.warn('[Teams::ProfileIngest] No token available, skipping') if defined?(Legion::Logging)
+              return
+            end
+            Legion::Logging.info('[Teams::ProfileIngest] Token acquired, starting ingest') if defined?(Legion::Logging)
 
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
