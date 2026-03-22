@@ -49,8 +49,7 @@ module Legion
 
           def resolve_token
             if defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-              cache = Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.new
-              cache.cached_delegated_token
+              Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance.cached_delegated_token
             end
           rescue StandardError
             nil

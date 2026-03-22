@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.7] - 2026-03-22
+
+### Fixed
+- ProfileIngest actor uses `TokenCache.instance` singleton instead of `TokenCache.new` (empty cache returned nil token, preventing boot-time profile ingest)
+
 ## [0.6.6] - 2026-03-22
 
 ### Added
