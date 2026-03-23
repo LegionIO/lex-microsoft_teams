@@ -28,5 +28,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'base64', '>= 0.1'
   spec.add_dependency 'faraday', '>= 2.0'
+  spec.add_dependency 'legion-logging', '>= 1.3.2'
+  spec.add_dependency 'legion-settings', '>= 1.3.14'
   spec.add_dependency 'snappy', '>= 0.5'
 end

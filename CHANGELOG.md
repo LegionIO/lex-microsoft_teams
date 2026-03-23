@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.11] - 2026-03-22
+
+### Changed
+- Add legion-logging and legion-settings as runtime dependencies
+- Include `Legion::Settings::Helper` in spec_helper Lex stub for real settings access in tests
+
 ## [0.6.10] - 2026-03-22
 
 ### Changed

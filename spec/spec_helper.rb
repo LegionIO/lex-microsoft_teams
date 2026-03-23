@@ -2,14 +2,16 @@
 
 require 'bundler/setup'
 require 'legion/logging'
+require 'legion/settings'
 
-# Define Helpers::Lex using the real Legion::Logging::Helper so guarded
-# includes resolve in tests and all classes get a working `log` method.
+# Define Helpers::Lex using the real helpers from sub-gems so guarded
+# includes resolve in tests and all classes get working `log` and `settings` methods.
 module Legion
   module Extensions
     module Helpers
       module Lex
         include Legion::Logging::Helper
+        include Legion::Settings::Helper
       end
     end
 
