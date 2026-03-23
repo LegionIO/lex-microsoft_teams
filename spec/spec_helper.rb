@@ -1,17 +1,15 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
-require 'logger'
+require 'legion/logging'
 
-# Stub Legion::Extensions::Helpers::Lex so the guarded includes resolve in tests.
-# Provides a null-ish `log` method matching the interface from the real Helpers::Logger.
+# Define Helpers::Lex using the real Legion::Logging::Helper so guarded
+# includes resolve in tests and all classes get a working `log` method.
 module Legion
   module Extensions
     module Helpers
       module Lex
-        def log
-          @log ||= ::Logger.new(File::NULL)
-        end
+        include Legion::Logging::Helper
       end
     end
 

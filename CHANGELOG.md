@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.10] - 2026-03-22
+
+### Changed
+- Replace spec_helper Helpers::Lex stub with real `Legion::Logging::Helper` from legion-logging gem
+- Add legion-logging >= 1.3.2 as test dependency
+
 ## [0.6.9] - 2026-03-22
 
 ### Changed
