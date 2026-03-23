@@ -25,7 +25,7 @@ module Legion
               @instance ||= begin
                 cache = new
                 cache.load_from_vault
-                Legion::Logging.info('[Teams::TokenCache] Shared instance created and loaded') if defined?(Legion::Logging)
+                log.info('[Teams::TokenCache] Shared instance created and loaded')
                 cache
               end
             end
@@ -249,7 +249,8 @@ module Legion
             enabled = Legion::Settings.dig(:crypt, :vault, :enabled) == true
             log.debug("vault_available? => #{enabled}")
             enabled
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("TokenCache: vault_available? check failed: #{e.message}")
             false
           end
 

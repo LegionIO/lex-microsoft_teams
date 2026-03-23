@@ -30,7 +30,8 @@ module Legion
             return false unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :bot, :observe, :enabled) == true
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("ObservedChatPoller#enabled?: #{e.message}")
             false
           end
 

@@ -24,7 +24,8 @@ module Legion
 
           def enabled?
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("CacheSync#enabled?: #{e.message}")
             false
           end
 

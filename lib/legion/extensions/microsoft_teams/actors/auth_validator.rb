@@ -15,7 +15,8 @@ module Legion
 
           def enabled?
             defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("AuthValidator#enabled?: #{e.message}")
             false
           end
 

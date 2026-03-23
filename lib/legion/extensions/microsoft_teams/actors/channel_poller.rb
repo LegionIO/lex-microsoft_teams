@@ -38,7 +38,8 @@ module Legion
             return false unless defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
 
             channel_setting(:enabled, false) == true
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("ChannelPoller#enabled?: #{e.message}")
             false
           end
 
@@ -157,7 +158,8 @@ module Legion
             return default unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :channels, key) || default
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("ChannelPoller#channel_setting(#{key}): #{e.message}")
             default
           end
 

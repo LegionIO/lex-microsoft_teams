@@ -24,7 +24,8 @@ module Legion
           def time
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError
+            rescue StandardError => e
+              log.debug("MeetingIngest#time: #{e.message}")
               {}
             end
             settings.dig(:meetings, :ingest_interval) || DEFAULT_INGEST_INTERVAL
@@ -32,7 +33,8 @@ module Legion
 
           def enabled?
             defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("MeetingIngest#enabled?: #{e.message}")
             false
           end
 

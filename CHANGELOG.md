@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.14] - 2026-03-23
+
+### Added
+- Graph API ingest runner and actor for fetching top contacts and their 1:1 chat messages
+- People-based chat matching with email, userId, and displayName fallbacks
+- High-water mark support for incremental message fetching
+- Paginated chat fetching with MAX_CHAT_PAGES cap
+
+### Changed
+- Replace all silent rescue blocks with log.debug/warn/error entries
+- Use `log.` helper consistently instead of `Legion::Logging.`
+- Fix `IncrementalSync#resolve_token` to use `TokenCache.instance` instead of `.new`
+- Clean up debug logging (remove log.unknown/log.fatal, use log.debug)
+
 ## [0.6.13] - 2026-03-22
 
 ### Changed

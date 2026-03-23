@@ -42,6 +42,7 @@ module Legion
             end
 
             coactivate_thread_traces(thread_groups)
+            flush_trace_store if stored.positive?
 
             { result: { stored: stored, skipped: skipped, latest_time: latest_time } }
           end
@@ -87,7 +88,10 @@ module Legion
 
           def build_domain_tags(msg)
             tags = ['teams']
-            tags << "sender:#{msg.sender}" if msg.sender
+            if msg.sender
+              tags << "sender:#{msg.sender}"
+              tags << "peer:#{msg.sender}"
+            end
             tags << "thread:#{msg.thread_topic}" if msg.thread_topic
             tags << "thread_id:#{msg.thread_id}" if msg.thread_id
             tags << "thread_type:#{msg.thread_type}" if msg.thread_type
@@ -97,17 +101,25 @@ module Legion
             tags
           end
 
+          def flush_trace_store
+            store = Legion::Extensions::Agentic::Memory::Trace.shared_store
+            store.flush if store.respond_to?(:flush)
+          rescue StandardError => e
+            log.warn("CacheIngest: flush failed: #{e.message}")
+          end
+
           # Seed Hebbian coactivation links between messages in the same thread.
           def coactivate_thread_traces(thread_groups)
             return unless defined?(Legion::Extensions::Agentic::Memory::Trace::Helpers::Store)
 
-            store = Legion::Extensions::Agentic::Memory::Trace::Helpers::Store.new
+            store = Legion::Extensions::Agentic::Memory::Trace.shared_store
             thread_groups.each_value do |trace_ids|
               next if trace_ids.length < 2
 
               trace_ids.each_cons(2) do |id_a, id_b|
                 store.record_coactivation(id_a, id_b)
-              rescue StandardError
+              rescue StandardError => e
+                log.debug("CacheIngest: coactivation link failed for #{id_a}/#{id_b}: #{e.message}")
                 nil
               end
             end

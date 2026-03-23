@@ -68,7 +68,8 @@ module Legion
             return {} unless defined?(Legion::Settings)
 
             Legion::Settings[:microsoft_teams]&.dig(:auth) || {}
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("Auth: resolve_settings failed: #{e.message}")
             {}
           end
 

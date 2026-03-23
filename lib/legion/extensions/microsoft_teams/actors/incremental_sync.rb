@@ -15,7 +15,8 @@ module Legion
           def delay
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError
+            rescue StandardError => e
+              log.debug("IncrementalSync#delay: #{e.message}")
               {}
             end
             settings.dig(:ingest, :incremental_interval) || 900
@@ -24,7 +25,8 @@ module Legion
           def enabled?
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("IncrementalSync#enabled?: #{e.message}")
             false
           end
 
@@ -55,10 +57,10 @@ module Legion
 
           def resolve_token
             if defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-              cache = Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.new
-              cache.cached_delegated_token
+              Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance.cached_delegated_token
             end
-          rescue StandardError
+          rescue StandardError => e
+            log.warn("IncrementalSync#resolve_token: #{e.message}")
             nil
           end
         end

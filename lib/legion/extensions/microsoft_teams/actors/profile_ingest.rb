@@ -18,7 +18,8 @@ module Legion
           def enabled?
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("ProfileIngest#enabled?: #{e.message}")
             false
           end
 
@@ -33,7 +34,8 @@ module Legion
 
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError
+            rescue StandardError => e
+              log.debug("ProfileIngest#manual settings: #{e.message}")
               {}
             end
             ingest = settings[:ingest] || {}
@@ -56,7 +58,8 @@ module Legion
             if defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
               Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance.cached_delegated_token
             end
-          rescue StandardError
+          rescue StandardError => e
+            log.warn("ProfileIngest#resolve_token: #{e.message}")
             nil
           end
         end

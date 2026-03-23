@@ -58,7 +58,8 @@ module Legion
             return nil unless raw
 
             raw.is_a?(Hash) ? raw : ::JSON.parse(raw, symbolize_names: true)
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("HighWaterMark: get_extended_hwm failed to parse cached value: #{e.message}")
             nil
           end
 

@@ -17,7 +17,8 @@ module Legion
 
           def enabled?
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("CacheBulkIngest#enabled?: #{e.message}")
             false
           end
 
@@ -40,7 +41,8 @@ module Legion
             return false unless defined?(Legion::Extensions::Coldstart::Helpers::Bootstrap)
 
             Legion::Extensions::Coldstart::Helpers::Bootstrap.new.imprint_active?
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("CacheBulkIngest#imprint_active?: #{e.message}")
             false
           end
         end

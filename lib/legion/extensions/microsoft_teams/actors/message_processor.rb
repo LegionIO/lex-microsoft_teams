@@ -13,7 +13,8 @@ module Legion
           def enabled?
             defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               defined?(Legion::Transport)
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("MessageProcessor#enabled?: #{e.message}")
             false
           end
         end

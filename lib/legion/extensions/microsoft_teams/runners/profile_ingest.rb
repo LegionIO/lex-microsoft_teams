@@ -198,7 +198,8 @@ module Legion
               members = (members_resp.body || {}).fetch('value', [])
               members.any? { |m| m['email']&.downcase == email.downcase }
             end
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("ProfileIngest: find_chat_for_person failed: #{e.message}")
             nil
           end
 
@@ -209,7 +210,8 @@ module Legion
 
             resp = conn.get("chats/#{chat_id}/messages", params)
             (resp.body || {}).fetch('value', [])
-          rescue StandardError
+          rescue StandardError => e
+            log.warn("ProfileIngest: fetch_new_messages failed for #{chat_id}: #{e.message}")
             []
           end
 
@@ -229,7 +231,8 @@ module Legion
             elsif defined?(Legion::LLM)
               Legion::LLM.ask(prompt: "#{definition[:prompt]}\n\nConversation with #{peer_name}:\n#{text}")
             end
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("ProfileIngest: extract_conversation failed: #{e.message}")
             nil
           end
 
