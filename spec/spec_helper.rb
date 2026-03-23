@@ -5,6 +5,9 @@ require 'legion/logging'
 require 'legion/settings'
 require 'legion/cache/helper'
 require 'legion/crypt/helper'
+require 'legion/data/helper'
+require 'legion/json/helper'
+require 'legion/transport'
 
 # Define Helpers::Lex using the real helpers from sub-gems so guarded
 # includes resolve in tests and all classes get working log, settings,
@@ -17,6 +20,9 @@ module Legion
         include Legion::Settings::Helper
         include Legion::Cache::Helper
         include Legion::Crypt::Helper
+        include Legion::Data::Helper
+        include Legion::JSON::Helper
+        include Legion::Transport::Helper
       end
     end
 

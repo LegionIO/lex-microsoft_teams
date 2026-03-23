@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.13] - 2026-03-22
+
+### Changed
+- Add legion-data, legion-json, and legion-transport as runtime dependencies
+- Include `Legion::Data::Helper`, `Legion::JSON::Helper`, and `Legion::Transport::Helper` in spec_helper Lex stub
+
 ## [0.6.12] - 2026-03-22
 
 ### Changed
