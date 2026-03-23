@@ -35,7 +35,7 @@ module Legion
           def manual
             token = token_cache.cached_graph_token
             unless token
-              log_debug('No token available, skipping presence poll')
+              log.debug('No token available, skipping presence poll')
               return
             end
 
@@ -49,27 +49,13 @@ module Legion
             current = { availability: availability, activity: activity }
 
             if current == @last_presence
-              log_debug("Presence unchanged: availability=#{availability}, activity=#{activity}")
+              log.debug("Presence unchanged: availability=#{availability}, activity=#{activity}")
             else
-              log_info("Presence changed: availability=#{availability}, activity=#{activity}")
+              log.info("Presence changed: availability=#{availability}, activity=#{activity}")
               @last_presence = current
             end
           rescue StandardError => e
-            log_error("PresencePoller: #{e.message}")
-          end
-
-          private
-
-          def log_debug(msg)
-            Legion::Logging.debug("[Teams::PresencePoller] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_info(msg)
-            Legion::Logging.info("[Teams::PresencePoller] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_error(msg)
-            Legion::Logging.error("[Teams::PresencePoller] #{msg}") if defined?(Legion::Logging)
+            log.error("PresencePoller: #{e.message}")
           end
         end
       end

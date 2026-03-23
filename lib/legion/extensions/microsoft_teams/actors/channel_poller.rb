@@ -47,23 +47,23 @@ module Legion
           end
 
           def manual
-            log_info('ChannelPoller polling team channels')
+            log.info('ChannelPoller polling team channels')
             token = token_cache.cached_graph_token
             unless token
-              log_debug('No token available, skipping poll')
+              log.debug('No token available, skipping poll')
               return
             end
 
             teams = fetch_joined_teams(token: token)
-            log_debug("Found #{teams.length} joined team(s)")
+            log.debug("Found #{teams.length} joined team(s)")
 
             teams.first(max_teams).each do |team|
               poll_team(team: team, token: token)
             rescue StandardError => e
-              log_error("Error polling team #{team['displayName']}: #{e.message}")
+              log.error("Error polling team #{team['displayName']}: #{e.message}")
             end
           rescue StandardError => e
-            log_error("ChannelPoller: #{e.message}")
+            log.error("ChannelPoller: #{e.message}")
           end
 
           private
@@ -73,7 +73,7 @@ module Legion
             response = conn.get('me/joinedTeams')
             response.body&.dig('value') || []
           rescue StandardError => e
-            log_error("Failed to fetch joined teams: #{e.message}")
+            log.error("Failed to fetch joined teams: #{e.message}")
             []
           end
 
@@ -87,7 +87,7 @@ module Legion
             selected.first(max_channels_per_team).each do |channel|
               poll_channel(team_id: team_id, team_name: team_name, channel: channel, token: token)
             rescue StandardError => e
-              log_error("Error polling channel #{channel['displayName']} in #{team_name}: #{e.message}")
+              log.error("Error polling channel #{channel['displayName']} in #{team_name}: #{e.message}")
             end
           end
 
@@ -96,7 +96,7 @@ module Legion
             response = conn.get("teams/#{team_id}/channels")
             response.body&.dig('value') || []
           rescue StandardError => e
-            log_error("Failed to fetch channels for team #{team_id}: #{e.message}")
+            log.error("Failed to fetch channels for team #{team_id}: #{e.message}")
             []
           end
 
@@ -121,7 +121,7 @@ module Legion
             new_msgs = filter_new_messages(channel_id: channel_id, messages: messages)
             return if new_msgs.empty?
 
-            log_info("#{team_name} / #{channel_name}: #{new_msgs.length} new message(s)")
+            log.info("#{team_name} / #{channel_name}: #{new_msgs.length} new message(s)")
             new_msgs.each do |msg|
               log_message(team_name: team_name, channel_name: channel_name, msg: msg)
               store_channel_message_trace(team_name: team_name, channel_name: channel_name, msg: msg) if memory_available?
@@ -142,7 +142,7 @@ module Legion
             sender  = msg.dig('from', 'user', 'displayName') || 'Unknown'
             content = (msg.dig('body', 'content') || '').gsub(/<[^>]+>/, '').strip
             snippet = content.length > 100 ? "#{content[0, 100]}..." : content
-            log_info("  [#{team_name}] ##{channel_name} | #{sender}: #{snippet}")
+            log.info("  [#{team_name}] ##{channel_name} | #{sender}: #{snippet}")
           end
 
           def max_teams
@@ -172,19 +172,7 @@ module Legion
               confidence:      0.7
             )
           rescue StandardError => e
-            log_error("Failed to store channel message trace: #{e.message}")
-          end
-
-          def log_debug(msg)
-            Legion::Logging.debug("[Teams::ChannelPoller] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_info(msg)
-            Legion::Logging.info("[Teams::ChannelPoller] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_error(msg)
-            Legion::Logging.error("[Teams::ChannelPoller] #{msg}") if defined?(Legion::Logging)
+            log.error("Failed to store channel message trace: #{e.message}")
           end
         end
       end

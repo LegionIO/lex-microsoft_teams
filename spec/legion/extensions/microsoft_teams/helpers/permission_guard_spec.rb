@@ -24,7 +24,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::PermissionGuard do
 
   describe '#record_denial' do
     it 'logs a warning' do
-      expect(guard).to receive(:log_warn).with(%r{permission denied.*/me/people}i)
+      logger = guard.log
+      expect(logger).to receive(:warn).with(%r{permission denied.*/me/people}i)
       guard.record_denial('/me/people', 'Insufficient privileges')
     end
 

@@ -182,7 +182,7 @@ module Legion
             )
             response.content
           rescue StandardError => e
-            log_error("LLM call failed: #{e.message}")
+            log.error("LLM call failed: #{e.message}")
             'I encountered an error processing your message. Please try again.'
           end
 
@@ -207,10 +207,6 @@ module Legion
             { result: response.body }
           end
 
-          def log_error(msg)
-            Legion::Logging.error(msg) if defined?(Legion::Logging)
-          end
-
           def observe_enabled?
             return false unless defined?(Legion::Settings)
 
@@ -232,7 +228,7 @@ module Legion
             response = llm_chat(context, instructions: prompt)
             parse_extraction(response.content)
           rescue StandardError => e
-            log_error("Observation extraction failed: #{e.message}")
+            log.error("Observation extraction failed: #{e.message}")
             nil
           end
 
@@ -263,11 +259,11 @@ module Legion
               confidence:      0.6
             )
           rescue StandardError => e
-            log_error("Observation store failed: #{e.message}")
+            log.error("Observation store failed: #{e.message}")
           end
 
           def notify_owner(owner_id:, peer_name:, extraction: nil) # rubocop:disable Lint/UnusedMethodArgument
-            log_info("Would notify #{owner_id} about action items from #{peer_name}")
+            log.info("Would notify #{owner_id} about action items from #{peer_name}")
           end
 
           def memory_available?
@@ -276,10 +272,6 @@ module Legion
 
           def memory_runner
             @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
-          end
-
-          def log_info(msg)
-            Legion::Logging.info(msg) if defined?(Legion::Logging)
           end
 
           def cmd_watch(name:, owner_id:, chat_id: nil, token: nil, **) # rubocop:disable Lint/UnusedMethodArgument
@@ -405,7 +397,7 @@ module Legion
             end
             nil
           rescue StandardError => e
-            log_error("find_chat_with_person failed: #{e.message}")
+            log.error("find_chat_with_person failed: #{e.message}")
             nil
           end
 

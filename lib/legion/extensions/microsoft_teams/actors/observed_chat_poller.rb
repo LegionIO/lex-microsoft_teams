@@ -54,7 +54,7 @@ module Legion
               )
             end
           rescue StandardError => e
-            Legion::Logging.error("ObservedChatPoller: #{e.message}") if defined?(Legion::Logging)
+            log.error("ObservedChatPoller: #{e.message}")
           end
 
           private
@@ -83,7 +83,7 @@ module Legion
           def publish_message(payload)
             Legion::Extensions::MicrosoftTeams::Transport::Messages::TeamsMessage.new.publish(payload)
           rescue StandardError => e
-            Legion::Logging.error("ObservedChatPoller publish failed: #{e.message}") if defined?(Legion::Logging)
+            log.error("ObservedChatPoller publish failed: #{e.message}")
           end
 
           def normalize_messages(messages)

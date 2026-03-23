@@ -49,14 +49,14 @@ module Legion
           end
 
           def manual
-            log_info('MeetingIngest polling for meetings')
+            log.info('MeetingIngest polling for meetings')
             token = token_cache.cached_graph_token
             return if token.nil?
 
             conn = graph_connection(token: token)
             response = conn.get("#{user_path('me')}/onlineMeetings")
             meetings = response.body&.dig('value') || []
-            log_info("Found #{meetings.length} online meeting(s)")
+            log.info("Found #{meetings.length} online meeting(s)")
 
             meetings.each do |meeting|
               meeting_id = meeting['id']
@@ -66,11 +66,11 @@ module Legion
                 process_meeting(meeting_id: meeting_id, subject: meeting['subject'], token: token)
                 @processed_meetings.add(meeting_id)
               rescue StandardError => e
-                log_error("Failed to process meeting #{meeting_id}: #{e.message}")
+                log.error("Failed to process meeting #{meeting_id}: #{e.message}")
               end
             end
           rescue StandardError => e
-            log_error("MeetingIngest: #{e.message}")
+            log.error("MeetingIngest: #{e.message}")
           end
 
           private
@@ -79,7 +79,7 @@ module Legion
             conn = graph_connection(token: token)
 
             transcripts = fetch_transcripts(conn: conn, meeting_id: meeting_id)
-            log_info("Meeting '#{subject}' (#{meeting_id}): #{transcripts.length} transcript(s)")
+            log.info("Meeting '#{subject}' (#{meeting_id}): #{transcripts.length} transcript(s)")
 
             transcripts.each do |transcript|
               fetch_and_log_transcript_content(
@@ -98,7 +98,7 @@ module Legion
             response = conn.get("#{user_path('me')}/onlineMeetings/#{meeting_id}/transcripts")
             response.body&.dig('value') || []
           rescue StandardError => e
-            log_warn("Could not fetch transcripts for meeting #{meeting_id}: #{e.message}")
+            log.warn("Could not fetch transcripts for meeting #{meeting_id}: #{e.message}")
             []
           end
 
@@ -112,30 +112,30 @@ module Legion
             )
             content = content_response.body.to_s
             preview = content[0, 200]
-            log_debug("Meeting '#{subject}' transcript #{tid}: #{preview}")
+            log.debug("Meeting '#{subject}' transcript #{tid}: #{preview}")
             store_transcript_trace(meeting_id: meeting_id, subject: subject, transcript_id: tid, content: content) if memory_available?
           rescue StandardError => e
-            log_warn("Could not fetch transcript content #{tid} for meeting #{meeting_id}: #{e.message}")
+            log.warn("Could not fetch transcript content #{tid} for meeting #{meeting_id}: #{e.message}")
           end
 
           def fetch_and_log_ai_insights(conn:, meeting_id:, subject:)
             response = conn.get("#{user_path('me')}/onlineMeetings/#{meeting_id}/aiInsights")
             insights = response.body&.dig('value') || []
-            log_info("Meeting '#{subject}' (#{meeting_id}): #{insights.length} AI insight(s)")
+            log.info("Meeting '#{subject}' (#{meeting_id}): #{insights.length} AI insight(s)")
 
             insights.each do |insight|
               action_items = insight['actionItems'] || []
               next if action_items.empty?
 
-              log_info("Meeting '#{subject}' AI insight action items (#{action_items.length}):")
+              log.info("Meeting '#{subject}' AI insight action items (#{action_items.length}):")
               action_items.each do |item|
-                log_info("  - #{item['text'] || item.inspect}")
+                log.info("  - #{item['text'] || item.inspect}")
               end
 
               store_insight_trace(meeting_id: meeting_id, subject: subject, insight: insight) if memory_available?
             end
           rescue StandardError => e
-            log_warn("Could not fetch AI insights for meeting #{meeting_id}: #{e.message}")
+            log.warn("Could not fetch AI insights for meeting #{meeting_id}: #{e.message}")
           end
 
           def store_transcript_trace(meeting_id:, subject:, transcript_id:, content:) # rubocop:disable Lint/UnusedMethodArgument
@@ -147,7 +147,7 @@ module Legion
               confidence:      0.9
             )
           rescue StandardError => e
-            log_warn("Could not store transcript trace for meeting #{meeting_id}: #{e.message}")
+            log.warn("Could not store transcript trace for meeting #{meeting_id}: #{e.message}")
           end
 
           def store_insight_trace(meeting_id:, subject:, insight:) # rubocop:disable Lint/UnusedMethodArgument
@@ -159,23 +159,7 @@ module Legion
               confidence:      0.8
             )
           rescue StandardError => e
-            log_warn("Could not store insight trace for meeting #{meeting_id}: #{e.message}")
-          end
-
-          def log_debug(msg)
-            Legion::Logging.debug("[Teams::MeetingIngest] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_info(msg)
-            Legion::Logging.info("[Teams::MeetingIngest] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_warn(msg)
-            Legion::Logging.warn("[Teams::MeetingIngest] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_error(msg)
-            Legion::Logging.error("[Teams::MeetingIngest] #{msg}") if defined?(Legion::Logging)
+            log.warn("Could not store insight trace for meeting #{meeting_id}: #{e.message}")
           end
         end
       end

@@ -10,6 +10,9 @@ module Legion
     module MicrosoftTeams
       module Helpers
         class TokenCache
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+
           REFRESH_BUFFER = 60
           DEFAULT_VAULT_PATH = 'legionio/microsoft_teams/delegated_token'
           DEFAULT_LOCAL_DIR = File.join(Dir.home, '.legionio', 'tokens')
@@ -37,7 +40,7 @@ module Legion
             @delegated_cache = nil
             @mutex = Mutex.new
             @app_token_warned = false
-            log_debug('TokenCache initialized')
+            log.debug('TokenCache initialized')
           end
 
           # --- Application token (client_credentials) ---
@@ -45,7 +48,7 @@ module Legion
           def cached_graph_token
             @mutex.synchronize do
               if @token_cache && !token_expired?(@token_cache)
-                log_debug('Using cached app token')
+                log.debug('Using cached app token')
                 return @token_cache[:token]
               end
 
@@ -53,12 +56,12 @@ module Legion
               return result if result
 
               if @delegated_cache && !token_expired?(@delegated_cache)
-                log_debug('No app token available, using delegated token')
+                log.debug('No app token available, using delegated token')
                 return @delegated_cache[:token]
               end
 
               unless @app_token_warned
-                log_warn('No app or delegated token available for Graph API calls')
+                log.warn('No app or delegated token available for Graph API calls')
                 @app_token_warned = true
               end
               nil
@@ -70,7 +73,7 @@ module Legion
               @token_cache = nil
               @app_token_warned = false
             end
-            log_debug('App token cache cleared')
+            log.debug('App token cache cleared')
           end
 
           # --- Delegated token (user auth) ---
@@ -78,12 +81,12 @@ module Legion
           def cached_delegated_token
             needs_refresh = @mutex.synchronize do
               unless @delegated_cache
-                log_debug('No delegated token in cache')
+                log.debug('No delegated token in cache')
                 return nil
               end
 
               unless token_expired?(@delegated_cache)
-                log_debug("Using cached delegated token (expires #{@delegated_cache[:expires_at]})")
+                log.debug("Using cached delegated token (expires #{@delegated_cache[:expires_at]})")
                 return @delegated_cache[:token]
               end
 
@@ -92,7 +95,7 @@ module Legion
 
             return unless needs_refresh
 
-            log_info('Delegated token expired, attempting refresh')
+            log.info('Delegated token expired, attempting refresh')
             refresh_delegated
           end
 
@@ -107,30 +110,30 @@ module Legion
               }
               @app_token_warned = false
             end
-            log_info("Delegated token stored (expires_in=#{expires_in}s, expires_at=#{expires_at})")
+            log.info("Delegated token stored (expires_in=#{expires_in}s, expires_at=#{expires_at})")
           end
 
           def clear_delegated_token!
             @mutex.synchronize { @delegated_cache = nil }
-            log_debug('Delegated token cache cleared')
+            log.debug('Delegated token cache cleared')
           end
 
           def authenticated?
             result = @mutex.synchronize { !@delegated_cache.nil? }
-            log_debug("authenticated? => #{result}")
+            log.debug("authenticated? => #{result}")
             result
           end
 
           def previously_authenticated?
             path = local_token_path
             result = File.exist?(path)
-            log_debug("previously_authenticated? => #{result} (#{path})")
+            log.debug("previously_authenticated? => #{result} (#{path})")
             result
           end
 
           def load_from_vault
             if vault_available?
-              log_info("Loading delegated token from Vault (#{vault_path})")
+              log.info("Loading delegated token from Vault (#{vault_path})")
               data = Legion::Crypt.get(vault_path)
               if data && data[:access_token]
                 @mutex.synchronize do
@@ -141,18 +144,18 @@ module Legion
                     scopes:        data[:scopes]
                   }
                 end
-                log_info('Delegated token loaded from Vault')
+                log.info('Delegated token loaded from Vault')
                 true
               else
-                log_warn('Vault had no delegated token, falling back to local')
+                log.warn('Vault had no delegated token, falling back to local')
                 load_from_local
               end
             else
-              log_debug('Vault not available, loading from local file')
+              log.debug('Vault not available, loading from local file')
               load_from_local
             end
           rescue StandardError => e
-            log_error("Failed to load delegated token from Vault: #{e.message}")
+            log.error("Failed to load delegated token from Vault: #{e.message}")
             load_from_local
           end
 
@@ -160,41 +163,41 @@ module Legion
             save_to_local
 
             unless vault_available?
-              log_debug('Vault not available, skipping Vault save')
+              log.debug('Vault not available, skipping Vault save')
               return false
             end
 
             data = @mutex.synchronize { @delegated_cache&.dup }
             unless data
-              log_warn('No delegated token to save to Vault')
+              log.warn('No delegated token to save to Vault')
               return false
             end
 
-            log_info("Saving delegated token to Vault (#{vault_path})")
+            log.info("Saving delegated token to Vault (#{vault_path})")
             Legion::Crypt.write(vault_path,
                                 access_token:  data[:token],
                                 refresh_token: data[:refresh_token],
                                 expires_at:    data[:expires_at].utc.iso8601,
                                 scopes:        data[:scopes])
-            log_info('Delegated token saved to Vault')
+            log.info('Delegated token saved to Vault')
             true
           rescue StandardError => e
-            log_error("Failed to save delegated token to Vault: #{e.message}")
+            log.error("Failed to save delegated token to Vault: #{e.message}")
             false
           end
 
           def load_from_local
             path = local_token_path
             unless File.exist?(path)
-              log_debug("Local token file not found: #{path}")
+              log.debug("Local token file not found: #{path}")
               return false
             end
 
-            log_info("Loading delegated token from local file: #{path}")
+            log.info("Loading delegated token from local file: #{path}")
             raw = File.read(path)
             data = ::JSON.parse(raw)
             unless data['access_token'] && data['refresh_token']
-              log_warn('Local token file missing access_token or refresh_token')
+              log.warn('Local token file missing access_token or refresh_token')
               return false
             end
 
@@ -207,17 +210,17 @@ module Legion
                 scopes:        data['scopes']
               }
             end
-            log_info("Delegated token loaded from local file (expires_at=#{expires_at})")
+            log.info("Delegated token loaded from local file (expires_at=#{expires_at})")
             true
           rescue StandardError => e
-            log_error("Failed to load delegated token from local file: #{e.message}")
+            log.error("Failed to load delegated token from local file: #{e.message}")
             false
           end
 
           def save_to_local
             data = @mutex.synchronize { @delegated_cache&.dup }
             unless data
-              log_warn('No delegated token to save locally')
+              log.warn('No delegated token to save locally')
               return false
             end
 
@@ -230,10 +233,10 @@ module Legion
                                'scopes'        => data[:scopes]
                              ))
             File.chmod(0o600, path)
-            log_info("Delegated token saved to local file: #{path}")
+            log.info("Delegated token saved to local file: #{path}")
             true
           rescue StandardError => e
-            log_error("Failed to save delegated token to local file: #{e.message}")
+            log.error("Failed to save delegated token to local file: #{e.message}")
             false
           end
 
@@ -244,7 +247,7 @@ module Legion
             return false unless defined?(Legion::Settings)
 
             enabled = Legion::Settings.dig(:crypt, :vault, :enabled) == true
-            log_debug("vault_available? => #{enabled}")
+            log.debug("vault_available? => #{enabled}")
             enabled
           rescue StandardError
             false
@@ -255,7 +258,7 @@ module Legion
 
             buffer = delegated_refresh_buffer
             expired = Time.now >= (cache_entry[:expires_at] - buffer)
-            log_debug("token_expired? => #{expired} (expires_at=#{cache_entry[:expires_at]}, buffer=#{buffer}s)") if expired
+            log.debug("token_expired? => #{expired} (expires_at=#{cache_entry[:expires_at]}, buffer=#{buffer}s)") if expired
             expired
           end
 
@@ -287,7 +290,7 @@ module Legion
             result = acquire_fresh_token
             unless result
               unless @app_token_warned
-                log_info('No client_secret configured, app token (client_credentials) unavailable')
+                log.info('No client_secret configured, app token (client_credentials) unavailable')
                 @app_token_warned = true
               end
               return nil
@@ -301,26 +304,26 @@ module Legion
               expires_at: Time.now + expires_in
             }
 
-            log_info("App token refreshed (expires_in=#{expires_in}s)")
+            log.info("App token refreshed (expires_in=#{expires_in}s)")
             access_token
           rescue StandardError => e
-            log_error("TokenCache app refresh failed: #{e.message}")
+            log.error("TokenCache app refresh failed: #{e.message}")
             nil
           end
 
           def refresh_delegated
             unless @delegated_cache&.dig(:refresh_token)
-              log_warn('No refresh token available for delegated refresh')
+              log.warn('No refresh token available for delegated refresh')
               return nil
             end
 
             settings = teams_auth_settings
             unless settings[:tenant_id] && settings[:client_id]
-              log_warn('Missing tenant_id or client_id for delegated refresh')
+              log.warn('Missing tenant_id or client_id for delegated refresh')
               return nil
             end
 
-            log_info('Refreshing delegated token via refresh_token grant')
+            log.info('Refreshing delegated token via refresh_token grant')
             auth = Object.new.extend(Legion::Extensions::MicrosoftTeams::Runners::Auth)
             result = auth.refresh_delegated_token(
               tenant_id:     settings[:tenant_id],
@@ -331,7 +334,7 @@ module Legion
 
             body = result[:result]
             unless body&.dig('access_token')
-              log_warn("Delegated token refresh failed: #{result[:error]}")
+              log.warn("Delegated token refresh failed: #{result[:error]}")
               return handle_refresh_failure(result)
             end
 
@@ -343,17 +346,17 @@ module Legion
               scopes:        @delegated_cache[:scopes]
             }
 
-            log_info("Delegated token refreshed (expires_in=#{expires_in}s)")
+            log.info("Delegated token refreshed (expires_in=#{expires_in}s)")
             save_to_vault
             @delegated_cache[:token]
           rescue StandardError => e
-            log_error("TokenCache delegated refresh failed: #{e.message}")
+            log.error("TokenCache delegated refresh failed: #{e.message}")
             nil
           end
 
           def handle_refresh_failure(result)
             if result[:error] == 'invalid_grant'
-              log_warn('Refresh token invalid (invalid_grant), clearing delegated cache')
+              log.warn('Refresh token invalid (invalid_grant), clearing delegated cache')
               @delegated_cache = nil
               emit_expired_event
             end
@@ -367,11 +370,11 @@ module Legion
           def acquire_fresh_token
             settings = teams_auth_settings
             unless settings[:tenant_id] && settings[:client_id] && settings[:client_secret]
-              log_debug('Missing credentials for app token acquisition') unless @app_token_warned
+              log.debug('Missing credentials for app token acquisition') unless @app_token_warned
               return nil
             end
 
-            log_debug('Acquiring fresh app token via client_credentials')
+            log.debug('Acquiring fresh app token via client_credentials')
             auth = Object.new.extend(Legion::Extensions::MicrosoftTeams::Runners::Auth)
             auth.acquire_token(
               tenant_id:     settings[:tenant_id],
@@ -384,22 +387,6 @@ module Legion
             return {} unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :auth) || {}
-          end
-
-          def log_debug(msg)
-            Legion::Logging.debug("[Teams::TokenCache] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_info(msg)
-            Legion::Logging.info("[Teams::TokenCache] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_warn(msg)
-            Legion::Logging.warn("[Teams::TokenCache] #{msg}") if defined?(Legion::Logging)
-          end
-
-          def log_error(msg)
-            Legion::Logging.error("[Teams::TokenCache] #{msg}") if defined?(Legion::Logging)
           end
         end
       end

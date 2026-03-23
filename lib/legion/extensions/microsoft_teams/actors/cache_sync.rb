@@ -38,10 +38,10 @@ module Legion
               latest = result[:result][:latest_time]
               @last_sync_time = latest if latest
               stored = result[:result][:stored] || 0
-              Legion::Logging.info("CacheSync: ingested #{stored} new Teams messages") if defined?(Legion::Logging) && stored.positive?
+              log.info("CacheSync: ingested #{stored} new Teams messages") if stored.positive?
             end
           rescue StandardError => e
-            Legion::Logging.error("CacheSync: #{e.message}") if defined?(Legion::Logging)
+            log.error("CacheSync: #{e.message}")
           end
         end
       end

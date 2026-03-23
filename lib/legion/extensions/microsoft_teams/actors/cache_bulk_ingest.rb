@@ -22,12 +22,12 @@ module Legion
           end
 
           def manual
-            Legion::Logging.info('[Teams::CacheBulkIngest] CacheBulkIngest firing') if defined?(Legion::Logging)
+            log.info('CacheBulkIngest firing')
             result = runner_class.ingest_cache(**args)
-            Legion::Logging.info("[Teams::CacheBulkIngest] Complete: #{result.inspect[0, 200]}") if defined?(Legion::Logging)
+            log.info("Complete: #{result.inspect[0, 200]}")
             result
           rescue StandardError => e
-            Legion::Logging.error("[Teams::CacheBulkIngest] Error: #{e.message}") if defined?(Legion::Logging)
+            log.error("CacheBulkIngest error: #{e.message}")
           end
 
           def args

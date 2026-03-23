@@ -44,7 +44,7 @@ module Legion
               message_depth: ingest.fetch(:message_depth, 50)
             )
           rescue StandardError => e
-            Legion::Logging.error("IncrementalSync: #{e.message}") if defined?(Legion::Logging)
+            log.error("IncrementalSync: #{e.message}")
           end
 
           private

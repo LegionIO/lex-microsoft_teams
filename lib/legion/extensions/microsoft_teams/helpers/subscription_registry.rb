@@ -7,6 +7,9 @@ module Legion
     module MicrosoftTeams
       module Helpers
         class SubscriptionRegistry
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+
           MEMORY_KEY = 'teams_bot_subscriptions'
 
           def initialize
@@ -85,7 +88,7 @@ module Legion
             parsed = parse_stored(stored[:content_payload])
             @mutex.synchronize { @subscriptions = parsed } if parsed.is_a?(Hash)
           rescue StandardError => e
-            log_error("SubscriptionRegistry load failed: #{e.message}")
+            log.error("SubscriptionRegistry load failed: #{e.message}")
           end
 
           def persist
@@ -99,7 +102,7 @@ module Legion
               confidence:      1.0
             )
           rescue StandardError => e
-            log_error("SubscriptionRegistry persist failed: #{e.message}")
+            log.error("SubscriptionRegistry persist failed: #{e.message}")
           end
 
           private
@@ -130,10 +133,6 @@ module Legion
 
           def memory_runner
             @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
-          end
-
-          def log_error(msg)
-            Legion::Logging.error(msg) if defined?(Legion::Logging)
           end
         end
       end

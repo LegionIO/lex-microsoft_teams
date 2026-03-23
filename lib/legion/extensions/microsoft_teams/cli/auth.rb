@@ -8,6 +8,9 @@ module Legion
     module MicrosoftTeams
       module CLI
         class Auth
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+
           def self.cli_alias
             'teams'
           end
@@ -24,37 +27,37 @@ module Legion
             tid = tenant_id || settings[:tenant_id] || ENV.fetch('AZURE_TENANT_ID', nil)
             cid = client_id || settings[:client_id] || ENV.fetch('AZURE_CLIENT_ID', nil)
 
-            log_debug("Resolved tenant_id=#{tid ? 'present' : 'nil'}, client_id=#{cid ? 'present' : 'nil'}")
+            log.debug("Resolved tenant_id=#{tid ? 'present' : 'nil'}, client_id=#{cid ? 'present' : 'nil'}")
 
             unless tid && cid
               puts 'Error: tenant_id and client_id required (set in settings, env vars, or pass as args)'
               return
             end
 
-            log_info('Starting Teams delegated auth login')
+            log.info('Starting Teams delegated auth login')
             browser_auth = Helpers::BrowserAuth.new(tenant_id: tid, client_id: cid, force_local_server: true)
             result = browser_auth.authenticate
 
             if result&.dig(:access_token)
-              log_info('Authentication successful, storing token')
+              log.info('Authentication successful, storing token')
               store_token(result)
               puts 'Teams authenticated successfully.'
             else
-              log_warn("Authentication result: #{result&.keys&.join(', ') || 'nil'}")
+              log.warn("Authentication result: #{result&.keys&.join(', ') || 'nil'}")
               puts 'Teams authentication failed or was cancelled.'
             end
           rescue StandardError => e
-            log_error("Login failed: #{e.message}")
+            log.error("Login failed: #{e.message}")
             puts "Error: #{e.message}"
           end
 
           def status
             token_file = File.expand_path('~/.legionio/tokens/microsoft_teams.json')
             if File.exist?(token_file)
-              log_info("Token file found: #{token_file}")
+              log.info("Token file found: #{token_file}")
               puts 'Teams: authenticated (token file present)'
             else
-              log_info('No token file found')
+              log.info('No token file found')
               puts 'Teams: not authenticated'
             end
           end
@@ -73,41 +76,9 @@ module Legion
             cache = Helpers::TokenCache.new
             cache.store_delegated_token(result)
             cache.save_to_vault
-            log_info('Token stored successfully')
+            log.info('Token stored successfully')
           rescue StandardError => e
-            log_error("Failed to store token: #{e.message}")
-          end
-
-          def log_debug(msg)
-            if defined?(Legion::Logging)
-              Legion::Logging.debug("[Teams::CLI::Auth] #{msg}")
-            else
-              $stdout.puts("[DEBUG] [Teams::CLI::Auth] #{msg}")
-            end
-          end
-
-          def log_info(msg)
-            if defined?(Legion::Logging)
-              Legion::Logging.info("[Teams::CLI::Auth] #{msg}")
-            else
-              $stdout.puts("[INFO] [Teams::CLI::Auth] #{msg}")
-            end
-          end
-
-          def log_warn(msg)
-            if defined?(Legion::Logging)
-              Legion::Logging.warn("[Teams::CLI::Auth] #{msg}")
-            else
-              $stdout.puts("[WARN] [Teams::CLI::Auth] #{msg}")
-            end
-          end
-
-          def log_error(msg)
-            if defined?(Legion::Logging)
-              Legion::Logging.error("[Teams::CLI::Auth] #{msg}")
-            else
-              $stdout.puts("[ERROR] [Teams::CLI::Auth] #{msg}")
-            end
+            log.error("Failed to store token: #{e.message}")
           end
         end
       end

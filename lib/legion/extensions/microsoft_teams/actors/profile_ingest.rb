@@ -23,13 +23,13 @@ module Legion
           end
 
           def manual
-            Legion::Logging.info('[Teams::ProfileIngest] ProfileIngest firing') if defined?(Legion::Logging)
+            log.info('ProfileIngest firing')
             token = resolve_token
             unless token
-              Legion::Logging.warn('[Teams::ProfileIngest] No token available, skipping') if defined?(Legion::Logging)
+              log.warn('No token available, skipping')
               return
             end
-            Legion::Logging.info('[Teams::ProfileIngest] Token acquired, starting ingest') if defined?(Legion::Logging)
+            log.info('Token acquired, starting ingest')
 
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
@@ -43,7 +43,7 @@ module Legion
               message_depth: ingest.fetch(:message_depth, 50)
             )
           rescue StandardError => e
-            Legion::Logging.error("ProfileIngest: #{e.message}") if defined?(Legion::Logging)
+            log.error("ProfileIngest: #{e.message}")
           end
 
           private

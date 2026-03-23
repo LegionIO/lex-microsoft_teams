@@ -8,6 +8,8 @@ module Legion
       module Helpers
         class SessionManager
           include PromptResolver
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
 
           DEFAULT_FLUSH_THRESHOLD = 20
           DEFAULT_IDLE_TIMEOUT = 900
@@ -125,7 +127,7 @@ module Legion
               confidence:      0.8
             )
           rescue StandardError => e
-            log_error("SessionManager persist failed: #{e.message}")
+            log.error("SessionManager persist failed: #{e.message}")
           end
 
           def memory_runner
@@ -138,10 +140,6 @@ module Legion
             else
               default
             end
-          end
-
-          def log_error(msg)
-            Legion::Logging.error(msg) if defined?(Legion::Logging)
           end
         end
       end

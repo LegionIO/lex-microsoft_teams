@@ -81,7 +81,7 @@ module Legion
               imprint_active:      imprint_active
             )
           rescue StandardError => e
-            Legion::Logging.warn("CacheIngest: failed to store trace: #{e.message}") if defined?(Legion::Logging)
+            log.warn("CacheIngest: failed to store trace: #{e.message}")
             nil
           end
 
@@ -112,7 +112,7 @@ module Legion
               end
             end
           rescue StandardError => e
-            Legion::Logging.debug("CacheIngest: coactivation linking skipped: #{e.message}") if defined?(Legion::Logging)
+            log.debug("CacheIngest: coactivation linking skipped: #{e.message}")
           end
         end
       end

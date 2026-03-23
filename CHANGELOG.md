@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.9] - 2026-03-22
+
+### Changed
+- Replace direct `Legion::Logging` calls with injected `log` helper from `Helpers::Lex` across all actors, runners, helpers, and CLI
+- Remove private `log_debug`, `log_info`, `log_warn`, `log_error` wrapper methods (net -161 lines)
+- Add `Helpers::Lex` stub in spec_helper for test environment compatibility
+
 ## [0.6.8] - 2026-03-22
 
 ### Fixed
