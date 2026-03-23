@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.15] - 2026-03-23
+
+### Added
+- Apollo knowledge graph integration: ingest conversation observations and extract entities from Teams messages
+- `publish_to_apollo` feeds per-person message summaries into Apollo's knowledge store as observations
+- `extract_and_ingest_entities` uses Apollo EntityExtractor to identify people, services, repos, and concepts
+- Soft guards: Apollo integration is a no-op when lex-apollo or legion-data are not loaded
+
 ## [0.6.14] - 2026-03-23
 
 ### Added

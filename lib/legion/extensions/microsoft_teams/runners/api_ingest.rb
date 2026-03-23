@@ -39,6 +39,7 @@ module Legion
             skipped = 0
             people_ingested = 0
             thread_groups = Hash.new { |h, k| h[k] = [] }
+            person_texts = Hash.new { |h, k| h[k] = [] }
 
             people.each do |person|
               chat = match_chat_to_person(chats: chats, person: person, conn: conn)
@@ -73,6 +74,7 @@ module Legion
                   msg_stored += 1
                   existing_hashes << content_hash
                   thread_groups[chat['id']] << trace_result[:trace_id]
+                  person_texts[person['displayName']] << text
                 else
                   skipped += 1
                 end
@@ -88,9 +90,11 @@ module Legion
 
             coactivate_thread_traces(thread_groups)
             flush_trace_store if stored.positive?
+            apollo_results = publish_to_apollo(person_texts) if stored.positive?
 
             { result: { stored: stored, skipped: skipped, people_ingested: people_ingested,
-                        people_found: people.length, chats_found: chats.length } }
+                        people_found: people.length, chats_found: chats.length,
+                        apollo: apollo_results } }
           rescue StandardError => e
             log_msg = "ApiIngest failed: #{e.class} — #{e.message}"
             log.error(log_msg)
@@ -295,6 +299,78 @@ module Legion
             end
           rescue StandardError => e
             log.debug("ApiIngest: coactivation skipped: #{e.message}")
+          end
+
+          def publish_to_apollo(person_texts)
+            return { skipped: true, reason: :apollo_unavailable } unless apollo_available?
+
+            ingested = 0
+            entities_found = 0
+            knowledge_runner = apollo_knowledge_runner
+
+            person_texts.each do |person_name, texts|
+              combined = texts.join("\n\n")
+              next if combined.length < 20
+
+              result = knowledge_runner.handle_ingest(
+                content:         "Conversation observations from #{person_name}: #{combined[0, 2000]}",
+                content_type:    :observation,
+                tags:            ['teams', 'graph_api', "peer:#{person_name}"],
+                source_agent:    'teams-api-ingest',
+                source_provider: 'microsoft',
+                source_channel:  'teams_graph_api',
+                context:         { person: person_name, message_count: texts.length }
+              )
+              ingested += 1 if result[:success]
+
+              entity_result = extract_and_ingest_entities(combined, person_name, knowledge_runner)
+              entities_found += entity_result[:count] if entity_result[:success]
+            end
+
+            { ingested: ingested, entities_found: entities_found }
+          rescue StandardError => e
+            log.warn("ApiIngest: publish_to_apollo failed: #{e.message}")
+            { skipped: true, reason: :error, error: e.message }
+          end
+
+          def extract_and_ingest_entities(text, person_name, knowledge_runner)
+            return { success: false, count: 0 } unless entity_extractor_available?
+
+            extractor = Object.new.extend(Legion::Extensions::Apollo::Runners::EntityExtractor)
+            result = extractor.extract_entities(text: text[0, 4000])
+            return { success: false, count: 0 } unless result[:success] && result[:entities]&.any?
+
+            result[:entities].each do |entity|
+              knowledge_runner.handle_ingest(
+                content:         "#{entity[:type]}: #{entity[:name]}",
+                content_type:    entity[:type] == 'person' ? :association : :concept,
+                tags:            ['teams', 'entity', "entity_type:#{entity[:type]}", "peer:#{person_name}"],
+                source_agent:    'teams-entity-extractor',
+                source_provider: 'microsoft',
+                source_channel:  'teams_graph_api',
+                context:         { entity_name: entity[:name], entity_type: entity[:type],
+                                   confidence: entity[:confidence], extracted_from: person_name }
+              )
+            end
+
+            { success: true, count: result[:entities].length }
+          rescue StandardError => e
+            log.debug("ApiIngest: entity extraction failed for #{person_name}: #{e.message}")
+            { success: false, count: 0 }
+          end
+
+          def apollo_available?
+            defined?(Legion::Extensions::Apollo::Runners::Knowledge) &&
+              defined?(Legion::Data::Model::ApolloEntry)
+          end
+
+          def entity_extractor_available?
+            defined?(Legion::Extensions::Apollo::Runners::EntityExtractor) &&
+              defined?(Legion::LLM) && Legion::LLM.respond_to?(:started?) && Legion::LLM.started?
+          end
+
+          def apollo_knowledge_runner
+            @apollo_knowledge_runner ||= Object.new.extend(Legion::Extensions::Apollo::Runners::Knowledge)
           end
 
           def error_result(message)
