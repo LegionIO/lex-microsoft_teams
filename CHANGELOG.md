@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.12] - 2026-03-22
+
+### Changed
+- Add legion-cache and legion-crypt as runtime dependencies
+- Include `Legion::Cache::Helper` and `Legion::Crypt::Helper` in spec_helper Lex stub
+
 ## [0.6.11] - 2026-03-22
 
 ### Changed

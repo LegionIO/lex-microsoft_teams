@@ -3,15 +3,20 @@
 require 'bundler/setup'
 require 'legion/logging'
 require 'legion/settings'
+require 'legion/cache/helper'
+require 'legion/crypt/helper'
 
 # Define Helpers::Lex using the real helpers from sub-gems so guarded
-# includes resolve in tests and all classes get working `log` and `settings` methods.
+# includes resolve in tests and all classes get working log, settings,
+# cache, and vault methods.
 module Legion
   module Extensions
     module Helpers
       module Lex
         include Legion::Logging::Helper
         include Legion::Settings::Helper
+        include Legion::Cache::Helper
+        include Legion::Crypt::Helper
       end
     end
 
