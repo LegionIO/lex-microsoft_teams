@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- add caller identity to llm_chat calls in bot and profile_ingest runners for pipeline attribution
+
 ## [0.6.15] - 2026-03-23
 
 ### Added

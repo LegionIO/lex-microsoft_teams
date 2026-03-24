@@ -229,7 +229,8 @@ module Legion
               result = client.transform(text: text, **definition)
               result[:result] || result[:error] ? nil : result
             elsif defined?(Legion::LLM)
-              Legion::LLM.ask(prompt: "#{definition[:prompt]}\n\nConversation with #{peer_name}:\n#{text}")
+              Legion::LLM.ask(prompt: "#{definition[:prompt]}\n\nConversation with #{peer_name}:\n#{text}",
+                              caller: { extension: 'lex-microsoft_teams', runner: 'profile_ingest' })
             end
           rescue StandardError => e
             log.debug("ProfileIngest: extract_conversation failed: #{e.message}")

@@ -118,7 +118,7 @@ module Legion
           def observe_message(chat_id:, owner_id:, text:, from:, peer_name:, timestamp: nil, **)
             return { result: :skipped, reason: :observe_disabled } unless observe_enabled?
 
-            extraction = extract_from_message(text: text, from: from, peer_name: peer_name)
+            extraction = extract_from_message(text: text, from: from, peer_name: peer_name, owner_id: owner_id)
 
             store_observation(
               chat_id: chat_id, owner_id: owner_id, text: text,
@@ -178,7 +178,8 @@ module Legion
               text,
               instructions: session[:system_prompt],
               model:        config[:model],
-              intent:       config[:intent]
+              intent:       config[:intent],
+              caller:       { id: session[:owner_id], extension: 'lex-microsoft_teams', mode: :bot_response }
             )
             response.content
           rescue StandardError => e
@@ -219,13 +220,13 @@ module Legion
             Legion::Settings.dig(:microsoft_teams, :bot, :observe, :notify) == true
           end
 
-          def extract_from_message(text:, from:, peer_name:)
+          def extract_from_message(text:, from:, peer_name:, owner_id: nil)
             return nil unless llm_available?
 
             prompt = resolve_prompt(mode: :observe, conversation_id: nil)
             context = "#{from[:name] || peer_name} said: #{text}"
 
-            response = llm_chat(context, instructions: prompt)
+            response = llm_chat(context, instructions: prompt, caller: { id: owner_id, extension: 'lex-microsoft_teams', mode: :observe })
             parse_extraction(response.content)
           rescue StandardError => e
             log.error("Observation extraction failed: #{e.message}")
