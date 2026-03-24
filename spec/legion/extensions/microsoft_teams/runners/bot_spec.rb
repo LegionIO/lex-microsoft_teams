@@ -141,6 +141,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
       allow(bot).to receive(:session_manager).and_return(session_manager)
       allow(bot).to receive(:llm_available?).and_return(false)
       allow(bot).to receive(:graph_connection).and_return(conn)
+      allow(bot).to receive(:retrieve_trace_context).and_return(nil)
     end
 
     it 'returns a result hash' do
@@ -181,6 +182,37 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
         service_url: 'https://smba.trafficmanager.net/teams/', activity_id: 'act-123'
       )
       expect(bot).to have_received(:reply_to_activity)
+    end
+
+    it 'calls retrieve_trace_context with message, owner_id, and chat_id' do
+      bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      expect(bot).to have_received(:retrieve_trace_context).with(
+        message: 'hello', owner_id: 'user1', chat_id: '19:abc'
+      )
+    end
+
+    it 'passes trace_context to generate_response' do
+      allow(bot).to receive(:retrieve_trace_context).and_return('## Context\n- [semantic] Some org info')
+      allow(bot).to receive(:generate_response).and_return('Echo: hello')
+      bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      expect(bot).to have_received(:generate_response).with(
+        hash_including(trace_context: '## Context\n- [semantic] Some org info')
+      )
+    end
+
+    it 'works correctly when retrieve_trace_context returns nil (graceful degradation)' do
+      allow(bot).to receive(:retrieve_trace_context).and_return(nil)
+      result = bot.handle_message(
+        chat_id: '19:abc', conversation_id: '19:abc', text: 'hello',
+        from: { id: 'user1', name: 'Jane' }, owner_id: 'user1'
+      )
+      expect(result).to have_key(:result)
     end
   end
 
@@ -364,6 +396,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Bot do
       allow(bot).to receive(:subscription_registry).and_return(registry)
       allow(bot).to receive(:llm_available?).and_return(false)
       allow(bot).to receive(:graph_connection).and_return(conn)
+      allow(bot).to receive(:retrieve_trace_context).and_return(nil)
     end
 
     it 'handles list command and sends reply' do

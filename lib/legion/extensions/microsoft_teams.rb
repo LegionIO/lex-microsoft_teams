@@ -25,6 +25,7 @@ require 'legion/extensions/microsoft_teams/runners/api_ingest'
 # Helpers (bot)
 require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
 require 'legion/extensions/microsoft_teams/helpers/prompt_resolver'
+require 'legion/extensions/microsoft_teams/helpers/trace_retriever'
 require 'legion/extensions/microsoft_teams/helpers/session_manager'
 require 'legion/extensions/microsoft_teams/helpers/subscription_registry'
 require 'legion/extensions/microsoft_teams/helpers/token_cache'

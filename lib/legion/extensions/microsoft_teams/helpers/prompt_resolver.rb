@@ -5,7 +5,7 @@ module Legion
     module MicrosoftTeams
       module Helpers
         module PromptResolver
-          def resolve_prompt(mode:, conversation_id:, owner_id: nil)
+          def resolve_prompt(mode:, conversation_id:, owner_id: nil, trace_context: nil)
             settings = teams_settings
             base = settings.dig(:bot, :system_prompt) || ''
 
@@ -17,6 +17,8 @@ module Legion
 
             pref_instructions = preference_instructions_for(owner_id: owner_id)
             prompt = "#{prompt}\n\n#{pref_instructions}" if pref_instructions
+
+            prompt = "#{prompt}\n\n#{trace_context}" if trace_context && !trace_context.empty?
 
             prompt
           end

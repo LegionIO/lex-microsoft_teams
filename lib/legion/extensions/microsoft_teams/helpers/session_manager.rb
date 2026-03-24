@@ -35,6 +35,9 @@ module Legion
               llm_config:    resolve_llm_config(mode: mode, conversation_id: conversation_id, owner_id: owner_id)
             }
 
+            seed = trace_seed_for(owner_id: owner_id)
+            session[:trace_seed] = seed if seed
+
             @sessions[conversation_id] = session
           end
 
@@ -132,6 +135,22 @@ module Legion
 
           def memory_runner
             @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
+          end
+
+          def trace_seed_for(owner_id:)
+            return nil unless defined?(Legion::Extensions::Agentic::Memory::Trace) &&
+                              Legion::Extensions::Agentic::Memory::Trace.respond_to?(:shared_store)
+
+            store = Legion::Extensions::Agentic::Memory::Trace.shared_store
+            return nil unless store
+
+            profile_traces = store.retrieve_by_domain("sender:#{owner_id}", min_strength: 0.3, limit: 5)
+            return nil if profile_traces.empty?
+
+            profile_traces.map { |t| { type: t[:trace_type], content: t[:content_payload].to_s[0, 200] } }
+          rescue StandardError => e
+            log.debug("trace_seed_for failed: #{e.message}") if defined?(log) && log.respond_to?(:debug)
+            nil
           end
 
           def settings_val(key, default)

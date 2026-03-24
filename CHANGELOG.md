@@ -5,6 +5,17 @@
 ### Changed
 - add caller identity to llm_chat calls in bot and profile_ingest runners for pipeline attribution
 
+## [0.6.17] - 2026-03-24
+
+### Added
+- `Helpers::TraceRetriever` module: retrieves memory traces from the shared store at query time and formats them as LLM context (sender, teams, and chat-scoped domains; 2000-token budget; strength-ranked deduplication)
+- `Bot#retrieve_trace_context` private method wires TraceRetriever into the handle_message flow
+- `Bot#handle_message` now retrieves trace context before generating a response and passes it through to `generate_response` and `llm_respond`
+- `SessionManager#get_or_create` seeds new sessions with profile traces for the owner via `trace_seed_for`
+- `PromptResolver#resolve_prompt` accepts optional `trace_context:` keyword and appends it after preference instructions
+- Comprehensive specs for TraceRetriever (token budget, rank/dedup, age labels, graceful degradation)
+- Bot specs updated to verify trace context retrieval and pass-through, and nil/graceful-degradation paths
+
 ## [0.6.15] - 2026-03-23
 
 ### Added

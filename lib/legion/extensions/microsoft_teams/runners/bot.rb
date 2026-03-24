@@ -4,6 +4,7 @@ require 'json'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require_relative '../helpers/session_manager'
 require_relative '../helpers/subscription_registry'
+require_relative '../helpers/trace_retriever'
 
 module Legion
   module Extensions
@@ -12,6 +13,7 @@ module Legion
         module Bot
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
           include Legion::Extensions::MicrosoftTeams::Helpers::PromptResolver
+          include Legion::Extensions::MicrosoftTeams::Helpers::TraceRetriever
 
           def send_activity(service_url:, conversation_id:, activity:, **)
             conn = bot_connection(service_url: service_url, **)
@@ -97,7 +99,8 @@ module Legion
             )
             session_manager.add_message(conversation_id: conversation_id, role: :user, content: text)
 
-            response_text = generate_response(text: text, session: session)
+            trace_context = retrieve_trace_context(message: text, owner_id: owner_id, chat_id: chat_id)
+            response_text = generate_response(text: text, session: session, trace_context: trace_context)
 
             reply_result = send_reply(
               chat_id:         chat_id,
@@ -166,17 +169,20 @@ module Legion
 
           private
 
-          def generate_response(text:, session:)
-            return llm_respond(text: text, session: session) if llm_available?
+          def generate_response(text:, session:, trace_context: nil)
+            return llm_respond(text: text, session: session, trace_context: trace_context) if llm_available?
 
             "Echo: #{text}"
           end
 
-          def llm_respond(text:, session:)
+          def llm_respond(text:, session:, trace_context: nil)
             config = session[:llm_config] || {}
+            instructions = session[:system_prompt]
+            instructions = "#{instructions}\n\n#{trace_context}" if trace_context && !trace_context.empty?
+
             response = llm_chat(
               text,
-              instructions: session[:system_prompt],
+              instructions: instructions,
               model:        config[:model],
               intent:       config[:intent],
               caller:       { id: session[:owner_id], extension: 'lex-microsoft_teams', mode: :bot_response }
@@ -185,6 +191,15 @@ module Legion
           rescue StandardError => e
             log.error("LLM call failed: #{e.message}")
             'I encountered an error processing your message. Please try again.'
+          end
+
+          def retrieve_trace_context(message:, owner_id:, chat_id:)
+            return nil unless respond_to?(:retrieve_context, true)
+
+            retrieve_context(message: message, owner_id: owner_id, chat_id: chat_id)
+          rescue StandardError => e
+            log.debug("retrieve_trace_context failed: #{e.message}") if defined?(log)
+            nil
           end
 
           def llm_available?
