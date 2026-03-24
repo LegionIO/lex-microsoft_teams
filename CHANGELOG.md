@@ -1,10 +1,5 @@
 # Changelog
 
-## [Unreleased]
-
-### Changed
-- add caller identity to llm_chat calls in bot and profile_ingest runners for pipeline attribution
-
 ## [0.6.17] - 2026-03-24
 
 ### Added
@@ -15,6 +10,9 @@
 - `PromptResolver#resolve_prompt` accepts optional `trace_context:` keyword and appends it after preference instructions
 - Comprehensive specs for TraceRetriever (token budget, rank/dedup, age labels, graceful degradation)
 - Bot specs updated to verify trace context retrieval and pass-through, and nil/graceful-degradation paths
+
+### Changed
+- Add `caller:` identity to `llm_chat` calls in bot and profile_ingest runners for pipeline attribution
 
 ## [0.6.15] - 2026-03-23
 
