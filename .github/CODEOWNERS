@@ -1,0 +1,7 @@
+# Auto-generated from team-config.yml
+# Team: extensions
+#
+# To apply: scripts/apply-codeowners.sh lex-microsoft_teams
+
+* @LegionIO/maintainers
+* @LegionIO/extensions
