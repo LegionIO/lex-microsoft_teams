@@ -14,7 +14,6 @@ module Legion
                                                       Legion::Extensions::Helpers.const_defined?(:Lex)
 
           REFRESH_BUFFER = 60
-          DEFAULT_VAULT_PATH = 'legionio/microsoft_teams/delegated_token'
           DEFAULT_LOCAL_DIR = File.join(Dir.home, '.legionio', 'tokens')
           DEFAULT_LOCAL_FILE = File.join(DEFAULT_LOCAL_DIR, 'microsoft_teams.json')
 
@@ -274,9 +273,8 @@ module Legion
           def vault_path
             settings = teams_auth_settings
             delegated = settings[:delegated]
-            return DEFAULT_VAULT_PATH unless delegated.is_a?(Hash)
-
-            delegated[:vault_path] || DEFAULT_VAULT_PATH
+            custom = delegated[:vault_path] if delegated.is_a?(Hash)
+            custom || "#{ENV.fetch('USER', 'default')}/microsoft_teams/delegated_token"
           end
 
           def local_token_path

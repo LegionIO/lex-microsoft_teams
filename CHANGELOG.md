@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.18] - 2026-03-26
+
+### Changed
+- `TokenCache` Vault path is now per-user (`{USER}/microsoft_teams/delegated_token`) instead of hardcoded `legionio/microsoft_teams/delegated_token`
+
 ## [0.6.17] - 2026-03-24
 
 ### Added
