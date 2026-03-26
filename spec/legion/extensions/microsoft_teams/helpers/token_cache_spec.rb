@@ -5,7 +5,7 @@ require 'spec_helper'
 RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
   subject(:cache) { described_class.new }
 
-  let(:tmp_token_path) { "/tmp/token_cache_spec_#{Process.pid}.json" }
+  let(:tmp_token_path) { "/tmp/token_cache_spec_#{::Process.pid}.json" } # rubocop:disable Style/RedundantConstantBase
 
   before do
     allow(cache).to receive(:local_token_path).and_return(tmp_token_path)
@@ -225,6 +225,27 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
       )
       cache.save_to_local
       expect(cache.previously_authenticated?).to be true
+    end
+  end
+
+  describe '#vault_path' do
+    it 'returns the default path with users/ prefix' do
+      allow(cache).to receive(:teams_auth_settings).and_return({ delegated: {} })
+      user = ENV.fetch('USER', 'default')
+      expect(cache.send(:vault_path)).to eq("users/#{user}/microsoft_teams/delegated_token")
+    end
+
+    it 'returns a custom vault_path when configured' do
+      allow(cache).to receive(:teams_auth_settings).and_return(
+        { delegated: { vault_path: 'custom/path/token' } }
+      )
+      expect(cache.send(:vault_path)).to eq('custom/path/token')
+    end
+
+    it 'falls back to default path when delegated settings are absent' do
+      allow(cache).to receive(:teams_auth_settings).and_return({})
+      user = ENV.fetch('USER', 'default')
+      expect(cache.send(:vault_path)).to eq("users/#{user}/microsoft_teams/delegated_token")
     end
   end
 end

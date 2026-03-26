@@ -101,8 +101,8 @@ module Legion
             { result: { stored: stored || 0, skipped: skipped || 0, error: e.message } }
           end
 
-          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
-                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           MAX_CHAT_PAGES = 10
 

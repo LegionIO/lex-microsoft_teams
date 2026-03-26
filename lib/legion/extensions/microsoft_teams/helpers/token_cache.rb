@@ -10,8 +10,8 @@ module Legion
     module MicrosoftTeams
       module Helpers
         class TokenCache
-          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
-                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           REFRESH_BUFFER = 60
           DEFAULT_LOCAL_DIR = File.join(Dir.home, '.legionio', 'tokens')
@@ -274,7 +274,7 @@ module Legion
             settings = teams_auth_settings
             delegated = settings[:delegated]
             custom = delegated[:vault_path] if delegated.is_a?(Hash)
-            custom || "#{ENV.fetch('USER', 'default')}/microsoft_teams/delegated_token"
+            custom || "users/#{ENV.fetch('USER', 'default')}/microsoft_teams/delegated_token"
           end
 
           def local_token_path

@@ -8,8 +8,8 @@ module Legion
       module Helpers
         class SessionManager
           include PromptResolver
-          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
-                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           DEFAULT_FLUSH_THRESHOLD = 20
           DEFAULT_IDLE_TIMEOUT = 900

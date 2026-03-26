@@ -115,12 +115,13 @@ gem install lex-microsoft_teams
 
 **Helpers:**
 - `SessionManager` — Multi-turn LLM session lifecycle with lex-memory persistence
-- `PromptResolver` — Layered system prompt resolution (settings default -> mode -> per-conversation)
+- `PromptResolver` — Layered system prompt resolution (settings default -> mode -> per-conversation -> trace context)
 - `HighWaterMark` — Per-chat message deduplication via legion-cache
 - `TokenCache` — In-memory OAuth token cache with pre-expiry refresh (app + delegated slots)
 - `SubscriptionRegistry` — Conversation observation subscriptions (in-memory + lex-memory)
 - `BrowserAuth` — Delegated OAuth orchestrator (PKCE, headless detection, browser launch)
 - `CallbackServer` — Ephemeral TCP server for OAuth redirect callback
+- `TraceRetriever` — Retrieves and formats memory traces as LLM context (2000-token budget, strength-ranked dedup)
 
 ### Delegated Authentication (v0.5.0)
 

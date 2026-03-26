@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.6.4
+**Version**: 0.6.18
 
 ## Architecture
 
@@ -61,6 +61,7 @@ Legion::Extensions::MicrosoftTeams
 │   ├── BrowserAuth       # Delegated OAuth orchestrator (PKCE, headless detection, browser launch, API hook detection)
 │   ├── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
 │   ├── PermissionGuard   # Circuit breaker for 403 errors with exponential backoff
+│   ├── TraceRetriever    # Retrieves memory traces from the shared store for bot context (2000-token budget, strength-ranked dedup)
 │   └── TransformDefinitions # lex-transformer definitions for conversation extraction and person summary
 ├── Hooks/
 │   └── Auth              # OAuth callback hook (mount '/callback') → /api/hooks/lex/microsoft_teams/auth/callback
@@ -76,7 +77,7 @@ Opt-in browser-based OAuth for delegated Microsoft Graph permissions. Two flows:
 - **Authorization Code + PKCE** (primary): Opens browser for Entra ID login. When the Legion API is running, uses the hook URL (`/api/hooks/lex/microsoft_teams/auth/callback`) with `Legion::Events` for callback notification; otherwise falls back to an ephemeral local port via `CallbackServer`
 - **Device Code** (fallback): Auto-selected in headless/SSH environments (no `DISPLAY`/`WAYLAND_DISPLAY`)
 
-Tokens stored in Vault (`legionio/microsoft_teams/delegated_token`) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Hook route: `GET|POST /api/hooks/lex/microsoft_teams/auth/callback` for daemon re-auth (routed through Ingress for RBAC/audit).
+Tokens stored in Vault at a per-user path (`{USER}/microsoft_teams/delegated_token`, where `{USER}` is the system username) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Hook route: `GET|POST /api/hooks/lex/microsoft_teams/auth/callback` for daemon re-auth (routed through Ingress for RBAC/audit).
 
 Key files: `Helpers::BrowserAuth` (orchestrator), `Helpers::CallbackServer` (ephemeral TCP), `Runners::Auth` (authorize_url, exchange_code, refresh_delegated_token, auth_callback), `Helpers::TokenCache` (delegated slot), `Hooks::Auth` (hook class with mount path).
 
@@ -128,8 +129,10 @@ User DMs the bot 1:1. Bot responds via legion-llm with multi-turn session contex
 
 ```
 DirectChatPoller (5s) → AMQP exchange → MessageProcessor → Bot::handle_message
-  → SessionManager.get_or_create → llm_session.ask(text) → Graph API reply
+  → TraceRetriever.retrieve → SessionManager.get_or_create → llm_session.ask(text) → Graph API reply
 ```
+
+`TraceRetriever` (v0.6.17) fetches memory traces from the shared store (sender, teams, chat-scoped domains) before each response. Up to a 2000-token budget; strength-ranked with deduplication. Appended to the resolved system prompt via `PromptResolver#resolve_prompt(trace_context:)`. Degrades gracefully when lex-memory is unavailable.
 
 ### Mode 2: Conversation Observer
 User subscribes the bot to watch a human 1:1 conversation. Bot passively extracts tasks, context, and relationship data.
@@ -252,7 +255,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # 292 specs across 39 spec files (as of v0.6.0)
+bundle exec rspec     # ~305 specs across 40 spec files (as of v0.6.18)
 bundle exec rubocop   # Clean
 ```
 
