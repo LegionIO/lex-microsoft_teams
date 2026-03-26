@@ -3,7 +3,7 @@
 ## [0.6.19] - 2026-03-26
 
 ### Changed
-- `TokenCache#vault_path` default now uses `users/` prefix: `users/{USER}/microsoft_teams/delegated_token`, aligning with Vault KV v2 policy structure (`kv/data/users/{{identity.entity.name}}/...`)
+- `TokenCache#vault_path` default now uses `users/` prefix: `users/{USER}/microsoft_teams/delegated_token` (where `{USER}` is `ENV.fetch('USER', 'default')`), aligning with Vault KV v2 policy structure that scopes secrets under per-user subpaths
 
 ## [0.6.18] - 2026-03-26
 

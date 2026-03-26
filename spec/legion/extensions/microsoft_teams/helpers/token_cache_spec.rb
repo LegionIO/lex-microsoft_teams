@@ -230,6 +230,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
 
   describe '#vault_path' do
     it 'returns the default path with users/ prefix' do
+      allow(cache).to receive(:teams_auth_settings).and_return({ delegated: {} })
       user = ENV.fetch('USER', 'default')
       expect(cache.send(:vault_path)).to eq("users/#{user}/microsoft_teams/delegated_token")
     end

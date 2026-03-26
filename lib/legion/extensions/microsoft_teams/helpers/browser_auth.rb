@@ -13,8 +13,8 @@ module Legion
     module MicrosoftTeams
       module Helpers
         class BrowserAuth
-          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers) &&
-                                                      Legion::Extensions::Helpers.const_defined?(:Lex)
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           DEFAULT_SCOPES = [
             'offline_access', 'openid', 'profile', 'email',
