@@ -74,7 +74,7 @@ module Legion
           end
 
           def store_token(result)
-            cache = Helpers::TokenCache.new
+            cache = Helpers::TokenCache.instance
             cache.store_delegated_token(result)
             cache.save_to_vault
             log.info('Token stored successfully')

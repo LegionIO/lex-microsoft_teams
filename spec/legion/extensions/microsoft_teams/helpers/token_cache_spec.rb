@@ -5,7 +5,7 @@ require 'spec_helper'
 RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
   subject(:cache) { described_class.new }
 
-  let(:tmp_token_path) { "/tmp/token_cache_spec_#{Process.pid}.json" }
+  let(:tmp_token_path) { "/tmp/token_cache_spec_#{::Process.pid}.json" } # rubocop:disable Style/RedundantConstantBase
 
   before do
     allow(cache).to receive(:local_token_path).and_return(tmp_token_path)
