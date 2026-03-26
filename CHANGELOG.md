@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.19] - 2026-03-26
+
+### Changed
+- `TokenCache#vault_path` default now uses `users/` prefix: `users/{USER}/microsoft_teams/delegated_token`, aligning with Vault KV v2 policy structure (`kv/data/users/{{identity.entity.name}}/...`)
+
 ## [0.6.18] - 2026-03-26
 
 ### Changed

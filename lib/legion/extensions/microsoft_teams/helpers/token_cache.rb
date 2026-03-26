@@ -274,7 +274,7 @@ module Legion
             settings = teams_auth_settings
             delegated = settings[:delegated]
             custom = delegated[:vault_path] if delegated.is_a?(Hash)
-            custom || "#{ENV.fetch('USER', 'default')}/microsoft_teams/delegated_token"
+            custom || "users/#{ENV.fetch('USER', 'default')}/microsoft_teams/delegated_token"
           end
 
           def local_token_path
