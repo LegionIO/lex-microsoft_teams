@@ -106,6 +106,14 @@ module Legion
 
           private
 
+          def log
+            return Legion::Logging if defined?(Legion::Logging)
+
+            @log ||= Object.new.tap do |nl|
+              %i[debug info warn error fatal].each { |m| nl.define_singleton_method(m) { |*| nil } }
+            end
+          end
+
           def host_os
             RbConfig::CONFIG['host_os']
           end
