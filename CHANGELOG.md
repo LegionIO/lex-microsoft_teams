@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.23] - 2026-03-27
+
+### Changed
+- `Absorbers::Meeting` — all Graph API runner calls now pass `token: graph_token` so requests carry an `Authorization` header in production. `graph_token` resolves from `Helpers::TokenCache.instance.cached_graph_token` when available, falling back to `nil` (unauthenticated) with a rescued `StandardError` to prevent test-environment boot failures
+- `CLAUDE.md` — version field updated to 0.6.23
+
 ## [0.6.22] - 2026-03-27
 
 ### Changed

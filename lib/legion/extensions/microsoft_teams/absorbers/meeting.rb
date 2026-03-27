@@ -45,9 +45,19 @@ module Legion
             @ai_insights_runner ||= Object.new.extend(Runners::AiInsights)
           end
 
+          def graph_token
+            return @graph_token if defined?(@graph_token)
+
+            @graph_token = begin
+              Helpers::TokenCache.instance.cached_graph_token if defined?(Helpers::TokenCache)
+            rescue StandardError
+              nil
+            end
+          end
+
           def resolve_meeting(url)
             report_progress(message: 'looking up meeting by join URL', percent: 5)
-            response = meetings_runner.get_meeting_by_join_url(join_url: url)
+            response = meetings_runner.get_meeting_by_join_url(join_url: url, token: graph_token)
             return nil unless response.is_a?(Hash)
 
             body = response[:result]
@@ -64,7 +74,7 @@ module Legion
 
           def ingest_transcript(meeting_id, subject, results)
             report_progress(message: 'fetching transcripts', percent: 20)
-            transcripts_response = transcripts_runner.list_transcripts(meeting_id: meeting_id)
+            transcripts_response = transcripts_runner.list_transcripts(meeting_id: meeting_id, token: graph_token)
             transcripts_body     = transcripts_response.is_a?(Hash) ? transcripts_response[:result] : nil
             return unless transcripts_body.is_a?(Hash)
 
@@ -77,7 +87,7 @@ module Legion
 
               report_progress(message: "pulling transcript #{transcript_id}", percent: 40)
               vtt_result = transcripts_runner.get_transcript_content(
-                meeting_id: meeting_id, transcript_id: transcript_id, format: :vtt
+                meeting_id: meeting_id, transcript_id: transcript_id, format: :vtt, token: graph_token
               )
               vtt = vtt_result.is_a?(Hash) ? vtt_result[:result] : vtt_result
               next unless vtt.is_a?(String) && !vtt.empty?
@@ -97,7 +107,7 @@ module Legion
 
           def ingest_ai_insights(meeting_id, subject, results)
             report_progress(message: 'fetching AI insights', percent: 60)
-            insights = ai_insights_runner.list_meeting_ai_insights(meeting_id: meeting_id)
+            insights = ai_insights_runner.list_meeting_ai_insights(meeting_id: meeting_id, token: graph_token)
             return unless insights.is_a?(Hash)
 
             body  = insights[:result] || insights
