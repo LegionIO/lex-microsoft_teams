@@ -38,6 +38,99 @@ module Legion
   end
 end
 
+# Stub the absorbers framework base classes so the absorber can be loaded
+# without the full legionio gem in the test environment.
+unless defined?(Legion::Extensions::Absorbers)
+  require 'uri'
+
+  module Legion
+    module Extensions
+      module Absorbers
+        module Matchers
+          class Base
+            def self.match?(_pattern, _input)
+              false
+            end
+          end
+
+          class Url < Base
+            def self.type = :url
+
+            def self.match?(pattern, input)
+              str = input.to_s.strip
+              str = "https://#{str}" unless str.match?(%r{\A\w+://})
+              uri = URI.parse(str)
+              return false unless uri.is_a?(URI::HTTP) && uri.host
+
+              clean = pattern.sub(%r{\A\w+://}, '')
+              parts = clean.split('/', 2)
+              host_pattern = parts[0]
+              path_pattern = parts[1] || '**'
+
+              host_regex = Regexp.new(
+                "\\A#{Regexp.escape(host_pattern).gsub('\\*', '[^.]+')}\\z",
+                Regexp::IGNORECASE
+              )
+              return false unless host_regex.match?(uri.host)
+
+              path = uri.path.to_s.sub(%r{\A/}, '')
+              escaped = Regexp.escape(path_pattern)
+                              .gsub('\\*\\*', '__.DS__.').gsub('\\*', '[^/]*').gsub('__.DS__.', '.*')
+              Regexp.new("\\A#{escaped}\\z").match?(path)
+            rescue URI::InvalidURIError
+              false
+            end
+          end
+        end
+
+        class Base
+          attr_accessor :job_id, :runners
+
+          class << self
+            def pattern(type, value, priority: 100)
+              @patterns ||= []
+              @patterns << { type: type, value: value, priority: priority }
+            end
+
+            def patterns
+              @patterns || []
+            end
+
+            def description(text = nil)
+              text ? @description = text : @description
+            end
+          end
+
+          def handle(url: nil, content: nil, metadata: {}, context: {})
+            raise NotImplementedError, "#{self.class.name} must implement #handle"
+          end
+
+          def absorb_to_knowledge(content:, tags: [], scope: :global, **opts); end
+          def absorb_raw(content:, tags: [], scope: :global, **); end
+
+          def report_progress(message:, percent: nil)
+            return unless job_id
+            return unless defined?(Legion::Logging)
+
+            Legion::Logging.info("absorb[#{job_id}] #{"#{percent}% " if percent}#{message}")
+          end
+
+          def log
+            return Legion::Logging if defined?(Legion::Logging)
+
+            @log ||= ::Module.new do
+              def self.warn(msg = nil); end
+              def self.error(msg = nil); end
+              def self.info(msg = nil); end
+              def self.debug(msg = nil); end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 require 'legion/extensions/microsoft_teams'
 
 RSpec.configure do |config|

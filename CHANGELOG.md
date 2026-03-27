@@ -1,5 +1,32 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- `Absorbers::Meeting#graph_token` — rescue now captures the exception as `=> e` and logs a warning, satisfying the rescue-logging lint rule
+
+## [0.6.23] - 2026-03-27
+
+### Changed
+- `Absorbers::Meeting` — all Graph API runner calls now pass `token: graph_token` so requests carry an `Authorization` header in production. `graph_token` resolves from `Helpers::TokenCache.instance.cached_graph_token` when available, falling back to `nil` (unauthenticated) with a rescued `StandardError` to prevent test-environment boot failures
+- `CLAUDE.md` — version field updated to 0.6.23
+
+## [0.6.22] - 2026-03-27
+
+### Changed
+- `Absorbers::Meeting#handle` now fails fast with `{ success: false, error: 'meeting has no id' }` when the resolved meeting item has no `id` field, preventing subsequent runner calls from building invalid URLs
+- `spec/legion/extensions/microsoft_teams/absorbers/meeting_spec.rb` — added spec covering the blank `meeting_id` guard path
+
+## [0.6.21] - 2026-03-27
+
+### Added
+- `Absorbers::Meeting` — reference implementation of the absorber framework for Teams meetings. Resolves a Teams join URL to a meeting via Graph API, then ingests transcripts (VTT), AI insights, and participant lists into Apollo knowledge store. Two URL patterns registered: `teams.microsoft.com/l/meetup-join/*` and `*.teams.microsoft.com/meet/*`. Guard on `Legion::Extensions::Absorbers` ensures the absorber only loads when the framework base class is available.
+- `spec/spec_helper.rb` — inline stubs for `Legion::Extensions::Absorbers::Base` and `Matchers::Url` so absorber specs run without the full `legionio` gem in the test environment
+
+### Changed
+- `lib/legion/extensions/microsoft_teams/absorbers/meeting.rb` — runner calls now go through `meetings_runner`, `transcripts_runner`, and `ai_insights_runner` instance accessors (`Object.new.extend(Runners::*)`) instead of calling runner modules directly as class methods, which would raise `NoMethodError` at runtime
+- `spec/legion/extensions/microsoft_teams/absorbers/meeting_spec.rb` — specs stub runner instances via `absorber.meetings_runner` / `absorber.transcripts_runner` / `absorber.ai_insights_runner` rather than the module constants; `.patterns` spec no longer relies on `patterns.first` ordering; now asserts both expected pattern values are present in the set
+
 ## [0.6.19] - 2026-03-26
 
 ### Changed
