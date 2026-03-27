@@ -7,8 +7,8 @@
 - `spec/spec_helper.rb` — inline stubs for `Legion::Extensions::Absorbers::Base` and `Matchers::Url` so absorber specs run without the full `legionio` gem in the test environment
 
 ### Changed
-- `spec/spec_helper.rb` — `Absorbers::Base` stub now provides a `log` helper returning `Legion::Logging` when available or a null logger fallback, matching the runtime base class contract and preventing `NoMethodError` in rescue blocks during specs
-- `spec/absorbers/meeting_spec.rb` — `.patterns` spec no longer relies on `patterns.first` ordering; now asserts both expected pattern values are present in the set
+- `lib/legion/extensions/microsoft_teams/absorbers/meeting.rb` — runner calls now go through `meetings_runner`, `transcripts_runner`, and `ai_insights_runner` instance accessors (`Object.new.extend(Runners::*)`) instead of calling runner modules directly as class methods, which would raise `NoMethodError` at runtime
+- `spec/legion/extensions/microsoft_teams/absorbers/meeting_spec.rb` — specs stub runner instances via `absorber.meetings_runner` / `absorber.transcripts_runner` / `absorber.ai_insights_runner` rather than the module constants; `.patterns` spec no longer relies on `patterns.first` ordering; now asserts both expected pattern values are present in the set
 
 ## [0.6.19] - 2026-03-26
 

@@ -25,10 +25,19 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
 
     before { absorber.job_id = 'test-meeting-001' }
 
+    let(:meetings_runner)    { double('meetings_runner') }
+    let(:transcripts_runner) { double('transcripts_runner') }
+    let(:ai_insights_runner) { double('ai_insights_runner') }
+
+    before do
+      allow(absorber).to receive(:meetings_runner).and_return(meetings_runner)
+      allow(absorber).to receive(:transcripts_runner).and_return(transcripts_runner)
+      allow(absorber).to receive(:ai_insights_runner).and_return(ai_insights_runner)
+    end
+
     context 'when meeting cannot be resolved' do
       before do
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Meetings)
-          .to receive(:get_meeting_by_join_url).and_return(nil)
+        allow(meetings_runner).to receive(:get_meeting_by_join_url).and_return(nil)
       end
 
       it 'returns failure' do
@@ -48,13 +57,11 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       before do
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Meetings)
+        allow(meetings_runner)
           .to receive(:get_meeting_by_join_url)
           .and_return({ result: { 'value' => [meeting_data] } })
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
-          .to receive(:list_transcripts).and_return({ result: { 'value' => [] } })
-        allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
-          .to receive(:list_meeting_ai_insights).and_return({ result: { 'value' => [] } })
+        allow(transcripts_runner).to receive(:list_transcripts).and_return({ result: { 'value' => [] } })
+        allow(ai_insights_runner).to receive(:list_meeting_ai_insights).and_return({ result: { 'value' => [] } })
         allow(absorber).to receive(:absorb_raw)
         allow(absorber).to receive(:absorb_to_knowledge)
       end
@@ -78,15 +85,12 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       let(:meeting_data) { { 'id' => 'meeting-abc', 'subject' => 'Standup', 'participants' => { 'attendees' => [] } } }
 
       before do
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Meetings)
+        allow(meetings_runner)
           .to receive(:get_meeting_by_join_url)
           .and_return({ result: { 'value' => [meeting_data] } })
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
-          .to receive(:list_transcripts).and_return({ result: { 'value' => [{ 'id' => 'tr-1' }] } })
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
-          .to receive(:get_transcript_content).and_return({ result: 'WEBVTT transcript content here' })
-        allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
-          .to receive(:list_meeting_ai_insights).and_return({ result: { 'value' => [] } })
+        allow(transcripts_runner).to receive(:list_transcripts).and_return({ result: { 'value' => [{ 'id' => 'tr-1' }] } })
+        allow(transcripts_runner).to receive(:get_transcript_content).and_return({ result: 'WEBVTT transcript content here' })
+        allow(ai_insights_runner).to receive(:list_meeting_ai_insights).and_return({ result: { 'value' => [] } })
         allow(absorber).to receive(:absorb_to_knowledge)
         allow(absorber).to receive(:absorb_raw)
       end
@@ -109,12 +113,11 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       before do
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Meetings)
+        allow(meetings_runner)
           .to receive(:get_meeting_by_join_url)
           .and_return({ result: { 'value' => [meeting_data] } })
-        allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
-          .to receive(:list_transcripts).and_return({ result: { 'value' => [] } })
-        allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
+        allow(transcripts_runner).to receive(:list_transcripts).and_return({ result: { 'value' => [] } })
+        allow(ai_insights_runner)
           .to receive(:list_meeting_ai_insights)
           .and_return({ result: { 'value' => [insight_item] } })
         allow(absorber).to receive(:absorb_to_knowledge)
@@ -133,7 +136,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       it 'skips insights with no action items' do
-        allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
+        allow(ai_insights_runner)
           .to receive(:list_meeting_ai_insights)
           .and_return({ result: { 'value' => [{ 'id' => 'insight-2', 'actionItems' => [] }] } })
         absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
