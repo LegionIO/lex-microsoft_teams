@@ -25,7 +25,7 @@ module Legion
             report_progress(message: 'done', percent: 100)
             results.merge(success: true)
           rescue StandardError => e
-            Legion::Logging.error("Meeting absorber failed: #{e.message}") if defined?(Legion::Logging)
+            log.error("Meeting absorber failed: #{e.message}")
             { success: false, error: e.message }
           end
 
@@ -44,7 +44,7 @@ module Legion
 
             items.first
           rescue StandardError => e
-            Legion::Logging.warn("Could not resolve meeting: #{e.message}") if defined?(Legion::Logging)
+            log.warn("Could not resolve meeting: #{e.message}")
             nil
           end
 
@@ -78,7 +78,7 @@ module Legion
               results[:chunks] += 1
             end
           rescue StandardError => e
-            Legion::Logging.warn("Transcript ingest failed: #{e.message}") if defined?(Legion::Logging)
+            log.warn("Transcript ingest failed: #{e.message}")
           end
 
           def ingest_ai_insights(meeting_id, subject, results)
@@ -103,7 +103,7 @@ module Legion
               results[:chunks] += 1
             end
           rescue StandardError => e
-            Legion::Logging.warn("AI insights ingest failed: #{e.message}") if defined?(Legion::Logging)
+            log.warn("AI insights ingest failed: #{e.message}")
           end
 
           def ingest_participants(meeting, subject, results)
@@ -125,7 +125,7 @@ module Legion
             )
             results[:chunks] += 1
           rescue StandardError => e
-            Legion::Logging.warn("Participant ingest failed: #{e.message}") if defined?(Legion::Logging)
+            log.warn("Participant ingest failed: #{e.message}")
           end
         end
       end
