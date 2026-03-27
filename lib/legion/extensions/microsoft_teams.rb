@@ -43,6 +43,8 @@ end
 
 require 'legion/extensions/microsoft_teams/client'
 
+require_relative 'microsoft_teams/absorbers/meeting' if defined?(Legion::Extensions::Absorbers)
+
 module Legion
   module Extensions
     module MicrosoftTeams
