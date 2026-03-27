@@ -114,6 +114,17 @@ unless defined?(Legion::Extensions::Absorbers)
 
             Legion::Logging.info("absorb[#{job_id}] #{"#{percent}% " if percent}#{message}")
           end
+
+          def log
+            return Legion::Logging if defined?(Legion::Logging)
+
+            @log ||= ::Module.new do
+              def self.warn(msg = nil); end
+              def self.error(msg = nil); end
+              def self.info(msg = nil); end
+              def self.debug(msg = nil); end
+            end
+          end
         end
       end
     end

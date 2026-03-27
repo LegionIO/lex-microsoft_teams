@@ -6,6 +6,10 @@
 - `Absorbers::Meeting` — reference implementation of the absorber framework for Teams meetings. Resolves a Teams join URL to a meeting via Graph API, then ingests transcripts (VTT), AI insights, and participant lists into Apollo knowledge store. Two URL patterns registered: `teams.microsoft.com/l/meetup-join/*` and `*.teams.microsoft.com/meet/*`. Guard on `Legion::Extensions::Absorbers` ensures the absorber only loads when the framework base class is available.
 - `spec/spec_helper.rb` — inline stubs for `Legion::Extensions::Absorbers::Base` and `Matchers::Url` so absorber specs run without the full `legionio` gem in the test environment
 
+### Changed
+- `spec/spec_helper.rb` — `Absorbers::Base` stub now provides a `log` helper returning `Legion::Logging` when available or a null logger fallback, matching the runtime base class contract and preventing `NoMethodError` in rescue blocks during specs
+- `spec/absorbers/meeting_spec.rb` — `.patterns` spec no longer relies on `patterns.first` ordering; now asserts both expected pattern values are present in the set
+
 ## [0.6.19] - 2026-03-26
 
 ### Changed

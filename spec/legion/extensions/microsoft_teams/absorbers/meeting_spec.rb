@@ -7,8 +7,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
     it 'registers URL patterns for Teams meeting links' do
       patterns = described_class.patterns
       expect(patterns.length).to eq(2)
-      expect(patterns.first[:type]).to eq(:url)
-      expect(patterns.first[:value]).to include('teams.microsoft.com')
+      expect(patterns.all? { |p| p[:type] == :url }).to be true
+      expect(patterns.any? { |p| p[:value].include?('meetup-join') }).to be true
+      expect(patterns.any? { |p| p[:value].include?('meet/') }).to be true
     end
   end
 
