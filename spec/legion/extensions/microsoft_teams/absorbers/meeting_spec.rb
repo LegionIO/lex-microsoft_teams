@@ -97,19 +97,68 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
         )
       end
     end
+
+    context 'with AI insights available' do
+      let(:meeting_data) { { 'id' => 'meeting-abc', 'subject' => 'Review', 'participants' => { 'attendees' => [] } } }
+      let(:insight_item) do
+        {
+          'id'          => 'insight-1',
+          'actionItems' => [{ 'text' => 'Follow up with Alice' }, { 'text' => 'Send recap email' }]
+        }
+      end
+
+      before do
+        allow(Legion::Extensions::MicrosoftTeams::Runners::Meetings)
+          .to receive(:get_meeting_by_join_url)
+          .and_return({ result: { 'value' => [meeting_data] } })
+        allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
+          .to receive(:list_transcripts).and_return({ result: { 'value' => [] } })
+        allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
+          .to receive(:list_meeting_ai_insights)
+          .and_return({ result: { 'value' => [insight_item] } })
+        allow(absorber).to receive(:absorb_to_knowledge)
+        allow(absorber).to receive(:absorb_raw)
+      end
+
+      it 'ingests action items via absorb_to_knowledge' do
+        absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        expect(absorber).to have_received(:absorb_to_knowledge).with(
+          hash_including(
+            content:      "Follow up with Alice\nSend recap email",
+            tags:         include('ai-insight', 'action-item'),
+            content_type: 'meeting_insight'
+          )
+        )
+      end
+
+      it 'skips insights with no action items' do
+        allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
+          .to receive(:list_meeting_ai_insights)
+          .and_return({ result: { 'value' => [{ 'id' => 'insight-2', 'actionItems' => [] }] } })
+        absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        expect(absorber).not_to have_received(:absorb_to_knowledge)
+      end
+    end
   end
 
   describe 'URL pattern matching' do
     let(:matcher) { Legion::Extensions::Absorbers::Matchers::Url }
+    let(:join_pattern) { described_class.patterns.find { |p| p[:value].include?('meetup-join') }&.dig(:value) }
+    let(:meet_pattern) { described_class.patterns.find { |p| p[:value].include?('meet/') }&.dig(:value) }
 
     it 'matches standard Teams meeting join URLs' do
-      pattern = described_class.patterns.first[:value]
-      expect(matcher.match?(pattern, 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc123')).to be true
+      expect(join_pattern).not_to be_nil
+      expect(matcher.match?(join_pattern, 'https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc123')).to be true
     end
 
     it 'does not match non-meeting Teams URLs' do
-      pattern = described_class.patterns.first[:value]
-      expect(matcher.match?(pattern, 'https://teams.microsoft.com/l/channel/general')).to be false
+      expect(join_pattern).not_to be_nil
+      expect(matcher.match?(join_pattern, 'https://teams.microsoft.com/l/channel/general')).to be false
+    end
+
+    it 'matches *.teams.microsoft.com/meet/* URLs' do
+      expect(meet_pattern).not_to be_nil
+      expect(matcher.match?(meet_pattern, 'https://tenant.teams.microsoft.com/meet/abc123')).to be true
     end
   end
 end

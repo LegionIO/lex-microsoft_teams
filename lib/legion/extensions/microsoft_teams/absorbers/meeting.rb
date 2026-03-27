@@ -90,20 +90,29 @@ module Legion
             items = body.is_a?(Hash) ? (body['value'] || body[:value]) : nil
             return unless items.is_a?(Array) && items.any?
 
-            items.each do |item|
-              content    = (item.is_a?(Hash) ? (item['content'] || item[:content]) : nil) || item.to_s
-              insight_id = item.is_a?(Hash) ? (item['id'] || item[:id]) : nil
-              absorb_to_knowledge(
-                content:      content,
-                tags:         ['meeting', 'ai-insight', 'action-item', subject],
-                source_file:  "teams://meetings/#{meeting_id}/insights/#{insight_id}",
-                heading:      "AI Insight: #{subject}",
-                content_type: 'meeting_insight'
-              )
-              results[:chunks] += 1
-            end
+            items.each { |item| absorb_insight_item(item, meeting_id, subject, results) }
           rescue StandardError => e
             log.warn("AI insights ingest failed: #{e.message}")
+          end
+
+          def absorb_insight_item(item, meeting_id, subject, results)
+            return unless item.is_a?(Hash)
+
+            insight_id   = item['id'] || item[:id]
+            action_items = item['actionItems'] || item[:actionItems] || []
+            return if action_items.empty?
+
+            content = action_items.filter_map { |a| a.is_a?(Hash) ? (a['text'] || a[:text]) : a.to_s }.join("\n")
+            return if content.empty?
+
+            absorb_to_knowledge(
+              content:      content,
+              tags:         ['meeting', 'ai-insight', 'action-item', subject],
+              source_file:  "teams://meetings/#{meeting_id}/insights/#{insight_id}",
+              heading:      "AI Insight: #{subject}",
+              content_type: 'meeting_insight'
+            )
+            results[:chunks] += 1
           end
 
           def ingest_participants(meeting, subject, results)
