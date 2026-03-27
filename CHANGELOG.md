@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.22] - 2026-03-27
+
+### Changed
+- `Absorbers::Meeting#handle` now fails fast with `{ success: false, error: 'meeting has no id' }` when the resolved meeting item has no `id` field, preventing subsequent runner calls from building invalid URLs
+- `spec/legion/extensions/microsoft_teams/absorbers/meeting_spec.rb` — added spec covering the blank `meeting_id` guard path
+
 ## [0.6.21] - 2026-03-27
 
 ### Added

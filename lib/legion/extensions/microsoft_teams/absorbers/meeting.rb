@@ -14,8 +14,10 @@ module Legion
             meeting = resolve_meeting(url)
             return { success: false, error: 'could not resolve meeting' } unless meeting
 
-            subject = meeting['subject'] || meeting[:subject] || 'untitled meeting'
+            subject    = meeting['subject'] || meeting[:subject] || 'untitled meeting'
             meeting_id = meeting['id'] || meeting[:id]
+            return { success: false, error: 'meeting has no id' } if meeting_id.nil? || meeting_id.to_s.empty?
+
             results = { meeting_id: meeting_id, subject: subject, chunks: 0 }
 
             ingest_transcript(meeting_id, subject, results)

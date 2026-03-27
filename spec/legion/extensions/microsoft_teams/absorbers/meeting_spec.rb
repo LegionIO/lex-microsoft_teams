@@ -47,6 +47,20 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
     end
 
+    context 'when meeting resolves but has no id' do
+      before do
+        allow(meetings_runner)
+          .to receive(:get_meeting_by_join_url)
+          .and_return({ result: { 'value' => [{ 'subject' => 'No ID Meeting' }] } })
+      end
+
+      it 'returns failure with a clear error' do
+        result = absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        expect(result[:success]).to be false
+        expect(result[:error]).to include('no id')
+      end
+    end
+
     context 'when meeting resolves successfully' do
       let(:meeting_data) do
         {
