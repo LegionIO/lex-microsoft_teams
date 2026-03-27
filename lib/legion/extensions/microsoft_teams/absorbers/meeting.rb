@@ -50,7 +50,8 @@ module Legion
 
             @graph_token = begin
               Helpers::TokenCache.instance.cached_graph_token if defined?(Helpers::TokenCache)
-            rescue StandardError
+            rescue StandardError => e
+              log.warn("graph_token unavailable: #{e.message}")
               nil
             end
           end

@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- `Absorbers::Meeting#graph_token` — rescue now captures the exception as `=> e` and logs a warning, satisfying the rescue-logging lint rule
+
 ## [0.6.23] - 2026-03-27
 
 ### Changed
