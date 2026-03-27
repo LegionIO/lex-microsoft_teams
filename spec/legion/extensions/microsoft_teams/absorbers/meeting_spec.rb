@@ -40,19 +40,20 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
     context 'when meeting resolves successfully' do
       let(:meeting_data) do
         {
-          id:           'meeting-abc',
-          subject:      'Sprint Planning',
-          participants: { attendees: [{ identity: { user: { displayName: 'Alice' } } }] }
+          'id'           => 'meeting-abc',
+          'subject'      => 'Sprint Planning',
+          'participants' => { 'attendees' => [{ 'identity' => { 'user' => { 'displayName' => 'Alice' } } }] }
         }
       end
 
       before do
         allow(Legion::Extensions::MicrosoftTeams::Runners::Meetings)
-          .to receive(:get_meeting_by_join_url).and_return(meeting_data)
+          .to receive(:get_meeting_by_join_url)
+          .and_return({ result: { 'value' => [meeting_data] } })
         allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
-          .to receive(:list_transcripts).and_return({ value: [] })
+          .to receive(:list_transcripts).and_return({ result: { 'value' => [] } })
         allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
-          .to receive(:list_meeting_ai_insights).and_return({ value: [] })
+          .to receive(:list_meeting_ai_insights).and_return({ result: { 'value' => [] } })
         allow(absorber).to receive(:absorb_raw)
         allow(absorber).to receive(:absorb_to_knowledge)
       end
@@ -73,17 +74,18 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
     end
 
     context 'with transcripts available' do
-      let(:meeting_data) { { id: 'meeting-abc', subject: 'Standup', participants: { attendees: [] } } }
+      let(:meeting_data) { { 'id' => 'meeting-abc', 'subject' => 'Standup', 'participants' => { 'attendees' => [] } } }
 
       before do
         allow(Legion::Extensions::MicrosoftTeams::Runners::Meetings)
-          .to receive(:get_meeting_by_join_url).and_return(meeting_data)
+          .to receive(:get_meeting_by_join_url)
+          .and_return({ result: { 'value' => [meeting_data] } })
         allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
-          .to receive(:list_transcripts).and_return({ value: [{ id: 'tr-1' }] })
+          .to receive(:list_transcripts).and_return({ result: { 'value' => [{ 'id' => 'tr-1' }] } })
         allow(Legion::Extensions::MicrosoftTeams::Runners::Transcripts)
-          .to receive(:get_transcript_content).and_return('WEBVTT transcript content here')
+          .to receive(:get_transcript_content).and_return({ result: 'WEBVTT transcript content here' })
         allow(Legion::Extensions::MicrosoftTeams::Runners::AiInsights)
-          .to receive(:list_meeting_ai_insights).and_return({ value: [] })
+          .to receive(:list_meeting_ai_insights).and_return({ result: { 'value' => [] } })
         allow(absorber).to receive(:absorb_to_knowledge)
         allow(absorber).to receive(:absorb_raw)
       end
