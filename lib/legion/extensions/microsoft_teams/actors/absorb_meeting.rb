@@ -45,11 +45,12 @@ module Legion
           private
 
           def parse_payload(payload)
-            data = payload.is_a?(String) ? Legion::JSON.load(payload) : payload
+            data = payload.is_a?(String) ? json_load(payload) : payload
             return {} unless data.is_a?(Hash)
 
             data.transform_keys(&:to_sym)
-          rescue StandardError
+          rescue StandardError => e
+            log.debug("AbsorbMeeting#parse_payload: #{e.message}")
             {}
           end
         end
