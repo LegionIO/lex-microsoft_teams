@@ -64,7 +64,7 @@ Legion::Extensions::MicrosoftTeams
 │   ├── TraceRetriever    # Retrieves memory traces from the shared store for bot context (2000-token budget, strength-ranked dedup)
 │   └── TransformDefinitions # lex-transformer definitions for conversation extraction and person summary
 ├── Hooks/
-│   └── Auth              # OAuth callback hook (mount '/callback') → /api/hooks/lex/microsoft_teams/auth/callback
+│   └── Auth              # OAuth callback hook (mount '/callback') → /api/extensions/microsoft_teams/hooks/auth/handle
 ├── CLI/
 │   └── Auth              # CLI module for `legion lex exec teams auth login/status`
 └── Client                # Standalone client (includes all runners)
@@ -74,10 +74,10 @@ Legion::Extensions::MicrosoftTeams
 
 Opt-in browser-based OAuth for delegated Microsoft Graph permissions. Two flows:
 
-- **Authorization Code + PKCE** (primary): Opens browser for Entra ID login. When the Legion API is running, uses the hook URL (`/api/hooks/lex/microsoft_teams/auth/callback`) with `Legion::Events` for callback notification; otherwise falls back to an ephemeral local port via `CallbackServer`
+- **Authorization Code + PKCE** (primary): Opens browser for Entra ID login. When the Legion API is running, uses the hook URL (`/api/extensions/microsoft_teams/hooks/auth/handle`) with `Legion::Events` for callback notification; otherwise falls back to an ephemeral local port via `CallbackServer`
 - **Device Code** (fallback): Auto-selected in headless/SSH environments (no `DISPLAY`/`WAYLAND_DISPLAY`)
 
-Tokens stored in Vault at a per-user path (`{USER}/microsoft_teams/delegated_token`, where `{USER}` is the system username) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Hook route: `GET|POST /api/hooks/lex/microsoft_teams/auth/callback` for daemon re-auth (routed through Ingress for RBAC/audit).
+Tokens stored in Vault at a per-user path (`{USER}/microsoft_teams/delegated_token`, where `{USER}` is the system username) with configurable pre-expiry silent refresh. CLI command: `legion auth teams`. Hook route: `POST /api/extensions/microsoft_teams/hooks/auth/handle` for daemon re-auth (routed through LexDispatch for RBAC/audit).
 
 Key files: `Helpers::BrowserAuth` (orchestrator), `Helpers::CallbackServer` (ephemeral TCP), `Runners::Auth` (authorize_url, exchange_code, refresh_delegated_token, auth_callback), `Helpers::TokenCache` (delegated slot), `Hooks::Auth` (hook class with mount path).
 

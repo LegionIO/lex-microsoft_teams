@@ -124,6 +124,7 @@ module Legion
                           body: callback_success_html }
             }
           end
+          alias handle auth_callback
 
           private
 
