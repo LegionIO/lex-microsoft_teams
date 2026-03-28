@@ -10,7 +10,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::GraphClient do
 
   describe '#graph_get' do
     it 'calls graph_connection and returns parsed response' do
-      mock_conn   = double('connection')
+      mock_conn = double('connection')
       mock_response = double('response', status: 200, body: { 'value' => [{ 'id' => '123' }] })
       allow(self).to receive(:graph_connection).with(token: token).and_return(mock_conn)
       allow(mock_conn).to receive(:get).with('/me/chats', {}).and_return(mock_response)
