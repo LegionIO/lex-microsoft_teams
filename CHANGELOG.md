@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.6.24] - 2026-03-28
+
+### Added
+- `Actors::AbsorbMeeting` — Subscription actor that listens on `lex.microsoft_teams.absorbers.meeting.absorb` and delegates to `Absorbers::Meeting#absorb`
+- `Helpers::GraphClient` — mixin module wrapping `Helpers::Client#graph_connection` with `graph_get`, `graph_post`, `graph_paginate`, and an inline `GraphError` class for responses other than 200, 201, 204, or 404; 401/403 raise with descriptive messages including the Graph error body when available
+
 ### Fixed
 - `Absorbers::Meeting#graph_token` — rescue now captures the exception as `=> e` and logs a warning, satisfying the rescue-logging lint rule
 
