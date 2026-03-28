@@ -33,6 +33,7 @@ require 'legion/extensions/microsoft_teams/helpers/callback_server'
 require 'legion/extensions/microsoft_teams/helpers/browser_auth'
 require 'legion/extensions/microsoft_teams/helpers/permission_guard'
 require 'legion/extensions/microsoft_teams/helpers/transform_definitions'
+require 'legion/extensions/microsoft_teams/helpers/graph_client'
 
 # Transport
 if defined?(Legion::Transport)
