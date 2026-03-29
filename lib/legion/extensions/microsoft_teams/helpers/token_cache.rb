@@ -12,6 +12,7 @@ module Legion
         class TokenCache
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
                                                       Legion::Extensions::Helpers.const_defined?(:Lex, false)
+          include Legion::Crypt::Helper if defined?(Legion::Crypt::Helper)
 
           REFRESH_BUFFER = 60
           DEFAULT_LOCAL_DIR = File.join(Dir.home, '.legionio', 'tokens')
@@ -133,7 +134,7 @@ module Legion
           def load_from_vault
             if vault_available?
               log.info("Loading delegated token from Vault (#{vault_path})")
-              data = Legion::Crypt.get(vault_path)
+              data = vault_get
               if data && data[:access_token]
                 @mutex.synchronize do
                   @delegated_cache = {
@@ -270,7 +271,7 @@ module Legion
             delegated[:refresh_buffer] || REFRESH_BUFFER
           end
 
-          def vault_path
+          def vault_path(_suffix = nil)
             settings = teams_auth_settings
             delegated = settings[:delegated]
             custom = delegated[:vault_path] if delegated.is_a?(Hash)

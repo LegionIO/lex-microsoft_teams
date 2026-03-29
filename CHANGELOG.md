@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.26] - 2026-03-29
+
+### Fixed
+- `Helpers::TokenCache` — replaced direct `Legion::Crypt.get(path)` call with `vault_get` from `Legion::Crypt::Helper` (included via `include Legion::Crypt::Helper`); `vault_path` accepts an optional `_suffix` argument so the helper's delegation pattern is compatible
+
 ## [0.6.25] - 2026-03-28
 
 ### Fixed
