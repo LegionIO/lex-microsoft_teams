@@ -16,7 +16,7 @@ module Legion
           def get_hwm(chat_id:)
             key = hwm_key(chat_id: chat_id)
             if cache_available?
-              Legion::Cache.get(key)
+              cache_get(key)
             else
               @hwm_fallback ||= {}
               @hwm_fallback[key]
@@ -26,7 +26,7 @@ module Legion
           def set_hwm(chat_id:, timestamp:)
             key = hwm_key(chat_id: chat_id)
             if cache_available?
-              Legion::Cache.set(key, timestamp, HWM_TTL)
+              cache_set(key, timestamp, HWM_TTL)
             else
               @hwm_fallback ||= {}
               @hwm_fallback[key] = timestamp
@@ -50,7 +50,7 @@ module Legion
           def get_extended_hwm(chat_id:)
             key = "teams:ehwm:#{chat_id}"
             raw = if cache_available?
-                    Legion::Cache.get(key)
+                    cache_get(key)
                   else
                     @ehwm_fallback ||= {}
                     @ehwm_fallback[key]
@@ -68,7 +68,7 @@ module Legion
             value = { last_message_at: last_message_at, last_ingested_at: last_ingested_at,
                       message_count: message_count }
             if cache_available?
-              Legion::Cache.set(key, ::JSON.dump(value), HWM_TTL)
+              cache_set(key, ::JSON.dump(value), HWM_TTL)
             else
               @ehwm_fallback ||= {}
               @ehwm_fallback[key] = value
@@ -108,7 +108,7 @@ module Legion
                                last_ingested_at: data[:last_ingested_at], message_count: data[:message_count] || 0)
             end
           rescue StandardError => e
-            log_warn("Failed to restore HWM from traces: #{e.message}") if respond_to?(:log_warn, true)
+            log.warn("Failed to restore HWM from traces: #{e.message}") if respond_to?(:log_warn, true)
           end
 
           def memory_runner

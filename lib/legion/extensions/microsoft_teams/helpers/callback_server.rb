@@ -37,7 +37,7 @@ module Legion
           end
 
           def shutdown
-            @server&.close rescue nil # rubocop:disable Style/RescueModifier
+            @server&.close rescue nil # rubocop:disable Style/RescueModifier,Legion/RescueLogging/BareRescue
             @thread&.join(2)
             @thread&.kill
           end
@@ -75,7 +75,7 @@ module Legion
               client.close
               break if @result
             end
-          rescue IOError
+          rescue IOError # rubocop:disable Legion/RescueLogging/NoCapture
             nil # server closed during shutdown
           rescue StandardError => e
             @mutex.synchronize do

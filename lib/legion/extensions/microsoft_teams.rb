@@ -53,7 +53,7 @@ end
 module Legion
   module Extensions
     module MicrosoftTeams
-      extend Legion::Extensions::Core if Legion::Extensions.const_defined? :Core
+      extend Legion::Extensions::Core if Legion::Extensions.const_defined? :Core, false
     end
   end
 end
