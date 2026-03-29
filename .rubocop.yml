@@ -61,8 +61,3 @@ Naming/PredicateMethod:
 # This repo uses Faraday JSON middleware (string keys), not Legion::JSON.load (symbol keys)
 Legion/Framework/ApiStringKeys:
   Enabled: false
-
-# Spec stubs define Legion::Extensions::Actors (framework base class namespace, plural)
-Legion/Extension/ActorSingularModule:
-  Exclude:
-    - 'spec/**/*'

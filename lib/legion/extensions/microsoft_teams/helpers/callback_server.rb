@@ -37,7 +37,7 @@ module Legion
           end
 
           def shutdown
-            @server&.close rescue nil # rubocop:disable Style/RescueModifier,Legion/RescueLogging/BareRescue
+            @server&.close rescue nil # rubocop:disable Style/RescueModifier
             @thread&.join(2)
             @thread&.kill
           end
