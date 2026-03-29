@@ -108,7 +108,7 @@ module Legion
                                last_ingested_at: data[:last_ingested_at], message_count: data[:message_count] || 0)
             end
           rescue StandardError => e
-            log.warn("Failed to restore HWM from traces: #{e.message}") if respond_to?(:log_warn, true)
+            log.warn("Failed to restore HWM from traces: #{e.message}")
           end
 
           def memory_runner
