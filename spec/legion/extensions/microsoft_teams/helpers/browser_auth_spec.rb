@@ -89,7 +89,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::BrowserAuth do
   describe '#hook_redirect_uri' do
     it 'builds the hook URL with default port' do
       expect(browser_auth.hook_redirect_uri).to eq(
-        'http://127.0.0.1:4567/api/hooks/lex/microsoft_teams/auth/callback'
+        'http://127.0.0.1:4567/api/extensions/microsoft_teams/hooks/auth/handle'
       )
     end
   end

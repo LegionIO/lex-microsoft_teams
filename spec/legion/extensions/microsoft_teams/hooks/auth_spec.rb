@@ -44,16 +44,15 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Hooks::Auth do
   end
 
   describe '#route' do
-    it 'always routes to auth_callback' do
+    it 'returns :handle (base default, no DSL configured)' do
       hook = described_class.new
-      expect(hook.route({}, {})).to eq(:auth_callback)
+      expect(hook.route({}, {})).to eq(:handle)
     end
   end
 
-  describe '#runner_class' do
+  describe '.runner_class' do
     it 'returns the Auth runner class name' do
-      hook = described_class.new
-      expect(hook.runner_class).to eq('Legion::Extensions::MicrosoftTeams::Runners::Auth')
+      expect(described_class.runner_class).to eq('Legion::Extensions::MicrosoftTeams::Runners::Auth')
     end
   end
 

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.6.25] - 2026-03-28
+
+### Fixed
+- `Hooks::Auth` — migrated from v2.0 `Routes::Hooks` pattern to v3.0 `LexDispatch` pattern: replaced instance `route`/`runner_class` overrides with a class-level `self.runner_class`; hook now registers as `POST /api/extensions/microsoft_teams/hooks/auth/handle` (was `/api/hooks/lex/microsoft_teams/auth/callback`)
+- `Runners::Auth` — added `handle` alias for `auth_callback` so LexDispatch's default `:handle` routing resolves correctly
+- `Helpers::BrowserAuth` — updated all three references to the hook redirect URI and probe path from the stale v2.0 path to `/api/extensions/microsoft_teams/hooks/auth/handle`
+
 ## [0.6.24] - 2026-03-28
 
 ### Added

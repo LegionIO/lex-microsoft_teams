@@ -72,7 +72,7 @@ module Legion
                    else
                      4567
                    end
-            "http://127.0.0.1:#{port}/api/hooks/lex/microsoft_teams/auth/callback"
+            "http://127.0.0.1:#{port}/api/extensions/microsoft_teams/hooks/auth/handle"
           end
 
           def generate_pkce
@@ -121,9 +121,9 @@ module Legion
           def hook_route_registered?
             return false unless defined?(Legion::API)
 
-            log.debug("Probing hook route at http://127.0.0.1:#{api_port}/api/hooks/lex/microsoft_teams/auth/callback")
+            log.debug("Probing hook route at http://127.0.0.1:#{api_port}/api/extensions/microsoft_teams/hooks/auth/handle")
             conn = Faraday.new(url: "http://127.0.0.1:#{api_port}")
-            resp = conn.head('/api/hooks/lex/microsoft_teams/auth/callback')
+            resp = conn.head('/api/extensions/microsoft_teams/hooks/auth/handle')
             registered = resp.status != 404
             log.debug("Hook route probe returned #{resp.status} (registered=#{registered})")
             registered
