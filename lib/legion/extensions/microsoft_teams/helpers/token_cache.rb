@@ -385,7 +385,8 @@ module Legion
           def teams_auth_settings
             return {} unless defined?(Legion::Settings)
 
-            Legion::Settings.dig(:microsoft_teams, :auth) || {}
+            ms = Legion::Settings[:microsoft_teams]
+            (ms && ms[:auth]) || {}
           end
         end
       end
