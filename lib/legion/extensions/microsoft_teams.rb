@@ -36,7 +36,7 @@ require 'legion/extensions/microsoft_teams/helpers/transform_definitions'
 require 'legion/extensions/microsoft_teams/helpers/graph_client'
 
 # Transport
-if defined?(Legion::Transport)
+if Legion.const_defined?(:Transport, false)
   require 'legion/extensions/microsoft_teams/transport/exchanges/messages'
   require 'legion/extensions/microsoft_teams/transport/queues/messages_process'
   require 'legion/extensions/microsoft_teams/transport/messages/teams_message'

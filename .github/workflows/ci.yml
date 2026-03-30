@@ -10,8 +10,8 @@ jobs:
   ci:
     uses: LegionIO/.github/.github/workflows/ci.yml@main
 
-  lint:
-    uses: LegionIO/.github/.github/workflows/lint-patterns.yml@main
+  excluded-files:
+    uses: LegionIO/.github/.github/workflows/excluded-files.yml@main
 
   security:
     uses: LegionIO/.github/.github/workflows/security-scan.yml@main
@@ -27,7 +27,7 @@ jobs:
     uses: LegionIO/.github/.github/workflows/stale.yml@main
 
   release:
-    needs: [ci, lint]
+    needs: [ci, excluded-files]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     uses: LegionIO/.github/.github/workflows/release.yml@main
     secrets:

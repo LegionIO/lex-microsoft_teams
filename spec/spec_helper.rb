@@ -73,7 +73,7 @@ unless defined?(Legion::Extensions::Absorbers)
               )
               return false unless host_regex.match?(uri.host)
 
-              path = uri.path.to_s.sub(%r{\A/}, '')
+              path = uri.path.to_s.delete_prefix('/')
               escaped = Regexp.escape(path_pattern)
                               .gsub('\\*\\*', '__.DS__.').gsub('\\*', '[^/]*').gsub('__.DS__.', '.*')
               Regexp.new("\\A#{escaped}\\z").match?(path)

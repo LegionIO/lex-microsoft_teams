@@ -84,7 +84,7 @@ module Legion
 
               people_ingested += 1
               update_extended_hwm(chat_id: chat['id'],
-                                  last_message_at: messages.map { |m| m['createdDateTime'] }.compact.max,
+                                  last_message_at: messages.filter_map { |m| m['createdDateTime'] }.max,
                                   new_message_count: msg_stored, ingested: true)
             end
 

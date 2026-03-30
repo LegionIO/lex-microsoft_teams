@@ -124,7 +124,7 @@ module Legion
           def cache_available?
             defined?(Legion::Cache) &&
               Legion::Cache.respond_to?(:connected?) &&
-              Legion::Cache.connected?
+              cache_connected?
           end
         end
       end

@@ -84,7 +84,7 @@ module Legion
 
           def gui_available?
             os = host_os
-            return true if os =~ /darwin|mswin|mingw/
+            return true if /darwin|mswin|mingw/.match?(os)
 
             !ENV['DISPLAY'].nil? || !ENV['WAYLAND_DISPLAY'].nil?
           end

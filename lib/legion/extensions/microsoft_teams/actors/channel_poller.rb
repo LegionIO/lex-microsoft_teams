@@ -128,7 +128,7 @@ module Legion
               store_channel_message_trace(team_name: team_name, channel_name: channel_name, msg: msg) if memory_available?
             end
 
-            latest = new_msgs.map { |m| m['createdDateTime'] }.compact.max
+            latest = new_msgs.filter_map { |m| m['createdDateTime'] }.max
             @channel_hwm[channel_id] = latest if latest
           end
 

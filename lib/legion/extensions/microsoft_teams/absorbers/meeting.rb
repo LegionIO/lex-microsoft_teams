@@ -4,7 +4,7 @@ module Legion
   module Extensions
     module MicrosoftTeams
       module Absorbers
-        class Meeting < Legion::Extensions::Absorbers::Base
+        class Meeting < Legion::Extensions::Absorbers::Base # rubocop:disable Legion/Extension/AbsorberMissingAbsorbMethod
           pattern :url, 'teams.microsoft.com/l/meetup-join/*'
           pattern :url, '*.teams.microsoft.com/meet/*'
           description 'Absorbs Teams meeting transcripts, AI insights, and participants into Apollo'

@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.6.27] - 2026-03-29
+
+### Changed
+- Update to rubocop-legion 0.1.7 — resolve all 63 offenses
+- Replace `defined?(Legion::Transport)` with `Legion.const_defined?(:Transport, false)` across 4 files
+- Fix `llm_ask` call in `ProfileIngest` to use `message:` keyword (was `prompt:` + `caller:`)
+- Add rescue variable captures (`=> _e`) for 5 rescue-logging offenses
+- Add inline rubocop disables for 4 structural false positives
+- Disable 3 cops in `.rubocop.yml` that produce systematic false positives
+- Auto-correct Layout/ArgumentAlignment and Performance cops via rubocop -A
+
 ## [0.6.26] - 2026-03-29
 
 ### Fixed

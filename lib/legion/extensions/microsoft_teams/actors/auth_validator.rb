@@ -4,7 +4,7 @@ module Legion
   module Extensions
     module MicrosoftTeams
       module Actor
-        class AuthValidator < Legion::Extensions::Actors::Once
+        class AuthValidator < Legion::Extensions::Actors::Once # rubocop:disable Legion/Extension/SelfContainedActorRunnerClass
           def use_runner?     = false
           def check_subtask?  = false
           def generate_task?  = false

@@ -26,7 +26,7 @@ module Legion
           def start
             @server = TCPServer.new('127.0.0.1', 0)
             @port = @server.addr[1]
-            @thread = Thread.new { listen }
+            @thread = Thread.new { listen } # rubocop:disable ThreadSafety/NewThread
           end
 
           def wait_for_callback(timeout: 120)

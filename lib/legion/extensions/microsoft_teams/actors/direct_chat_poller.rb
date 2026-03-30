@@ -27,7 +27,7 @@ module Legion
 
           def enabled?
             defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
-              defined?(Legion::Transport)
+              Legion.const_defined?(:Transport, false)
           rescue StandardError => e
             log.debug("DirectChatPoller#enabled?: #{e.message}")
             false

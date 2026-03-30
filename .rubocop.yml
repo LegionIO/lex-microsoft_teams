@@ -4,3 +4,15 @@ inherit_gem:
 # This repo uses Faraday JSON middleware (string keys), not Legion::JSON.load (symbol keys)
 Legion/Framework/ApiStringKeys:
   Enabled: false
+
+# All actors in this extension define `enabled?` with cheap settings/defined? checks only
+Legion/Extension/ActorEnabledSideEffects:
+  Enabled: false
+
+# Every actors define `def time` as an instance method override, not via class-level DSL call
+Legion/Extension/EveryActorRequiresTime:
+  Enabled: false
+
+# RunnerReturnHash fires on private helper methods inside runner modules (false positives)
+Legion/Extension/RunnerReturnHash:
+  Enabled: false
