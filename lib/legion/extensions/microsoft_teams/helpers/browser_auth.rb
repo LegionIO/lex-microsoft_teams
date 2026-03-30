@@ -84,7 +84,7 @@ module Legion
 
           def gui_available?
             os = host_os
-            return true if os =~ /darwin|mswin|mingw/
+            return true if /darwin|mswin|mingw/.match?(os)
 
             !ENV['DISPLAY'].nil? || !ENV['WAYLAND_DISPLAY'].nil?
           end
@@ -107,7 +107,7 @@ module Legion
           private
 
           def log
-            return Legion::Logging if defined?(Legion::Logging)
+            return Legion::Logging if defined?(Legion::Logging) # rubocop:disable Legion/HelperMigration/LoggingGuard
 
             @log ||= Object.new.tap do |nl|
               %i[debug info warn error fatal].each { |m| nl.define_singleton_method(m) { |*| nil } }

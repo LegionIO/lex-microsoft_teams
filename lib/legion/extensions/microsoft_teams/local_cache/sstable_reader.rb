@@ -58,11 +58,11 @@ module Legion
             when 0x00 then block
             when 0x01 then Snappy.inflate(block)
             end
-          rescue Snappy::Error
+          rescue Snappy::Error => _e
             nil
           end
 
-          def parse_block_entries(block, &blk)
+          def parse_block_entries(block)
             return unless block && block.bytesize > 4
 
             num_restarts = block.byteslice(-4, 4).unpack1('V')
@@ -88,7 +88,7 @@ module Legion
               pos += value_len
 
               prev_key = key
-              blk.call(key, value)
+              yield(key, value)
             end
           end
 

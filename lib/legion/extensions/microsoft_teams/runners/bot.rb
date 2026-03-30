@@ -251,7 +251,7 @@ module Legion
           def parse_extraction(content)
             parsed = ::JSON.parse(content, symbolize_names: true)
             parsed if parsed.is_a?(Hash)
-          rescue ::JSON::ParserError
+          rescue ::JSON::ParserError => _e
             { summary: content }
           end
 

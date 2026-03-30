@@ -26,7 +26,7 @@ module Legion
 
           def enabled?
             return false unless defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot)
-            return false unless defined?(Legion::Transport)
+            return false unless Legion.const_defined?(:Transport, false)
             return false unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :bot, :observe, :enabled) == true

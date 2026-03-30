@@ -1,56 +1,18 @@
-AllCops:
-  TargetRubyVersion: 3.4
-  NewCops: enable
-  SuggestExtensions: false
+inherit_gem:
+  rubocop-legion: config/lex.yml
 
-Layout/LineLength:
-  Max: 160
-
-Layout/SpaceAroundEqualsInParameterDefault:
-  EnforcedStyle: space
-
-Layout/HashAlignment:
-  EnforcedHashRocketStyle: table
-  EnforcedColonStyle: table
-
-Metrics/MethodLength:
-  Max: 50
-
-Metrics/ClassLength:
-  Max: 1500
-
-Metrics/ModuleLength:
-  Max: 1500
-
-Metrics/BlockLength:
-  Max: 40
-  Exclude:
-    - 'spec/**/*'
-
-Metrics/ParameterLists:
-  Max: 8
-
-Metrics/AbcSize:
-  Max: 60
-
-Metrics/CyclomaticComplexity:
-  Max: 15
-
-Metrics/PerceivedComplexity:
-  Max: 17
-
-Style/Documentation:
+# This repo uses Faraday JSON middleware (string keys), not Legion::JSON.load (symbol keys)
+Legion/Framework/ApiStringKeys:
   Enabled: false
 
-Style/SymbolArray:
-  Enabled: true
-
-Style/FrozenStringLiteralComment:
-  Enabled: true
-  EnforcedStyle: always
-
-Naming/FileName:
+# All actors in this extension define `enabled?` with cheap settings/defined? checks only
+Legion/Extension/ActorEnabledSideEffects:
   Enabled: false
 
-Naming/PredicateMethod:
+# Every actors define `def time` as an instance method override, not via class-level DSL call
+Legion/Extension/EveryActorRequiresTime:
+  Enabled: false
+
+# RunnerReturnHash fires on private helper methods inside runner modules (false positives)
+Legion/Extension/RunnerReturnHash:
   Enabled: false

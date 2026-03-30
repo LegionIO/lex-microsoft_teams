@@ -174,11 +174,10 @@ module Legion
             end
 
             log.info("Saving delegated token to Vault (#{vault_path})")
-            Legion::Crypt.write(vault_path,
-                                access_token:  data[:token],
-                                refresh_token: data[:refresh_token],
-                                expires_at:    data[:expires_at].utc.iso8601,
-                                scopes:        data[:scopes])
+            vault_write(vault_path, access_token:  data[:token],
+                                    refresh_token: data[:refresh_token],
+                                    expires_at:    data[:expires_at].utc.iso8601,
+                                    scopes:        data[:scopes])
             log.info('Delegated token saved to Vault')
             true
           rescue StandardError => e

@@ -36,7 +36,7 @@ module Legion
 
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError
+            rescue StandardError => _e
               {}
             end
             ingest = settings[:ingest] || {}
