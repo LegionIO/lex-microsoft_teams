@@ -47,7 +47,6 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ApiIngest do
 
     context 'when AuthValidator is unavailable' do
       before do
-        allow(actor).to receive(:defined?).and_call_original
         hide_const('Legion::Extensions::MicrosoftTeams::Actor::AuthValidator')
       end
 

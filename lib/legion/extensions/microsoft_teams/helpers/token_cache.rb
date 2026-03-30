@@ -386,7 +386,7 @@ module Legion
             return {} unless defined?(Legion::Settings)
 
             ms = Legion::Settings[:microsoft_teams]
-            auth = (ms && ms[:auth]) || {}
+            auth = ms && ms[:auth] ? ms[:auth].dup : {}
             auth[:tenant_id] ||= ms[:tenant_id] if ms
             auth[:client_id] ||= ms[:client_id] if ms
             auth[:client_secret] ||= ms[:client_secret] if ms
