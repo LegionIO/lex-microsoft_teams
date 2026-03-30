@@ -228,6 +228,82 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
     end
   end
 
+  describe '#teams_auth_settings' do
+    context 'when auth sub-hash has full values' do
+      before do
+        stub_const('Legion::Settings', {})
+        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(
+          { auth: { tenant_id: 'auth-tenant', client_id: 'auth-client', client_secret: 'auth-secret' } }
+        )
+      end
+
+      it 'uses values from auth sub-hash' do
+        result = cache.send(:teams_auth_settings)
+        expect(result[:tenant_id]).to eq('auth-tenant')
+        expect(result[:client_id]).to eq('auth-client')
+        expect(result[:client_secret]).to eq('auth-secret')
+      end
+    end
+
+    context 'when top-level microsoft_teams keys fill in missing auth values' do
+      before do
+        stub_const('Legion::Settings', {})
+        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(
+          { tenant_id: 'top-tenant', client_id: 'top-client', client_secret: 'top-secret' }
+        )
+      end
+
+      it 'falls back to top-level tenant_id, client_id, and client_secret' do
+        result = cache.send(:teams_auth_settings)
+        expect(result[:tenant_id]).to eq('top-tenant')
+        expect(result[:client_id]).to eq('top-client')
+        expect(result[:client_secret]).to eq('top-secret')
+      end
+    end
+
+    context 'when ENV vars provide the credentials' do
+      before do
+        stub_const('Legion::Settings', {})
+        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(nil)
+        allow(ENV).to receive(:fetch).with('AZURE_TENANT_ID', nil).and_return('env-tenant')
+        allow(ENV).to receive(:fetch).with('AZURE_CLIENT_ID', nil).and_return('env-client')
+        allow(ENV).to receive(:fetch).with('AZURE_CLIENT_SECRET', nil).and_return('env-secret')
+      end
+
+      it 'falls back to AZURE_TENANT_ID env var' do
+        expect(cache.send(:teams_auth_settings)[:tenant_id]).to eq('env-tenant')
+      end
+
+      it 'falls back to AZURE_CLIENT_ID env var' do
+        expect(cache.send(:teams_auth_settings)[:client_id]).to eq('env-client')
+      end
+
+      it 'falls back to AZURE_CLIENT_SECRET env var' do
+        expect(cache.send(:teams_auth_settings)[:client_secret]).to eq('env-secret')
+      end
+    end
+
+    context 'when auth sub-hash values take precedence over top-level and ENV' do
+      before do
+        stub_const('Legion::Settings', {})
+        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(
+          { auth: { tenant_id: 'auth-tenant', client_id: 'auth-client', client_secret: 'auth-secret' },
+            tenant_id: 'top-tenant', client_id: 'top-client', client_secret: 'top-secret' }
+        )
+        allow(ENV).to receive(:fetch).with('AZURE_TENANT_ID', nil).and_return('env-tenant')
+        allow(ENV).to receive(:fetch).with('AZURE_CLIENT_ID', nil).and_return('env-client')
+        allow(ENV).to receive(:fetch).with('AZURE_CLIENT_SECRET', nil).and_return('env-secret')
+      end
+
+      it 'prefers auth sub-hash values over all fallbacks' do
+        result = cache.send(:teams_auth_settings)
+        expect(result[:tenant_id]).to eq('auth-tenant')
+        expect(result[:client_id]).to eq('auth-client')
+        expect(result[:client_secret]).to eq('auth-secret')
+      end
+    end
+  end
+
   describe '#vault_path' do
     it 'returns the default path with users/ prefix' do
       allow(cache).to receive(:teams_auth_settings).and_return({ delegated: {} })

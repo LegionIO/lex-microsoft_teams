@@ -392,6 +392,7 @@ module Legion
             auth[:client_secret] ||= ms[:client_secret] if ms
             auth[:tenant_id] ||= ENV.fetch('AZURE_TENANT_ID', nil)
             auth[:client_id] ||= ENV.fetch('AZURE_CLIENT_ID', nil)
+            auth[:client_secret] ||= ENV.fetch('AZURE_CLIENT_SECRET', nil)
             auth
           end
         end
