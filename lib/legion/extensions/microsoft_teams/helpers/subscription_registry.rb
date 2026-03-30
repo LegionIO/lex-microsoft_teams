@@ -123,7 +123,8 @@ module Legion
               v[:created_at] = Time.parse(v[:created_at]) if v[:created_at].is_a?(String)
               v
             end
-          rescue ::JSON::ParserError => _e
+          rescue ::JSON::ParserError => e
+            log.warn("SubscriptionRegistry: corrupted subscription data, resetting: #{e.message}")
             {}
           end
 

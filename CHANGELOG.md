@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.6.28] - 2026-03-30
+
+### Fixed
+- `teams_auth_settings` in AuthValidator, TokenRefresher, and TokenCache now falls back to parent `[:microsoft_teams][:tenant_id]`/`[:client_id]` when not found under `[:auth]`, fixing browser auth never triggering when config uses top-level keys
+- `TokenCache#teams_auth_settings` now includes ENV fallback for `AZURE_TENANT_ID`/`AZURE_CLIENT_ID` (previously missing, inconsistent with actor implementations) and parent-level `client_secret` fallback
+- Silent rescue blocks in TraceRetriever (`format_single_trace`, `trace_age_label`), SubscriptionRegistry (`parse_stored`), and ProfileIngest runner (`ingest_self` presence fetch) now log errors instead of swallowing them
+
+### Changed
+- AuthValidator actor delay increased from 2s to 90s to allow Vault, transport, cache, and delegated auth to fully initialize before validation runs
+- ProfileIngest actor delay increased from 5s to 95s to fire after AuthValidator completes (Once actor — no retry if token missing)
+- ApiIngest actor delay increased from 10s to 95s to fire after AuthValidator completes delegated auth
+- CLAUDE.md updated: added 5 undocumented actors (AbsorbMeeting, ApiIngest, ChannelPoller, MeetingIngest, PresencePoller), 3 runners (AiInsights, ApiIngest, Ownership), 1 helper (GraphClient), corrected spec counts
+
 ## [0.6.27] - 2026-03-29
 
 ### Changed

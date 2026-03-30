@@ -386,7 +386,14 @@ module Legion
             return {} unless defined?(Legion::Settings)
 
             ms = Legion::Settings[:microsoft_teams]
-            (ms && ms[:auth]) || {}
+            auth = ms && ms[:auth].is_a?(Hash) ? ms[:auth].dup : {}
+            auth[:tenant_id] ||= ms[:tenant_id] if ms
+            auth[:client_id] ||= ms[:client_id] if ms
+            auth[:client_secret] ||= ms[:client_secret] if ms
+            auth[:tenant_id] ||= ENV.fetch('AZURE_TENANT_ID', nil)
+            auth[:client_id] ||= ENV.fetch('AZURE_CLIENT_ID', nil)
+            auth[:client_secret] ||= ENV.fetch('AZURE_CLIENT_SECRET', nil)
+            auth
           end
         end
       end

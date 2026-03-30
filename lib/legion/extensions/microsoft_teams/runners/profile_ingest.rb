@@ -41,7 +41,8 @@ module Legion
 
             presence = begin
               conn.get('me/presence').body
-            rescue StandardError => _e
+            rescue StandardError => e
+              log.debug("ProfileIngest: presence fetch failed: #{e.message}") if defined?(log)
               {}
             end
             unless presence.empty?

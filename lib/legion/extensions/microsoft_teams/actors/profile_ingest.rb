@@ -12,7 +12,13 @@ module Legion
           def generate_task?  = false
 
           def delay
-            5.0
+            if defined?(Legion::Extensions::MicrosoftTeams::Actor::AuthValidator)
+              auth_validator = Legion::Extensions::MicrosoftTeams::Actor::AuthValidator.allocate
+              base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 90.0
+              base_delay + 5.0
+            else
+              95.0
+            end
           end
 
           def enabled?
