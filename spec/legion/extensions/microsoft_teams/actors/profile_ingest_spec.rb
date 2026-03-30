@@ -23,6 +23,34 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ProfileIngest do
     it 'returns 95 seconds' do
       expect(actor.delay).to eq(95.0)
     end
+
+    context 'when AuthValidator is loaded' do
+      before do
+        unless defined?(Legion::Extensions::MicrosoftTeams::Actor::AuthValidator)
+          module Legion
+            module Extensions
+              module MicrosoftTeams
+                module Actor
+                  class AuthValidator
+                    def delay = 10.0
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        auth_validator_feature = 'legion/extensions/microsoft_teams/actors/auth_validator'
+        $LOADED_FEATURES << auth_validator_feature unless $LOADED_FEATURES.include?(auth_validator_feature)
+      end
+
+      it 'returns AuthValidator delay plus 5 seconds' do
+        stub_delay = 10.0
+        klass = Legion::Extensions::MicrosoftTeams::Actor::AuthValidator
+        allow(klass).to receive(:allocate).and_return(double('auth_validator', delay: stub_delay))
+        expect(actor.delay).to eq(stub_delay + 5.0)
+      end
+    end
   end
 
   describe '#runner_function' do
