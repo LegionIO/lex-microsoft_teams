@@ -105,7 +105,10 @@ module Legion
           def teams_auth_settings
             settings = if defined?(Legion::Settings)
                          ms = Legion::Settings[:microsoft_teams]
-                         (ms && ms[:auth]) || {}
+                         auth = (ms && ms[:auth]) || {}
+                         auth[:tenant_id] ||= ms[:tenant_id] if ms
+                         auth[:client_id] ||= ms[:client_id] if ms
+                         auth
                        else
                          {}
                        end

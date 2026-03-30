@@ -10,7 +10,7 @@ Legion Extension that connects LegionIO to Microsoft Teams via Graph API and Bot
 
 **GitHub**: https://github.com/LegionIO/lex-microsoft_teams
 **License**: MIT
-**Version**: 0.6.27
+**Version**: 0.6.28
 
 ## Architecture
 
@@ -32,16 +32,24 @@ Legion::Extensions::MicrosoftTeams
 │   ├── LocalCache        # Offline message extraction from local LevelDB cache
 │   ├── CacheIngest       # Ingest cached messages into lex-memory as episodic traces
 │   ├── People            # Graph API /me and /me/people (profile + relevant contacts)
-│   └── ProfileIngest     # Four-phase cognitive pipeline (self, people, conversations, teams/meetings)
+│   ├── ProfileIngest     # Four-phase cognitive pipeline (self, people, conversations, teams/meetings)
+│   ├── ApiIngest         # Graph API ingest (top contacts, 1:1 chat messages, HWM dedup)
+│   ├── AiInsights        # Graph API meeting AI insights, recordings, call records
+│   └── Ownership         # Graph API ownership sync
 ├── Actors/
 │   ├── CacheBulkIngest       # Once: full cache ingest at startup (imprint window support)
 │   ├── CacheSync             # Every 5min: incremental ingest of new messages
 │   ├── DirectChatPoller      # Every 5s: polls bot DM chats via Graph API
 │   ├── ObservedChatPoller    # Every 30s: polls subscribed human conversations (compliance-gated)
 │   ├── MessageProcessor      # Subscription: consumes AMQP queue, routes by mode
-│   ├── AuthValidator         # Once: validates/restores delegated tokens on boot (2s delay)
+│   ├── AuthValidator         # Once (90s delay): validates/restores delegated tokens on boot
 │   ├── TokenRefresher        # Every 15min (configurable): keeps delegated tokens fresh
-│   ├── ProfileIngest         # Once (5s delay): four-phase data pipeline after auth
+│   ├── ProfileIngest         # Once (95s delay): four-phase data pipeline after auth
+│   ├── ApiIngest             # Every 30min (95s delay): Graph API ingest with HWM dedup
+│   ├── ChannelPoller         # Every 60s: polls joined team channels for new messages
+│   ├── MeetingIngest         # Every 5min: polls online meetings, fetches transcripts and AI insights
+│   ├── PresencePoller        # Every 60s: polls Graph API presence, logs changes
+│   ├── AbsorbMeeting        # Subscription: absorbs Teams meeting data via absorber framework
 │   └── IncrementalSync       # Every 15min: periodic re-sync with HWM dedup
 ├── Transport/
 │   ├── Exchanges/Messages    # teams.messages topic exchange
@@ -62,7 +70,8 @@ Legion::Extensions::MicrosoftTeams
 │   ├── CallbackServer    # Ephemeral TCP server for OAuth redirect callback
 │   ├── PermissionGuard   # Circuit breaker for 403 errors with exponential backoff
 │   ├── TraceRetriever    # Retrieves memory traces from the shared store for bot context (2000-token budget, strength-ranked dedup)
-│   └── TransformDefinitions # lex-transformer definitions for conversation extraction and person summary
+│   ├── TransformDefinitions # lex-transformer definitions for conversation extraction and person summary
+│   └── GraphClient       # Graph API wrapper mixin (graph_get, graph_post, graph_paginate, GraphError)
 ├── Hooks/
 │   └── Auth              # OAuth callback hook (mount '/callback') → /api/extensions/microsoft_teams/hooks/auth/handle
 ├── CLI/
@@ -255,7 +264,7 @@ Optional framework dependencies (guarded with `defined?`, not in gemspec):
 
 ```bash
 bundle install
-bundle exec rspec     # ~305 specs across 40 spec files (as of v0.6.18)
+bundle exec rspec     # ~342 specs across 43 spec files (as of v0.6.28)
 bundle exec rubocop   # Clean
 ```
 

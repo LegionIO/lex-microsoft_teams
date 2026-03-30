@@ -95,7 +95,8 @@ module Legion
             age = trace_age_label(trace[:created_at] || trace[:last_reinforced])
 
             "- [#{type}] #{content} (#{age}, tags: #{tags})"
-          rescue StandardError => _e
+          rescue StandardError => e
+            log_trace_error('format_single_trace', e)
             nil
           end
 
@@ -109,7 +110,8 @@ module Legion
             when 86_400..604_800 then "#{(seconds / 86_400).to_i}d ago"
             else "#{(seconds / 604_800).to_i}w ago"
             end
-          rescue StandardError => _e
+          rescue StandardError => e
+            log_trace_error('trace_age_label', e)
             'unknown age'
           end
 

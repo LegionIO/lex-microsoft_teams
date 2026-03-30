@@ -20,8 +20,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ProfileIngest do
   let(:actor) { described_class.allocate }
 
   describe '#delay' do
-    it 'returns 5 seconds' do
-      expect(actor.delay).to eq(5.0)
+    it 'returns 95 seconds' do
+      expect(actor.delay).to eq(95.0)
     end
   end
 

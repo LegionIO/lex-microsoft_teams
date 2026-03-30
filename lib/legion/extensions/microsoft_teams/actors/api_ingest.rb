@@ -18,7 +18,7 @@ module Legion
           def run_now? = true
 
           def delay
-            10.0 # let memory + cache ingest initialize first
+            95.0 # must fire after AuthValidator (90s) completes delegated auth
           end
 
           def time
