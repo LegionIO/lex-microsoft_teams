@@ -28,8 +28,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::AuthValidator do
     allow(token_cache).to receive(:cached_delegated_token).and_return(nil)
   end
 
-  it 'has a 2 second delay' do
-    expect(actor.delay).to eq(2.0)
+  it 'has a 90 second delay' do
+    expect(actor.delay).to eq(90.0)
   end
 
   it 'does not generate tasks' do

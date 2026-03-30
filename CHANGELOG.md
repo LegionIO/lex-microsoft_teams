@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.28] - 2026-03-30
+
+### Changed
+- AuthValidator actor delay increased from 2s to 90s to allow Vault, transport, cache, and delegated auth to fully initialize before validation runs
+
 ## [0.6.27] - 2026-03-29
 
 ### Changed

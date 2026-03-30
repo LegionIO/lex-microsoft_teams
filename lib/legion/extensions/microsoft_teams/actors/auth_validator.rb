@@ -10,7 +10,7 @@ module Legion
           def generate_task?  = false
 
           def delay
-            2.0
+            90.0
           end
 
           def enabled?
