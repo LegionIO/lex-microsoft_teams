@@ -38,9 +38,10 @@ module Legion
             browser_auth = Helpers::BrowserAuth.new(tenant_id: tid, client_id: cid, force_local_server: true)
             result = browser_auth.authenticate
 
-            if result&.dig(:access_token)
+            body = result&.dig(:result)
+            if body&.dig('access_token')
               log.info('Authentication successful, storing token')
-              store_token(result)
+              store_token(body)
               puts 'Teams authenticated successfully.'
             else
               log.warn("Authentication result: #{result&.keys&.join(', ') || 'nil'}")
@@ -73,9 +74,14 @@ module Legion
             {}
           end
 
-          def store_token(result)
+          def store_token(body)
             cache = Helpers::TokenCache.instance
-            cache.store_delegated_token(result)
+            cache.store_delegated_token(
+              access_token:  body['access_token'],
+              refresh_token: body['refresh_token'],
+              expires_in:    body['expires_in'],
+              scopes:        body['scope']
+            )
             cache.save_to_vault
             log.info('Token stored successfully')
           rescue StandardError => e

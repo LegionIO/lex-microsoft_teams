@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.6.31] - 2026-03-31
+
+### Fixed
+- `CLI::Auth#login` now correctly extracts token from `result[:result]` (BrowserAuth return format), fixing CLI login never persisting to Vault or storing delegated token
+- `CLI::Auth#store_token` now passes individual keyword args to `store_delegated_token` instead of the raw result hash
+
 ## [0.6.30] - 2026-03-31
 
 ### Fixed
