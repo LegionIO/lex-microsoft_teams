@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.29] - 2026-03-30
+
+### Fixed
+- `HighWaterMark#set_hwm` and `#set_extended_hwm`: pass `ttl:` as keyword arg to `cache_set` instead of positional arg, fixing `ArgumentError` in `ApiIngest`
+
 ## [0.6.28] - 2026-03-30
 
 ### Fixed

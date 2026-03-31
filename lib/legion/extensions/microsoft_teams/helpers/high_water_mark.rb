@@ -26,7 +26,7 @@ module Legion
           def set_hwm(chat_id:, timestamp:)
             key = hwm_key(chat_id: chat_id)
             if cache_available?
-              cache_set(key, timestamp, HWM_TTL)
+              cache_set(key, timestamp, ttl: HWM_TTL)
             else
               @hwm_fallback ||= {}
               @hwm_fallback[key] = timestamp
@@ -68,7 +68,7 @@ module Legion
             value = { last_message_at: last_message_at, last_ingested_at: last_ingested_at,
                       message_count: message_count }
             if cache_available?
-              cache_set(key, ::JSON.dump(value), HWM_TTL)
+              cache_set(key, ::JSON.dump(value), ttl: HWM_TTL)
             else
               @ehwm_fallback ||= {}
               @ehwm_fallback[key] = value
