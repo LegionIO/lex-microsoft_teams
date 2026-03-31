@@ -3,7 +3,7 @@
 module Legion
   module Extensions
     module MicrosoftTeams
-      VERSION = '0.6.31'
+      VERSION = '0.6.32'
     end
   end
 end

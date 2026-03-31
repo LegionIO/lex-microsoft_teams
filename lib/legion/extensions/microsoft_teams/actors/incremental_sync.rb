@@ -12,14 +12,14 @@ module Legion
           def generate_task?  = false
           def run_now?        = false
 
-          def delay
+          def time
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
             rescue StandardError => e
-              log.debug("IncrementalSync#delay: #{e.message}")
+              log.debug("IncrementalSync#time: #{e.message}")
               {}
             end
-            settings.dig(:ingest, :incremental_interval) || 900
+            settings.dig(:ingest, :incremental_interval) || 120
           end
 
           def enabled?

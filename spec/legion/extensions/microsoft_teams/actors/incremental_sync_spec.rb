@@ -19,9 +19,9 @@ require 'legion/extensions/microsoft_teams/actors/incremental_sync'
 RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::IncrementalSync do
   let(:actor) { described_class.allocate }
 
-  describe '#delay' do
-    it 'returns 900 seconds by default' do
-      expect(actor.delay).to eq(900)
+  describe '#time' do
+    it 'returns 120 seconds by default' do
+      expect(actor.time).to eq(120)
     end
   end
 

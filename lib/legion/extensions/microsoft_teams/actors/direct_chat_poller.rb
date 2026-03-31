@@ -8,7 +8,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
           include Legion::Extensions::MicrosoftTeams::Helpers::HighWaterMark
 
-          POLL_INTERVAL = 5
+          POLL_INTERVAL = 15
 
           def initialize(**opts)
             return unless enabled?

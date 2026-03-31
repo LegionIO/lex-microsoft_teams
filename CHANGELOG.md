@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.6.32] - 2026-03-31
+
+### Fixed
+- `IncrementalSync` actor: renamed `delay` to `time` so `Concurrent::TimerTask` actually uses the configured interval — was firing every 1s instead of every 120s
+- `DirectChatPoller` default interval increased from 5s to 15s to reduce Graph API pressure
+- `Meeting` absorber: renamed `handle` to `absorb` to match `Absorbers::Base` contract — `handle` was never called by the dispatch framework
+
+### Added
+- `Meeting` absorber: URL pattern for meeting chat links (`teams.microsoft.com/l/chat/19:meeting_**`) with chat thread resolution — extracts thread ID, fetches `onlineMeetingInfo.joinWebUrl` from the chat, then resolves the full meeting object
+
 ## [0.6.31] - 2026-03-31
 
 ### Fixed

@@ -19,8 +19,8 @@ require 'legion/extensions/microsoft_teams/actors/direct_chat_poller'
 RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::DirectChatPoller do
   subject(:actor) { described_class.allocate }
 
-  it 'has a 5 second interval' do
-    expect(actor.time).to eq(5)
+  it 'has a 15 second interval' do
+    expect(actor.time).to eq(15)
   end
 
   it 'uses the Bot runner class' do
