@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.30] - 2026-03-31
+
+### Fixed
+- `TokenCache#vault_available?` now checks `:connected` instead of `:enabled`, preventing Vault calls before authentication is complete
+
 ## [0.6.29] - 2026-03-30
 
 ### Fixed

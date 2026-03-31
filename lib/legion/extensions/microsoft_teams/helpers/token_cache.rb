@@ -245,9 +245,9 @@ module Legion
             return false unless defined?(Legion::Crypt)
             return false unless defined?(Legion::Settings)
 
-            enabled = Legion::Settings.dig(:crypt, :vault, :enabled) == true
-            log.debug("vault_available? => #{enabled}")
-            enabled
+            connected = Legion::Settings.dig(:crypt, :vault, :connected) == true
+            log.debug("vault_available? => #{connected}")
+            connected
           rescue StandardError => e
             log.debug("TokenCache: vault_available? check failed: #{e.message}")
             false
