@@ -4,12 +4,13 @@ module Legion
   module Extensions
     module MicrosoftTeams
       module Absorbers
-        class Meeting < Legion::Extensions::Absorbers::Base # rubocop:disable Legion/Extension/AbsorberMissingAbsorbMethod
+        class Meeting < Legion::Extensions::Absorbers::Base
           pattern :url, 'teams.microsoft.com/l/meetup-join/*'
           pattern :url, '*.teams.microsoft.com/meet/*'
+          pattern :url, 'teams.microsoft.com/l/chat/19:meeting_**'
           description 'Absorbs Teams meeting transcripts, AI insights, and participants into Apollo'
 
-          def handle(url: nil, content: nil, metadata: {}, context: {}) # rubocop:disable Lint/UnusedMethodArgument
+          def absorb(url: nil, content: nil, metadata: {}, context: {}) # rubocop:disable Lint/UnusedMethodArgument
             report_progress(message: 'resolving meeting from link')
             meeting = resolve_meeting(url)
             return { success: false, error: 'could not resolve meeting' } unless meeting
@@ -57,7 +58,43 @@ module Legion
           end
 
           def resolve_meeting(url)
+            thread_id = extract_meeting_thread_id(url)
+            if thread_id
+              report_progress(message: 'resolving meeting from chat thread', percent: 5)
+              return resolve_meeting_from_chat(thread_id)
+            end
+
             report_progress(message: 'looking up meeting by join URL', percent: 5)
+            resolve_meeting_by_join_url(url)
+          rescue StandardError => e
+            log.warn("Could not resolve meeting: #{e.message}")
+            nil
+          end
+
+          def extract_meeting_thread_id(url)
+            uri = URI.parse(url)
+            match = uri.path.match(%r{/l/chat/(19:meeting_[^/]+)})
+            match&.[](1)
+          rescue URI::InvalidURIError => e
+            log.debug("extract_meeting_thread_id: #{e.message}")
+            nil
+          end
+
+          def resolve_meeting_from_chat(thread_id)
+            chats_runner = Object.new.extend(Runners::Chats)
+            response = chats_runner.get_chat(chat_id: thread_id, token: graph_token)
+            body = response.is_a?(Hash) ? response[:result] : nil
+            return nil unless body.is_a?(Hash)
+
+            join_url = body.dig('onlineMeetingInfo', 'joinWebUrl') ||
+                       body.dig(:onlineMeetingInfo, :joinWebUrl)
+            return resolve_meeting_by_join_url(join_url) if join_url
+
+            log.debug("Chat #{thread_id} has no onlineMeetingInfo, using chat metadata")
+            { 'id' => thread_id, 'subject' => body['topic'] || body[:topic] || 'meeting chat' }
+          end
+
+          def resolve_meeting_by_join_url(url)
             response = meetings_runner.get_meeting_by_join_url(join_url: url, token: graph_token)
             return nil unless response.is_a?(Hash)
 
@@ -68,9 +105,6 @@ module Legion
             return nil unless items.is_a?(Array) && !items.empty?
 
             items.first
-          rescue StandardError => e
-            log.warn("Could not resolve meeting: #{e.message}")
-            nil
           end
 
           def ingest_transcript(meeting_id, subject, results)

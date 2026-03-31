@@ -6,10 +6,11 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
   describe '.patterns' do
     it 'registers URL patterns for Teams meeting links' do
       patterns = described_class.patterns
-      expect(patterns.length).to eq(2)
+      expect(patterns.length).to eq(3)
       expect(patterns.all? { |p| p[:type] == :url }).to be true
       expect(patterns.any? { |p| p[:value].include?('meetup-join') }).to be true
       expect(patterns.any? { |p| p[:value].include?('meet/') }).to be true
+      expect(patterns.any? { |p| p[:value].include?('19:meeting_') }).to be true
     end
   end
 
@@ -20,7 +21,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
     end
   end
 
-  describe '#handle' do
+  describe '#absorb' do
     let(:absorber) { described_class.new }
 
     before { absorber.job_id = 'test-meeting-001' }
@@ -41,7 +42,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       it 'returns failure' do
-        result = absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        result = absorber.absorb(url: 'https://teams.microsoft.com/l/meetup-join/test123')
         expect(result[:success]).to be false
         expect(result[:error]).to include('could not resolve')
       end
@@ -55,7 +56,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       it 'returns failure with a clear error' do
-        result = absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        result = absorber.absorb(url: 'https://teams.microsoft.com/l/meetup-join/test123')
         expect(result[:success]).to be false
         expect(result[:error]).to include('no id')
       end
@@ -81,14 +82,14 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       it 'returns success with meeting metadata' do
-        result = absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        result = absorber.absorb(url: 'https://teams.microsoft.com/l/meetup-join/test123')
         expect(result[:success]).to be true
         expect(result[:meeting_id]).to eq('meeting-abc')
         expect(result[:subject]).to eq('Sprint Planning')
       end
 
       it 'ingests participants via absorb_raw' do
-        absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        absorber.absorb(url: 'https://teams.microsoft.com/l/meetup-join/test123')
         expect(absorber).to have_received(:absorb_raw).with(
           hash_including(tags: include('participants'))
         )
@@ -110,7 +111,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       it 'ingests transcript via absorb_to_knowledge' do
-        absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        absorber.absorb(url: 'https://teams.microsoft.com/l/meetup-join/test123')
         expect(absorber).to have_received(:absorb_to_knowledge).with(
           hash_including(content: 'WEBVTT transcript content here', tags: include('transcript'))
         )
@@ -139,7 +140,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
       end
 
       it 'ingests action items via absorb_to_knowledge' do
-        absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        absorber.absorb(url: 'https://teams.microsoft.com/l/meetup-join/test123')
         expect(absorber).to have_received(:absorb_to_knowledge).with(
           hash_including(
             content:      "Follow up with Alice\nSend recap email",
@@ -153,7 +154,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Absorbers::Meeting do
         allow(ai_insights_runner)
           .to receive(:list_meeting_ai_insights)
           .and_return({ result: { 'value' => [{ 'id' => 'insight-2', 'actionItems' => [] }] } })
-        absorber.handle(url: 'https://teams.microsoft.com/l/meetup-join/test123')
+        absorber.absorb(url: 'https://teams.microsoft.com/l/meetup-join/test123')
         expect(absorber).not_to have_received(:absorb_to_knowledge)
       end
     end
