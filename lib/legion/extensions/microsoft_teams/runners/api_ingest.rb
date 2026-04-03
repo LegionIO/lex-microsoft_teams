@@ -25,6 +25,8 @@ module Legion
             return error_result('lex-memory not loaded') unless memory_available?
             return error_result('no token provided') unless token && !token.empty?
 
+            restore_hwm_from_traces
+
             people = fetch_top_people(token: token, top: top_people)
             log.debug("ApiIngest: fetched #{people.size} top people")
             return error_result('people endpoint denied or empty') if people.empty?
@@ -149,9 +151,10 @@ module Legion
               params = {}
             end
 
-            one_on_one = all_chats.select { |c| c['chatType'] == 'oneOnOne' }
-            log.info("ApiIngest: fetched #{all_chats.size} chats (#{pages} pages), #{one_on_one.size} oneOnOne")
-            one_on_one
+            allowed_types = %w[oneOnOne group meeting]
+            filtered = all_chats.select { |c| allowed_types.include?(c['chatType']) }
+            log.info("ApiIngest: fetched #{all_chats.size} chats (#{pages} pages), #{filtered.size} eligible (1:1/group/meeting)")
+            filtered
           rescue StandardError => e
             log.warn("ApiIngest: fetch_chats failed: #{e.message}")
             []

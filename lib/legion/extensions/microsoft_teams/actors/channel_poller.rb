@@ -126,7 +126,7 @@ module Legion
             log.info("#{team_name} / #{channel_name}: #{new_msgs.length} new message(s)")
             new_msgs.each do |msg|
               log_message(team_name: team_name, channel_name: channel_name, msg: msg)
-              store_channel_message_trace(team_name: team_name, channel_name: channel_name, msg: msg) if memory_available?
+              store_channel_message_trace(team_name: team_name, channel_name: channel_name, msg: msg) if memory_available? && channel_traces_enabled?
             end
 
             latest = new_msgs.filter_map { |m| m['createdDateTime'] }.max
@@ -162,6 +162,10 @@ module Legion
           rescue StandardError => e
             log.debug("ChannelPoller#channel_setting(#{key}): #{e.message}")
             default
+          end
+
+          def channel_traces_enabled?
+            channel_setting(:store_traces, false) == true
           end
 
           def store_channel_message_trace(team_name:, channel_name:, msg:)

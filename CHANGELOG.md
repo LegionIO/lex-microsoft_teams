@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.6.34] - 2026-04-03
+
+### Fixed
+- ApiIngest restores HWM from traces on startup to prevent re-fetching all messages on every restart
+- ApiIngest now fetches 1:1, group, and meeting chats (not just oneOnOne)
+- CacheSync disabled — local cache has no chat type metadata to filter channel messages
+- ChannelPoller trace storage gated behind `channels.store_traces` setting (default: false)
+
 ## [0.6.33] - 2026-04-03
 
 ### Changed

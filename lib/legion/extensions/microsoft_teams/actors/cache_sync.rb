@@ -23,9 +23,8 @@ module Legion
           def generate_task?  = false
 
           def enabled?
-            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
-          rescue StandardError => e
-            log.debug("CacheSync#enabled?: #{e.message}")
+            # TODO: local cache has no chat type metadata — cannot filter out channel
+            #       messages. Disabled until cache records include chatType.
             false
           end
 
