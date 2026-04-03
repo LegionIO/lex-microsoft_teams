@@ -11,6 +11,7 @@ module Legion
           def check_subtask?  = false
           def generate_task?  = false
           def run_now?        = false
+          def delay           = 60
 
           def time
             settings = begin

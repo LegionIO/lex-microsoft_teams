@@ -50,8 +50,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ApiIngest do
         hide_const('Legion::Extensions::MicrosoftTeams::Actor::AuthValidator')
       end
 
-      it 'falls back to 95.0 seconds' do
-        expect(actor.delay).to eq(95.0)
+      it 'falls back to 30 seconds' do
+        expect(actor.delay).to eq(30)
       end
     end
   end

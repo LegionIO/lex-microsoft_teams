@@ -21,6 +21,7 @@ module Legion
           def runner_class    = self.class
           def runner_function = 'manual'
           def time            = channel_setting(:poll_interval, DEFAULT_INTERVAL)
+          def delay           = 300
           def run_now?        = false
           def use_runner?     = false
           def check_subtask?  = false

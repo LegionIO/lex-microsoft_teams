@@ -20,6 +20,7 @@ module Legion
           def runner_class    = Legion::Extensions::MicrosoftTeams::Runners::Bot
           def runner_function = 'handle_message'
           def time            = settings_interval(:direct_poll_interval, POLL_INTERVAL)
+          def delay           = 60
           def run_now?        = false
           def use_runner?     = false
           def check_subtask?  = false

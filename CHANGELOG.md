@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.6.33] - 2026-04-03
+
+### Changed
+- Set `remote_invocable? false` — eliminates 19 auto-generated AMQP subscription actors on boot
+- Add initial delays to Every actors: DirectChatPoller (60s), ObservedChatPoller (180s), ChannelPoller (300s), IncrementalSync (60s), ApiIngest (max of auth_delay+5 or 30s)
+- Disable CacheBulkIngest until run-once-ever logic is implemented
+
 ## [0.6.32] - 2026-03-31
 
 ### Fixed

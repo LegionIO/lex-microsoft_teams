@@ -21,9 +21,9 @@ module Legion
             if defined?(Legion::Extensions::MicrosoftTeams::Actor::AuthValidator)
               auth_validator = Legion::Extensions::MicrosoftTeams::Actor::AuthValidator.allocate
               base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 90.0
-              base_delay + 5.0 # must fire shortly after AuthValidator completes delegated auth
+              [base_delay + 5.0, 30].max
             else
-              95.0 # conservative boot-ordering fallback if AuthValidator is unavailable
+              30
             end
           end
 

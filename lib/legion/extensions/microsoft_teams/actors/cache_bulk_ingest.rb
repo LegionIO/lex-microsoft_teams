@@ -16,9 +16,8 @@ module Legion
           end
 
           def enabled?
-            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
-          rescue StandardError => e
-            log.debug("CacheBulkIngest#enabled?: #{e.message}")
+            # TODO: implement run-once-ever via Data::Local flag so bulk ingest
+            #       doesn't re-run on every restart
             false
           end
 
