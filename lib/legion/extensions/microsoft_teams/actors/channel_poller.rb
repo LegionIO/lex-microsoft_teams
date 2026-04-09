@@ -50,7 +50,7 @@ module Legion
 
           def manual
             log.info('ChannelPoller polling team channels')
-            token = token_cache.cached_graph_token
+            token = token_cache.cached_delegated_token
             unless token
               log.debug('No token available, skipping poll')
               return

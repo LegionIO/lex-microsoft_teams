@@ -45,7 +45,7 @@ module Legion
           end
 
           def manual
-            token = token_cache.cached_graph_token
+            token = token_cache.cached_app_token
             return unless token
 
             subscriptions = subscription_registry.active_subscriptions

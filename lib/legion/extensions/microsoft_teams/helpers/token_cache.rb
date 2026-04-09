@@ -45,8 +45,15 @@ module Legion
 
           # --- Application token (client_credentials) ---
 
-          def cached_graph_token
+          def cached_app_token
             @mutex.synchronize do
+              # Phase 8: Broker-managed Entra app token (short-circuits cache path)
+              if defined?(Legion::Identity::Broker)
+                token = Legion::Identity::Broker.token_for(:entra)
+                return token if token
+              end
+
+              # Legacy: self-managed client_credentials + cache
               if @token_cache && !token_expired?(@token_cache)
                 log.debug('Using cached app token')
                 return @token_cache[:token]
@@ -55,18 +62,15 @@ module Legion
               result = refresh_app_token
               return result if result
 
-              if @delegated_cache && !token_expired?(@delegated_cache)
-                log.debug('No app token available, using delegated token')
-                return @delegated_cache[:token]
-              end
-
               unless @app_token_warned
-                log.warn('No app or delegated token available for Graph API calls')
+                log.warn('No app token available for Graph API calls')
                 @app_token_warned = true
               end
               nil
             end
           end
+
+          alias cached_graph_token cached_app_token
 
           def clear_token_cache!
             @mutex.synchronize do

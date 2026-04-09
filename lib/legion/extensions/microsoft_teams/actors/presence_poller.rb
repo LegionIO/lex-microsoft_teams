@@ -34,7 +34,7 @@ module Legion
           end
 
           def manual
-            token = token_cache.cached_graph_token
+            token = token_cache.cached_delegated_token
             unless token
               log.debug('No token available, skipping presence poll')
               return

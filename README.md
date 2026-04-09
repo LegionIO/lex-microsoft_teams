@@ -88,6 +88,23 @@ gem install lex-microsoft_teams
 ### Cache Ingest
 - `ingest_cache` — Ingest messages from the local Teams cache into lex-memory as episodic traces; returns `{ stored:, skipped:, latest_time: }`
 
+### People
+- `get_profile` — Get Graph API profile for a user (default: `/me`)
+- `list_people` — List relevant people for a user via `/me/people`
+
+### AI Insights
+- `list_meeting_ai_insights` — List AI-generated insights for an online meeting
+- `get_meeting_ai_insight` — Get a specific AI insight
+- `list_meeting_recordings` — List recordings for an online meeting
+- `get_meeting_recording` — Get a specific meeting recording
+- `list_call_records` — List call records from Graph API
+- `get_call_record` — Get a specific call record
+
+### Ownership
+- `sync_owners` — Sync team ownership data from Graph API (single team or all teams)
+- `detect_orphans` — Detect teams with no current owners
+- `get_team_owners` — Get owners for a specific team
+
 ### Adaptive Cards
 - `build_card` — Build an Adaptive Card payload
 - `text_block` — Create a TextBlock element
@@ -109,9 +126,20 @@ gem install lex-microsoft_teams
 - `observe_message` — Conversation observer that extracts tasks, context, and relationship data from subscribed human chats (disabled by default, compliance-gated)
 
 **Actors:**
-- `DirectChatPoller` — Polls bot DM chats every 5s, publishes to AMQP
-- `ObservedChatPoller` — Polls subscribed conversations every 30s (disabled by default)
-- `MessageProcessor` — AMQP subscription actor, routes messages by mode to `handle_message` or `observe_message`
+- `CacheBulkIngest` — Once at startup: full local LevelDB cache ingest
+- `CacheSync` — Every 5min: incremental new-message ingest from local cache
+- `DirectChatPoller` — Every 5s: polls bot DM chats via Graph API, publishes to AMQP
+- `ObservedChatPoller` — Every 30s: polls subscribed conversations (compliance-gated, disabled by default)
+- `MessageProcessor` — AMQP subscription actor, routes messages by mode
+- `AuthValidator` — Once at boot: validates and restores delegated tokens
+- `TokenRefresher` — Every 15min: keeps delegated tokens fresh
+- `ProfileIngest` — Once (5s delay): four-phase cognitive data pipeline after auth
+- `ApiIngest` — Every 30min: Graph API ingest with HWM dedup
+- `ChannelPoller` — Every 60s: polls joined team channels for new messages
+- `MeetingIngest` — Every 5min: polls online meetings, fetches transcripts and AI insights
+- `PresencePoller` — Every 60s: polls Graph API presence, logs changes
+- `AbsorbMeeting` — Subscription: absorbs Teams meeting data via absorber framework
+- `IncrementalSync` — Every 15min: periodic re-sync with HWM dedup
 
 **Helpers:**
 - `SessionManager` — Multi-turn LLM session lifecycle with lex-memory persistence
@@ -143,11 +171,11 @@ auth = Legion::Extensions::MicrosoftTeams::Helpers::BrowserAuth.new(
 result = auth.authenticate  # returns token hash with access_token, refresh_token, expires_in
 ```
 
-Tokens are stored in Vault (`legionio/microsoft_teams/delegated_token`) and silently refreshed before expiry.
+Tokens are stored in Vault at a per-user path (`{USER}/microsoft_teams/delegated_token`) and silently refreshed before expiry.
 
 ## Standalone Client
 
-The `Client` class includes all runner modules (Auth, Teams, Chats, Messages, Channels, ChannelMessages, Subscriptions, AdaptiveCards, Bot, Presence, Meetings, Transcripts, LocalCache, CacheIngest).
+The `Client` class includes all runner modules (Auth, Teams, Chats, Messages, Channels, ChannelMessages, Subscriptions, AdaptiveCards, Bot, Presence, Meetings, Transcripts, LocalCache, CacheIngest, People, ProfileIngest, ApiIngest, AiInsights, Ownership).
 
 ```ruby
 client = Legion::Extensions::MicrosoftTeams::Client.new(

@@ -10,7 +10,7 @@ module Legion
           DEFAULT_INGEST_INTERVAL = 300
 
           def runner_class    = Legion::Extensions::MicrosoftTeams::Helpers::TokenCache
-          def runner_function = 'cached_graph_token'
+          def runner_function = 'cached_delegated_token'
           def run_now?        = false
           def use_runner?     = false
           def check_subtask?  = false
@@ -52,7 +52,7 @@ module Legion
 
           def manual
             log.info('MeetingIngest polling for meetings')
-            token = token_cache.cached_graph_token
+            token = token_cache.cached_delegated_token
             return if token.nil?
 
             conn = graph_connection(token: token)

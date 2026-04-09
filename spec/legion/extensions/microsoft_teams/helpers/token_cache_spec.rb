@@ -13,7 +13,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
 
   after { FileUtils.rm_f(tmp_token_path) }
 
-  describe '#cached_graph_token' do
+  describe '#cached_app_token' do
     let(:auth_result) do
       { result: { 'access_token' => 'tok-abc', 'expires_in' => 3600 } }
     end
@@ -23,51 +23,88 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
     end
 
     it 'acquires a fresh token on first call' do
-      expect(cache.cached_graph_token).to eq('tok-abc')
+      expect(cache.cached_app_token).to eq('tok-abc')
       expect(cache).to have_received(:acquire_fresh_token).once
     end
 
     it 'returns cached token on subsequent calls' do
-      cache.cached_graph_token
-      cache.cached_graph_token
+      cache.cached_app_token
+      cache.cached_app_token
       expect(cache).to have_received(:acquire_fresh_token).once
     end
 
     it 'refreshes when token is expired' do
-      cache.cached_graph_token
+      cache.cached_app_token
       cache.instance_variable_set(:@token_cache, {
                                     token: 'tok-old', expires_at: Time.now - 10
                                   })
-      expect(cache.cached_graph_token).to eq('tok-abc')
+      expect(cache.cached_app_token).to eq('tok-abc')
       expect(cache).to have_received(:acquire_fresh_token).twice
     end
 
     it 'refreshes 60 seconds before expiry' do
-      cache.cached_graph_token
+      cache.cached_app_token
       cache.instance_variable_set(:@token_cache, {
                                     token: 'tok-old', expires_at: Time.now + 30
                                   })
-      expect(cache.cached_graph_token).to eq('tok-abc')
+      expect(cache.cached_app_token).to eq('tok-abc')
       expect(cache).to have_received(:acquire_fresh_token).twice
     end
 
     it 'does not refresh when token has plenty of time left' do
-      cache.cached_graph_token
+      cache.cached_app_token
       cache.instance_variable_set(:@token_cache, {
                                     token: 'tok-fresh', expires_at: Time.now + 600
                                   })
-      expect(cache.cached_graph_token).to eq('tok-fresh')
+      expect(cache.cached_app_token).to eq('tok-fresh')
       expect(cache).to have_received(:acquire_fresh_token).once
     end
 
     it 'returns nil when acquire_fresh_token returns nil' do
       allow(cache).to receive(:acquire_fresh_token).and_return(nil)
-      expect(cache.cached_graph_token).to be_nil
+      expect(cache.cached_app_token).to be_nil
     end
 
     it 'returns nil when acquire_fresh_token raises' do
       allow(cache).to receive(:acquire_fresh_token).and_raise(StandardError, 'network error')
-      expect(cache.cached_graph_token).to be_nil
+      expect(cache.cached_app_token).to be_nil
+    end
+
+    it 'does not fall back to delegated token' do
+      allow(cache).to receive(:acquire_fresh_token).and_return(nil)
+      cache.store_delegated_token(
+        access_token: 'delegated-tok', refresh_token: 'ref',
+        expires_in: 3600, scopes: 'scope1'
+      )
+      expect(cache.cached_app_token).to be_nil
+    end
+
+    context 'when Broker is available' do
+      let(:broker) { double('Broker') }
+
+      before do
+        stub_const('Legion::Identity::Broker', broker)
+      end
+
+      it 'returns Broker token when available' do
+        allow(broker).to receive(:token_for).with(:entra).and_return('broker-tok')
+        expect(cache.cached_app_token).to eq('broker-tok')
+        expect(cache).not_to have_received(:acquire_fresh_token)
+      end
+
+      it 'falls back to legacy when Broker returns nil' do
+        allow(broker).to receive(:token_for).with(:entra).and_return(nil)
+        expect(cache.cached_app_token).to eq('tok-abc')
+        expect(cache).to have_received(:acquire_fresh_token).once
+      end
+    end
+  end
+
+  describe '#cached_graph_token' do
+    it 'is an alias for cached_app_token' do
+      expect(described_class.instance_method(:cached_graph_token)).to eq(
+        described_class.instance_method(:cached_app_token)
+      )
     end
   end
 
@@ -76,9 +113,9 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
       allow(cache).to receive(:acquire_fresh_token).and_return(
         { result: { 'access_token' => 'tok-1', 'expires_in' => 3600 } }
       )
-      cache.cached_graph_token
+      cache.cached_app_token
       cache.clear_token_cache!
-      cache.cached_graph_token
+      cache.cached_app_token
       expect(cache).to have_received(:acquire_fresh_token).twice
     end
   end

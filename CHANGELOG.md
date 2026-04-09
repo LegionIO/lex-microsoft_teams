@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.6.35] - 2026-04-09
+
+### Changed
+- Split `cached_graph_token` into separate `cached_delegated_token` and `cached_app_token` helpers in `TokenCache` — delegated token used for user-context calls, app token for application-credential (client_credentials) calls
+- Added `Broker` soft consumer actor to cache app tokens via client_credentials flow without blocking extension boot
+- Updated all actors (ChannelPoller, DirectChatPoller, MeetingIngest, ObservedChatPoller, PresencePoller) to route token selection based on call context: delegated token for user-scoped Graph API paths, app token for app-scoped paths
+
 ## [0.6.34] - 2026-04-03
 
 ### Fixed
