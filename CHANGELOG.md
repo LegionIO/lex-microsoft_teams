@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.36] - 2026-04-13
+
+### Fixed
+- `TokenCache#load_from_vault` now passes `vault_path` explicitly to `vault_get`, matching the `save_to_vault` pattern (#10)
+
 ## [0.6.35] - 2026-04-09
 
 ### Changed
