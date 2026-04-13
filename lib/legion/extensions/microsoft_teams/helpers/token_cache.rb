@@ -138,7 +138,7 @@ module Legion
           def load_from_vault
             if vault_available?
               log.info("Loading delegated token from Vault (#{vault_path})")
-              data = vault_get
+              data = vault_get(vault_path)
               if data && data[:access_token]
                 @mutex.synchronize do
                   @delegated_cache = {
