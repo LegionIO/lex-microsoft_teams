@@ -9,6 +9,7 @@ module Legion
       module Runners
         module Loop
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
+          include Legion::JSON::Helper
 
           # Creates a new .loop file in the user's OneDrive via the Graph API.
           # The Fluid Framework collaborative session is initialized by Teams on first open.
@@ -47,7 +48,7 @@ module Legion
                   id:          attachment_id,
                   contentType: 'application/vnd.microsoft.card.fluidEmbedCard',
                   contentUrl:  nil,
-                  content:     Legion::JSON.generate({ componentUrl: component_url, sourceType: source_type }),
+                  content:     json_generate({ componentUrl: component_url, sourceType: source_type }),
                   teamsAppId:  'FluidEmbedCard'
                 },
                 {
