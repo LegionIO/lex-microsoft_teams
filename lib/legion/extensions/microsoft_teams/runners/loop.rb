@@ -48,7 +48,7 @@ module Legion
                   id:          attachment_id,
                   contentType: 'application/vnd.microsoft.card.fluidEmbedCard',
                   contentUrl:  nil,
-                  content:     JSON.generate({ componentUrl: component_url, sourceType: source_type }),
+                  content:     ::JSON.generate({ componentUrl: component_url, sourceType: source_type }),
                   teamsAppId:  'FluidEmbedCard'
                 },
                 {
