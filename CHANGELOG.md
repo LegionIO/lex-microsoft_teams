@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.7.0] - unreleased
+
+### Added
+- New `Runners::Loop` module with four functions for Microsoft Loop component support via `fluidEmbedCard`:
+  - `create_loop_file` — Creates a new `.loop` file in a user's OneDrive via the Graph API; returns drive item metadata including `webUrl`
+  - `loop_attachment` — Builds the `fluidEmbedCard` + placeholder attachment pair required to embed a Loop component in a Teams message
+  - `post_loop_to_chat` — Posts a Loop component inline into a Teams chat thread
+  - `post_loop_to_channel` — Posts a Loop component inline into a Teams channel thread
+- Requires `Files.ReadWrite` and `Sites.ReadWrite.All` Graph API permissions for `create_loop_file`; `Chat.ReadWrite` and `ChannelMessage.Send` are already required by existing runners
+- **Note:** Programmatic write access to Loop page *content* (Fluid Framework) is not yet available via Microsoft Graph; Loop files must be opened in Teams to initialize the collaborative session
+
 ## [0.6.36] - 2026-04-13
 
 ### Fixed

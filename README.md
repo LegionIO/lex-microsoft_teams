@@ -113,6 +113,14 @@ gem install lex-microsoft_teams
 - `action_submit` — Create a Submit action
 - `message_attachment` — Wrap a card as a message attachment
 
+### Loop Components
+- `create_loop_file` — Create a new `.loop` file in a user's OneDrive; returns drive item metadata including `webUrl`
+- `loop_attachment` — Build a `fluidEmbedCard` attachment array for embedding an existing Loop component URL in a Teams message
+- `post_loop_to_chat` — Post a Loop component inline into a Teams chat thread
+- `post_loop_to_channel` — Post a Loop component inline into a Teams channel thread
+
+> **Note:** Creating a `.loop` file provisions the OneDrive item; the Fluid Framework collaborative session is initialized by Teams on first open. Programmatic write access to Loop page *content* is not yet available via Microsoft Graph.
+
 ### Bot Framework
 - `send_activity` — Send an activity to a conversation
 - `reply_to_activity` — Reply to an existing activity
