@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
 require 'securerandom'
 require 'legion/extensions/microsoft_teams/helpers/client'
 
@@ -48,7 +47,7 @@ module Legion
                   id:          attachment_id,
                   contentType: 'application/vnd.microsoft.card.fluidEmbedCard',
                   contentUrl:  nil,
-                  content:     ::JSON.generate({ componentUrl: component_url, sourceType: source_type }),
+                  content:     Legion::JSON.generate({ componentUrl: component_url, sourceType: source_type }),
                   teamsAppId:  'FluidEmbedCard'
                 },
                 {
