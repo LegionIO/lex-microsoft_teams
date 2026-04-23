@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.44] - 2026-04-23
+
+### Fixed
+- `TokenCache#teams_auth_settings` — `settings` (from `Settings::Helper`) looks up `Legion::Settings[:extensions][:microsoft_teams]` which is empty because Teams config lives at `Legion::Settings[:microsoft_teams]`. Added fallback to `Legion::Settings[:microsoft_teams]` when `settings` returns empty, restoring tenant_id/client_id resolution for token refresh. This was the root cause of "Missing tenant_id or client_id for delegated refresh" immediately after successful OAuth login
+
 ## [0.6.43] - 2026-04-23
 
 ### Fixed

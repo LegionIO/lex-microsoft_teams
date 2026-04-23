@@ -394,6 +394,8 @@ module Legion
 
           def teams_auth_settings
             ms = settings
+            ms = Legion::Settings[:microsoft_teams] if defined?(Legion::Settings) && (ms.nil? || ms.empty?)
+            ms ||= {}
             auth = ms[:auth].is_a?(Hash) ? ms[:auth].dup : {}
             auth[:tenant_id] ||= ms[:tenant_id]
             auth[:client_id] ||= ms[:client_id]
