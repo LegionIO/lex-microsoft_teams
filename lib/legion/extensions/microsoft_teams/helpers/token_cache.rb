@@ -277,8 +277,14 @@ module Legion
           def vault_path(_suffix = nil)
             settings = teams_auth_settings
             delegated = settings[:delegated]
-            custom = delegated[:vault_path] if delegated.is_a?(Hash)
-            custom || "users/#{ENV.fetch('USER', 'default')}/microsoft_teams/delegated_token"
+            return delegated[:vault_path] if delegated.is_a?(Hash) && delegated[:vault_path]
+
+            identity = if defined?(Legion::Identity::Process) && Legion::Identity::Process.resolved?
+                         Legion::Identity::Process.canonical_name
+                       else
+                         ENV.fetch('USER', 'default').split('@').first
+                       end
+            "users/#{identity}/delegated_token"
           end
 
           def local_token_path
@@ -387,13 +393,11 @@ module Legion
           end
 
           def teams_auth_settings
-            return {} unless defined?(Legion::Settings)
-
-            ms = Legion::Settings[:microsoft_teams]
-            auth = ms && ms[:auth].is_a?(Hash) ? ms[:auth].dup : {}
-            auth[:tenant_id] ||= ms[:tenant_id] if ms
-            auth[:client_id] ||= ms[:client_id] if ms
-            auth[:client_secret] ||= ms[:client_secret] if ms
+            ms = settings
+            auth = ms[:auth].is_a?(Hash) ? ms[:auth].dup : {}
+            auth[:tenant_id] ||= ms[:tenant_id]
+            auth[:client_id] ||= ms[:client_id]
+            auth[:client_secret] ||= ms[:client_secret]
             auth[:tenant_id] ||= ENV.fetch('AZURE_TENANT_ID', nil)
             auth[:client_id] ||= ENV.fetch('AZURE_CLIENT_ID', nil)
             auth[:client_secret] ||= ENV.fetch('AZURE_CLIENT_SECRET', nil)

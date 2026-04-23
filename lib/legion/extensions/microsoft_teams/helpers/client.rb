@@ -7,8 +7,11 @@ module Legion
     module MicrosoftTeams
       module Helpers
         module Client
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
+
           def graph_connection(token: nil, api_url: 'https://graph.microsoft.com/v1.0', **_opts)
-            token ||= Legion::Settings[:microsoft_teams]&.dig(:auth, :delegated, :token)
+            token ||= settings&.dig(:auth, :delegated, :token)
             Faraday.new(url: api_url) do |conn|
               conn.request :json
               conn.response :json, content_type: /\bjson$/
@@ -18,7 +21,7 @@ module Legion
           end
 
           def bot_connection(token: nil, service_url: 'https://smba.trafficmanager.net/teams/', **_opts)
-            token ||= Legion::Settings[:microsoft_teams]&.dig(:auth, :bot, :token)
+            token ||= settings&.dig(:auth, :bot, :token)
             Faraday.new(url: service_url) do |conn|
               conn.request :json
               conn.response :json, content_type: /\bjson$/

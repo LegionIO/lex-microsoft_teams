@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.6.42] - 2026-04-23
+
+### Fixed
+- `Helpers::TokenCache#vault_path` — replaced `ENV.fetch('USER', 'default')` with `Legion::Identity::Process.canonical_name` (the resolved Kerberos/LDAP identity), matching the pattern used in `legion-llm` PR #80. Falls back to `ENV['USER'].split('@').first` (email domain stripped) if Identity is not yet resolved
+- Also removed the `microsoft_teams` namespace segment from the returned suffix — `Crypt::Helper#vault_write` wraps the path in its own `vault_path(suffix)` which already prepends the lex namespace, so including it again caused double-prefixed Vault paths (`microsoft_teams/users/.../microsoft_teams/delegated_token`).
+- Final Vault path is now: `microsoft_teams/users/{canonical_name}/delegated_token`
+- Configurable via `settings[:auth][:delegated][:vault_path]` if a custom path is needed
+
+## [0.6.41] - 2026-04-23
+
+### Fixed
+- `Helpers::Client#graph_connection` and `#bot_connection` — replaced `Legion::Settings[:microsoft_teams]` with `settings` (provided by `Legion::Settings::Helper` via `Helpers::Lex`), which correctly scopes to the lex key automatically and is the approved pattern inside a lex
+- `Helpers::TokenCache#teams_auth_settings` — same fix; replaced `Legion::Settings[:microsoft_teams]` with `settings`, removed the now-redundant `defined?(Legion::Settings)` guard and `if ms` nil guards (settings always returns a Hash)
+- The only remaining `Legion::Settings` references in `token_cache.rb` are for cross-lex lookups (`:crypt, :vault, :connected`) which are intentional and correct
+- Token write paths (`save_to_local`, `save_to_vault`) confirmed clean — write to `local_token_path` (defaulting to `~/.legionio/tokens/`) and Vault respectively, not into settings
+
 ## [0.6.40] - 2026-04-23
 
 ### Fixed
