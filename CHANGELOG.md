@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.6.45] - 2026-04-23
+
+### Added
+- `Runners::Meetings#resolve_meeting` — accepts `chat_thread_id:` (e.g., `19:meeting_...@thread.v2`) or `join_url:` (e.g., `https://teams.microsoft.com/meet/CODE`). When given a chat thread ID, fetches the chat to extract the `joinWebUrl` from `onlineMeetingInfo`, then resolves the actual meeting object via `get_meeting_by_join_url`. Bridges the gap between meeting URLs and Graph API meeting endpoints which require the real meeting ID
+
+### Fixed
+- `Runners::AiInsights#list_call_records` — removed `$top` query parameter not supported by the `communications/callRecords` Graph API endpoint (`Query option 'Top' is not allowed`)
+
 ## [0.6.44] - 2026-04-23
 
 ### Fixed

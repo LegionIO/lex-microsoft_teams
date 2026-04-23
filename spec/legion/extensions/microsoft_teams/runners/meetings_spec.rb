@@ -90,6 +90,60 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Meetings do
     end
   end
 
+  describe '#resolve_meeting' do
+    let(:chat_body) do
+      { 'id' => '19:meeting_abc@thread.v2',
+        'onlineMeetingInfo' => { 'joinWebUrl' => 'https://teams.microsoft.com/l/meetup-join/abc' } }
+    end
+
+    it 'resolves a meeting from a chat thread ID' do
+      chat_response = instance_double(Faraday::Response, body: chat_body)
+      allow(graph_conn).to receive(:get).with('chats/19:meeting_abc@thread.v2').and_return(chat_response)
+
+      meeting_response = instance_double(Faraday::Response,
+                                         body: { 'value' => [{ 'id' => 'real-meeting-id', 'subject' => 'Standup' }] })
+      allow(graph_conn).to receive(:get)
+        .with('me/onlineMeetings', { '$filter' => "joinWebUrl eq 'https://teams.microsoft.com/l/meetup-join/abc'" })
+        .and_return(meeting_response)
+
+      result = runner.resolve_meeting(chat_thread_id: '19:meeting_abc@thread.v2')
+      expect(result[:result]['id']).to eq('real-meeting-id')
+    end
+
+    it 'returns error when chat has no onlineMeetingInfo' do
+      chat_response = instance_double(Faraday::Response, body: { 'id' => '19:meeting_abc@thread.v2' })
+      allow(graph_conn).to receive(:get).with('chats/19:meeting_abc@thread.v2').and_return(chat_response)
+
+      result = runner.resolve_meeting(chat_thread_id: '19:meeting_abc@thread.v2')
+      expect(result[:error]).to eq('chat has no onlineMeetingInfo')
+    end
+
+    it 'returns error when chat not found' do
+      chat_response = instance_double(Faraday::Response,
+                                      body: { 'error' => { 'code' => 'NotFound', 'message' => 'not found' } })
+      allow(graph_conn).to receive(:get).with('chats/19:meeting_abc@thread.v2').and_return(chat_response)
+
+      result = runner.resolve_meeting(chat_thread_id: '19:meeting_abc@thread.v2')
+      expect(result[:error]).to eq('chat not found')
+    end
+
+    it 'resolves a meeting directly from a join URL' do
+      meeting_response = instance_double(Faraday::Response,
+                                         body: { 'value' => [{ 'id' => 'real-meeting-id', 'subject' => 'Standup' }] })
+      allow(graph_conn).to receive(:get)
+        .with('me/onlineMeetings', { '$filter' => "joinWebUrl eq 'https://teams.microsoft.com/meet/123'" })
+        .and_return(meeting_response)
+
+      result = runner.resolve_meeting(join_url: 'https://teams.microsoft.com/meet/123')
+      expect(result[:result]['id']).to eq('real-meeting-id')
+    end
+
+    it 'returns error when neither param provided' do
+      result = runner.resolve_meeting
+      expect(result[:error]).to eq('provide chat_thread_id or join_url')
+    end
+  end
+
   describe '#get_attendance_report' do
     it 'retrieves a specific attendance report' do
       response = instance_double(Faraday::Response,

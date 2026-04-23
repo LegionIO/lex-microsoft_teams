@@ -29,8 +29,8 @@ module Legion
             { result: response.body }
           end
 
-          def list_call_records(top: 50, **)
-            response = graph_connection(**).get('communications/callRecords', { '$top' => top })
+          def list_call_records(**)
+            response = graph_connection(**).get('communications/callRecords')
             { result: response.body }
           end
 

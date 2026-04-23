@@ -59,6 +59,26 @@ module Legion
             { result: response.body }
           end
 
+          def resolve_meeting(chat_thread_id: nil, join_url: nil, user_id: 'me', **)
+            return { error: 'provide chat_thread_id or join_url' } unless chat_thread_id || join_url
+
+            unless join_url
+              chat_response = graph_connection(**).get("chats/#{chat_thread_id}")
+              chat_body = chat_response.body
+              return { error: 'chat not found', result: chat_body } unless chat_body.is_a?(Hash) && !chat_body.key?('error')
+
+              join_url = chat_body.dig('onlineMeetingInfo', 'joinWebUrl')
+              return { error: 'chat has no onlineMeetingInfo', result: chat_body } unless join_url
+            end
+
+            meeting_response = get_meeting_by_join_url(join_url: join_url, user_id: user_id, **)
+            meeting_body = meeting_response[:result]
+            items = meeting_body.is_a?(Hash) ? meeting_body['value'] : nil
+            return { error: 'could not resolve meeting from join URL', result: meeting_body } unless items.is_a?(Array) && !items.empty?
+
+            { result: items.first }
+          end
+
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
                                                       Legion::Extensions::Helpers.const_defined?(:Lex, false)
         end
