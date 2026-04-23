@@ -12,6 +12,7 @@ module Legion
 
           def graph_connection(token: nil, api_url: 'https://graph.microsoft.com/v1.0', **_opts)
             token ||= settings&.dig(:auth, :delegated, :token)
+            token ||= TokenCache.instance.cached_delegated_token if defined?(TokenCache)
             Faraday.new(url: api_url) do |conn|
               conn.request :json
               conn.response :json, content_type: /\bjson$/
@@ -22,6 +23,7 @@ module Legion
 
           def bot_connection(token: nil, service_url: 'https://smba.trafficmanager.net/teams/', **_opts)
             token ||= settings&.dig(:auth, :bot, :token)
+            token ||= TokenCache.instance.cached_app_token if defined?(TokenCache)
             Faraday.new(url: service_url) do |conn|
               conn.request :json
               conn.response :json, content_type: /\bjson$/

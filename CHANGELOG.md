@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.6.43] - 2026-04-23
+
+### Fixed
+- `Helpers::Client#graph_connection` — added `TokenCache.instance.cached_delegated_token` fallback when no `token:` kwarg is passed and settings has no static token. Fixes "Access token is empty" errors when runners are invoked via LLM tool dispatch without an explicit token argument
+- `Helpers::Client#bot_connection` — same fix using `TokenCache.instance.cached_app_token`
+
 ## [0.6.42] - 2026-04-23
 
 ### Fixed
