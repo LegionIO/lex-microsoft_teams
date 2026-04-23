@@ -92,7 +92,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Meetings do
 
   describe '#resolve_meeting' do
     let(:chat_body) do
-      { 'id' => '19:meeting_abc@thread.v2',
+      { 'id'                => '19:meeting_abc@thread.v2',
         'onlineMeetingInfo' => { 'joinWebUrl' => 'https://teams.microsoft.com/l/meetup-join/abc' } }
     end
 
