@@ -21,7 +21,7 @@ module Legion
           # (same format as CacheIngest) with dedup by content hash.
           #
           # Requires a delegated token with Chat.Read and People.Read scopes.
-          def ingest_api(token:, top_people: 15, message_depth: 50, skip_bots: true, imprint_active: false, **) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
+          def ingest_api(token:, top_people: 15, message_depth: 50, skip_bots: true, imprint_active: false, **) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
             return error_result('lex-memory not loaded') unless memory_available?
             return error_result('no token provided') unless token && !token.empty?
 

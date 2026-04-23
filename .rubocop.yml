@@ -16,3 +16,8 @@ Legion/Extension/EveryActorRequiresTime:
 # RunnerReturnHash fires on private helper methods inside runner modules (false positives)
 Legion/Extension/RunnerReturnHash:
   Enabled: false
+  
+Metrics/CyclomaticComplexity:
+  Max: 25
+Metrics/PerceivedComplexity:
+  Max: 25

@@ -143,7 +143,7 @@ module Legion
 
           # Extract individual messages from a messageMap record.
           # These contain multiple messages in a reply chain.
-          def extract_message_map(strings, messages, seen_hashes) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+          def extract_message_map(strings, messages, seen_hashes)
             conversation_id = nil
             i = 0
 
@@ -232,7 +232,7 @@ module Legion
             )
           end
 
-          def apply_filters(messages, since:, channels:, senders:, skip_bots:) # rubocop:disable Metrics/CyclomaticComplexity
+          def apply_filters(messages, since:, channels:, senders:, skip_bots:)
             messages.select do |msg|
               next false if since && msg.compose_time && Time.parse(msg.compose_time) < since
               next false if channels&.none? { |c| msg.thread_topic&.downcase&.include?(c.downcase) }

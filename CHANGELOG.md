@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [0.6.40] - 2026-04-23
+
+### Fixed
+- `Helpers::BrowserAuth` — removed private `log` method that was shadowing the `log` accessor provided by `Legion::Extensions::Helpers::Lex`. The `include Helpers::Lex` guard was already present but the manual fallback overrode it; all `log.debug/info/warn/error` calls now correctly route through the Lex helper (structured logging, context propagation, etc.)
+
+## [0.6.39] - 2026-04-23
+
+### Added
+- `Absorbers::Chat` — absorbs a Teams chat thread into Apollo by URL (`teams.microsoft.com/l/chat/19:*@*`). Extracts the chat ID from the URL, fetches metadata, pulls messages (with inline replies, HTML stripped), and ingests participants. Content types: `teams_chat_thread`, `teams_chat_participants`
+- `Absorbers::Channel` — absorbs a Teams channel or specific thread into Apollo by URL (`teams.microsoft.com/l/channel/*`, `teams.microsoft.com/l/message/*`). Extracts `team_id` from `groupId` query param and `channel_id` from path. When a `message_id` is present (deep-link to a specific thread) only that thread is ingested; otherwise the top 50 channel messages are ingested. Replies are fetched and inlined. Content types: `teams_channel_thread`, `teams_channel_members`
+- `Actors::AbsorbChat` — Subscription actor delegating to `Absorbers::Chat#absorb`, mirrors the `AbsorbMeeting` actor pattern
+- `Actors::AbsorbChannel` — Subscription actor delegating to `Absorbers::Channel#absorb`, mirrors the `AbsorbMeeting` actor pattern
+- Both new absorbers and actors are conditionally required (gated on `Legion::Extensions::Absorbers::Base` presence) in `microsoft_teams.rb`
+
+## [0.6.38] - 2026-04-23
+
+### Fixed
+- `Helpers::Client#graph_connection` now falls back to `Legion::Settings[:microsoft_teams]&.dig(:auth, :delegated, :token)` when no `token:` is explicitly passed — fixes unauthenticated Graph API calls when runners are invoked as standalone modules via Lex tool dispatch (not via an instantiated `Client` object where `@opts` carries the token)
+- `Helpers::Client#bot_connection` applies the same fallback using `Legion::Settings[:microsoft_teams]&.dig(:auth, :bot, :token)`
+
 ## [0.7.0] - unreleased
 
 ### Added
