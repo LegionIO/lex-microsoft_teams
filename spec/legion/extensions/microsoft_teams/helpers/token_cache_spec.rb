@@ -268,8 +268,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
   describe '#teams_auth_settings' do
     context 'when auth sub-hash has full values' do
       before do
-        stub_const('Legion::Settings', {})
-        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(
+        allow(cache).to receive(:settings).and_return(
           { auth: { tenant_id: 'auth-tenant', client_id: 'auth-client', client_secret: 'auth-secret' } }
         )
       end
@@ -284,8 +283,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
 
     context 'when top-level microsoft_teams keys fill in missing auth values' do
       before do
-        stub_const('Legion::Settings', {})
-        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(
+        allow(cache).to receive(:settings).and_return(
           { tenant_id: 'top-tenant', client_id: 'top-client', client_secret: 'top-secret' }
         )
       end
@@ -300,8 +298,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
 
     context 'when ENV vars provide the credentials' do
       before do
-        stub_const('Legion::Settings', {})
-        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(nil)
+        allow(cache).to receive(:settings).and_return({})
         allow(ENV).to receive(:fetch).with('AZURE_TENANT_ID', nil).and_return('env-tenant')
         allow(ENV).to receive(:fetch).with('AZURE_CLIENT_ID', nil).and_return('env-client')
         allow(ENV).to receive(:fetch).with('AZURE_CLIENT_SECRET', nil).and_return('env-secret')
@@ -322,8 +319,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
 
     context 'when auth sub-hash values take precedence over top-level and ENV' do
       before do
-        stub_const('Legion::Settings', {})
-        allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return(
+        allow(cache).to receive(:settings).and_return(
           { auth: { tenant_id: 'auth-tenant', client_id: 'auth-client', client_secret: 'auth-secret' },
             tenant_id: 'top-tenant', client_id: 'top-client', client_secret: 'top-secret' }
         )
@@ -344,8 +340,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
   describe '#vault_path' do
     it 'returns the default path with users/ prefix' do
       allow(cache).to receive(:teams_auth_settings).and_return({ delegated: {} })
-      user = ENV.fetch('USER', 'default')
-      expect(cache.send(:vault_path)).to eq("users/#{user}/microsoft_teams/delegated_token")
+      user = ENV.fetch('USER', 'default').split('@').first
+      expect(cache.send(:vault_path)).to eq("users/#{user}/delegated_token")
     end
 
     it 'returns a custom vault_path when configured' do
@@ -357,8 +353,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::TokenCache do
 
     it 'falls back to default path when delegated settings are absent' do
       allow(cache).to receive(:teams_auth_settings).and_return({})
-      user = ENV.fetch('USER', 'default')
-      expect(cache.send(:vault_path)).to eq("users/#{user}/microsoft_teams/delegated_token")
+      user = ENV.fetch('USER', 'default').split('@').first
+      expect(cache.send(:vault_path)).to eq("users/#{user}/delegated_token")
     end
   end
 end
