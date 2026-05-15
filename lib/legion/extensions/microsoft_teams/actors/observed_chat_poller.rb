@@ -32,7 +32,7 @@ module Legion
 
             Legion::Settings.dig(:microsoft_teams, :bot, :observe, :enabled) == true
           rescue StandardError => e
-            log.debug("ObservedChatPoller#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ObservedChatPoller#enabled?')
             false
           end
 
@@ -41,10 +41,12 @@ module Legion
           end
 
           def manual
+            log.debug('ObservedChatPoller#manual starting')
             token = delegated_token
             return unless token
 
             subscriptions = subscription_registry.active_subscriptions
+            log.debug("ObservedChatPoller#manual subscriptions=#{subscriptions.length}")
             subscriptions.each do |sub|
               poll_observed_chat(
                 chat_id: sub[:chat_id], owner_id: sub[:owner_id],
@@ -52,12 +54,13 @@ module Legion
               )
             end
           rescue StandardError => e
-            log.error("ObservedChatPoller: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ObservedChatPoller#manual')
           end
 
           private
 
           def poll_observed_chat(chat_id:, owner_id:, peer_name:, token:)
+            log.debug("ObservedChatPoller#poll_observed_chat chat_id=#{chat_id} peer_name=#{peer_name}")
             conn = graph_connection(token: token)
             response = conn.get("chats/#{chat_id}/messages",
                                 { '$top' => 10, '$orderby' => 'createdDateTime desc' })
@@ -81,7 +84,7 @@ module Legion
           def publish_message(payload)
             Legion::Extensions::MicrosoftTeams::Transport::Messages::TeamsMessage.new.publish(payload)
           rescue StandardError => e
-            log.error("ObservedChatPoller publish failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ObservedChatPoller#publish_message')
           end
 
           def normalize_messages(messages)
@@ -100,7 +103,7 @@ module Legion
           def delegated_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            log.warn("ObservedChatPoller#delegated_token: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ObservedChatPoller#delegated_token')
             nil
           end
 

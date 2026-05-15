@@ -17,6 +17,7 @@ module Legion
           extend self
 
           def full_ingest(token:, top_people: 10, message_depth: 50, **)
+            log.debug("ProfileIngest#full_ingest top_people=#{top_people} message_depth=#{message_depth}")
             self_result = ingest_self(token: token)
             people_result = ingest_people(token: token, top: 25)
             people = people_result[:skipped] ? [] : (people_result[:people] || [])
@@ -42,7 +43,7 @@ module Legion
             presence = begin
               conn.get('me/presence').body
             rescue StandardError => e
-              log.debug("ProfileIngest: presence fetch failed: #{e.message}") if defined?(log)
+              handle_exception(e, level: :debug, operation: 'ProfileIngest#ingest_self presence') if defined?(handle_exception)
               {}
             end
             unless presence.empty?
@@ -57,6 +58,7 @@ module Legion
 
             { profile: profile, presence: presence }
           rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_self')
             { error: e.message }
           end
 
@@ -88,6 +90,7 @@ module Legion
 
             { people: people, count: people.length }
           rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_people')
             { error: e.message, skipped: false }
           end
 
@@ -132,6 +135,7 @@ module Legion
 
             { ingested: ingested }
           rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_conversations')
             { error: e.message, ingested: ingested || 0 }
           end
 
@@ -177,6 +181,7 @@ module Legion
 
             { teams: teams_count, meetings: meetings_count }
           rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_teams_and_meetings')
             { error: e.message }
           end
 
@@ -200,7 +205,7 @@ module Legion
               members.any? { |m| m['email']&.downcase == email.downcase }
             end
           rescue StandardError => e
-            log.debug("ProfileIngest: find_chat_for_person failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ProfileIngest#find_chat_for_person')
             nil
           end
 
@@ -212,7 +217,8 @@ module Legion
             resp = conn.get("chats/#{chat_id}/messages", params)
             (resp.body || {}).fetch('value', [])
           rescue StandardError => e
-            log.warn("ProfileIngest: fetch_new_messages failed for #{chat_id}: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ProfileIngest#fetch_new_messages',
+                             chat_id: chat_id)
             []
           end
 
@@ -233,7 +239,7 @@ module Legion
               llm_ask(message: "#{definition[:prompt]}\n\nConversation with #{peer_name}:\n#{text}")
             end
           rescue StandardError => e
-            log.debug("ProfileIngest: extract_conversation failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ProfileIngest#extract_conversation')
             nil
           end
 

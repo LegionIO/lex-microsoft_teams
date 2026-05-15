@@ -82,7 +82,7 @@ module Legion
               imprint_active:      imprint_active
             )
           rescue StandardError => e
-            log.warn("CacheIngest: failed to store trace: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'CacheIngest#store_message_trace')
             nil
           end
 
@@ -105,7 +105,7 @@ module Legion
             store = Legion::Extensions::Agentic::Memory::Trace.shared_store
             store.flush if store.respond_to?(:flush)
           rescue StandardError => e
-            log.warn("CacheIngest: flush failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'CacheIngest#flush_trace_store')
           end
 
           # Seed Hebbian coactivation links between messages in the same thread.
@@ -119,12 +119,12 @@ module Legion
               trace_ids.each_cons(2) do |id_a, id_b|
                 store.record_coactivation(id_a, id_b)
               rescue StandardError => e
-                log.debug("CacheIngest: coactivation link failed for #{id_a}/#{id_b}: #{e.message}")
-                nil
+                handle_exception(e, level: :debug, operation: 'CacheIngest#coactivate_thread_traces',
+                                 id_a: id_a, id_b: id_b)
               end
             end
           rescue StandardError => e
-            log.debug("CacheIngest: coactivation linking skipped: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'CacheIngest#coactivate_thread_traces')
           end
         end
       end

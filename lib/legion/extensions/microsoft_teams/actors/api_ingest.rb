@@ -22,7 +22,7 @@ module Legion
             base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 9.0
             [base_delay + 5.0, 14].max
           rescue StandardError => e
-            log.debug("ApiIngest#delay: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ApiIngest#delay')
             14
           end
 
@@ -34,11 +34,12 @@ module Legion
           def enabled?
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           rescue StandardError => e
-            log.warn("ApiIngest#enabled?: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#enabled?')
             false
           end
 
           def manual
+            log.debug('ApiIngest#manual starting')
             token = resolve_token
             unless token
               log.warn('ApiIngest: no delegated token, skipping')
@@ -57,7 +58,7 @@ module Legion
             log.info("ApiIngest: #{result.inspect[0, 200]}")
             result
           rescue StandardError => e
-            log.error("ApiIngest: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ApiIngest#manual')
           end
 
           private
@@ -69,7 +70,7 @@ module Legion
           def resolve_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            log.warn("ApiIngest#resolve_token: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#resolve_token')
             nil
           end
 
@@ -78,7 +79,7 @@ module Legion
 
             Legion::Settings[:microsoft_teams] || {}
           rescue StandardError => e
-            log.warn("ApiIngest#teams_settings: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#teams_settings')
             {}
           end
 
@@ -87,7 +88,7 @@ module Legion
 
             Legion::Extensions::Coldstart::Helpers::Bootstrap.new.imprint_active?
           rescue StandardError => e
-            log.debug("ApiIngest#imprint_active?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ApiIngest#imprint_active?')
             false
           end
         end

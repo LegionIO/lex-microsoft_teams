@@ -115,6 +115,7 @@ module Legion
           def store_session_to_memory(conversation_id:, session:)
             return unless defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
 
+            log.debug("SessionManager#store_session_to_memory conversation_id=#{conversation_id}")
             memory_runner.store_trace(
               type:            :episodic,
               content_payload: {
@@ -129,8 +130,10 @@ module Legion
               origin:          :direct_experience,
               confidence:      0.8
             )
+            log.info("SessionManager: stored session trace conversation_id=#{conversation_id}")
           rescue StandardError => e
-            log.error("SessionManager persist failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'SessionManager#store_session_to_memory',
+                             conversation_id: conversation_id)
           end
 
           def memory_runner
@@ -149,7 +152,10 @@ module Legion
 
             profile_traces.map { |t| { type: t[:trace_type], content: t[:content_payload].to_s[0, 200] } }
           rescue StandardError => e
-            log.debug("trace_seed_for failed: #{e.message}") if defined?(log) && log.respond_to?(:debug)
+            if defined?(handle_exception)
+              handle_exception(e, level: :debug, operation: 'SessionManager#trace_seed_for',
+                               owner_id: owner_id)
+            end
             nil
           end
 

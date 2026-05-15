@@ -191,7 +191,7 @@ module Legion
             )
             response.content
           rescue StandardError => e
-            log.error("LLM call failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#llm_respond')
             'I encountered an error processing your message. Please try again.'
           end
 
@@ -200,7 +200,7 @@ module Legion
 
             retrieve_context(message: message, owner_id: owner_id, chat_id: chat_id)
           rescue StandardError => e
-            log.debug("retrieve_trace_context failed: #{e.message}") if defined?(log)
+            handle_exception(e, level: :debug, operation: 'Bot#retrieve_trace_context') if defined?(handle_exception)
             nil
           end
 
@@ -252,7 +252,7 @@ module Legion
             )
             parse_extraction(response.content)
           rescue StandardError => e
-            log.error("Observation extraction failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#extract_from_message')
             nil
           end
 
@@ -283,7 +283,7 @@ module Legion
               confidence:      0.6
             )
           rescue StandardError => e
-            log.error("Observation store failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#store_observation')
           end
 
           def notify_owner(owner_id:, peer_name:, extraction: nil) # rubocop:disable Lint/UnusedMethodArgument
@@ -421,7 +421,7 @@ module Legion
             end
             nil
           rescue StandardError => e
-            log.error("find_chat_with_person failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#find_chat_with_person', name: name)
             nil
           end
 

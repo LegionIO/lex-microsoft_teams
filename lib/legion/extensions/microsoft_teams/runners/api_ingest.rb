@@ -22,6 +22,7 @@ module Legion
           #
           # Requires a delegated token with Chat.Read and People.Read scopes.
           def ingest_api(token:, top_people: 15, message_depth: 50, skip_bots: true, imprint_active: false, **) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+            log.debug("ApiIngest#ingest_api top_people=#{top_people} message_depth=#{message_depth}")
             return error_result('lex-memory not loaded') unless memory_available?
             return error_result('no token provided') unless token && !token.empty?
 
@@ -98,8 +99,7 @@ module Legion
                         people_found: people.length, chats_found: chats.length,
                         apollo: apollo_results } }
           rescue StandardError => e
-            log_msg = "ApiIngest failed: #{e.class} — #{e.message}"
-            log.error(log_msg)
+            handle_exception(e, level: :error, operation: 'ApiIngest#ingest_api')
             { result: { stored: stored || 0, skipped: skipped || 0, error: e.message } }
           end
 
@@ -111,6 +111,7 @@ module Legion
           private
 
           def fetch_top_people(token:, top:)
+            log.debug("ApiIngest#fetch_top_people top=#{top}")
             return [] if permission_denied?('/me/people')
 
             conn = graph_connection(token: token)
@@ -125,7 +126,7 @@ module Legion
             people = (resp.body || {}).fetch('value', [])
             people.sort_by { |p| -(p.dig('scoredEmailAddresses', 0, 'relevanceScore') || 0) }
           rescue StandardError => e
-            log.warn("ApiIngest: fetch_top_people failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_top_people')
             []
           end
 
@@ -156,7 +157,7 @@ module Legion
             log.info("ApiIngest: fetched #{all_chats.size} chats (#{pages} pages), #{filtered.size} eligible (1:1/group/meeting)")
             filtered
           rescue StandardError => e
-            log.warn("ApiIngest: fetch_chats failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_one_on_one_chats')
             []
           end
 
@@ -174,7 +175,7 @@ module Legion
               end
             end
           rescue StandardError => e
-            log.debug("ApiIngest: match_chat_to_person failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ApiIngest#match_chat_to_person')
             nil
           end
 
@@ -198,7 +199,8 @@ module Legion
             log.debug("ApiIngest: fetch_messages chat=#{chat_id} count=#{(resp.body || {}).fetch('value', []).size}")
             (resp.body || {}).fetch('value', [])
           rescue StandardError => e
-            log.warn("ApiIngest: fetch_messages failed for #{chat_id}: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_chat_messages',
+                             chat_id: chat_id)
             []
           end
 
@@ -242,7 +244,7 @@ module Legion
               imprint_active:      imprint_active
             )
           rescue StandardError => e
-            log.warn("ApiIngest: store trace failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#store_graph_message')
             nil
           end
 
@@ -267,7 +269,7 @@ module Legion
             end
             hashes
           rescue StandardError => e
-            log.debug("ApiIngest: load_existing_hashes failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ApiIngest#load_existing_hashes')
             Set.new
           end
 
@@ -283,7 +285,7 @@ module Legion
             store = Legion::Extensions::Agentic::Memory::Trace.shared_store
             store.flush if store.respond_to?(:flush)
           rescue StandardError => e
-            log.warn("ApiIngest: flush failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#flush_trace_store')
           end
 
           def coactivate_thread_traces(thread_groups)
@@ -296,12 +298,12 @@ module Legion
               trace_ids.each_cons(2) do |id_a, id_b|
                 store.record_coactivation(id_a, id_b)
               rescue StandardError => e
-                log.debug("ApiIngest: coactivation link failed for #{id_a}/#{id_b}: #{e.message}")
-                nil
+                handle_exception(e, level: :debug, operation: 'ApiIngest#coactivate_thread_traces',
+                                 id_a: id_a, id_b: id_b)
               end
             end
           rescue StandardError => e
-            log.debug("ApiIngest: coactivation skipped: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ApiIngest#coactivate_thread_traces')
           end
 
           def publish_to_apollo(person_texts)
@@ -332,7 +334,7 @@ module Legion
 
             { ingested: ingested, entities_found: entities_found }
           rescue StandardError => e
-            log.warn("ApiIngest: publish_to_apollo failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ApiIngest#publish_to_apollo')
             { skipped: true, reason: :error, error: e.message }
           end
 
@@ -358,7 +360,8 @@ module Legion
 
             { success: true, count: result[:entities].length }
           rescue StandardError => e
-            log.debug("ApiIngest: entity extraction failed for #{person_name}: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ApiIngest#extract_and_ingest_entities',
+                             person_name: person_name)
             { success: false, count: 0 }
           end
 

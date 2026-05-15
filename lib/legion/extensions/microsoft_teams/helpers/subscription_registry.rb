@@ -88,12 +88,13 @@ module Legion
             parsed = parse_stored(stored[:content_payload])
             @mutex.synchronize { @subscriptions = parsed } if parsed.is_a?(Hash)
           rescue StandardError => e
-            log.error("SubscriptionRegistry load failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'SubscriptionRegistry#load')
           end
 
           def persist
             return unless memory_available?
 
+            log.debug('SubscriptionRegistry#persist')
             memory_runner.store_trace(
               type:            :semantic,
               content_payload: serialize_subscriptions,
@@ -101,8 +102,9 @@ module Legion
               origin:          :system,
               confidence:      1.0
             )
+            log.info("SubscriptionRegistry: persisted #{@subscriptions.size} subscription(s)")
           rescue StandardError => e
-            log.error("SubscriptionRegistry persist failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'SubscriptionRegistry#persist')
           end
 
           private
@@ -124,7 +126,7 @@ module Legion
               v
             end
           rescue ::JSON::ParserError => e
-            log.warn("SubscriptionRegistry: corrupted subscription data, resetting: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'SubscriptionRegistry#parse_stored')
             {}
           end
 

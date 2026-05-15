@@ -17,7 +17,7 @@ module Legion
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
             rescue StandardError => e
-              log.debug("IncrementalSync#time: #{e.message}")
+              handle_exception(e, level: :debug, operation: 'IncrementalSync#time')
               {}
             end
             settings.dig(:ingest, :incremental_interval) || 120
@@ -27,17 +27,19 @@ module Legion
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
-            log.debug("IncrementalSync#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'IncrementalSync#enabled?')
             false
           end
 
           def manual
+            log.debug('IncrementalSync#manual starting')
             token = resolve_token
             return unless token
 
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError => _e
+            rescue StandardError => e
+              handle_exception(e, level: :debug, operation: 'IncrementalSync#manual settings')
               {}
             end
             ingest = settings[:ingest] || {}
@@ -47,7 +49,7 @@ module Legion
               message_depth: ingest.fetch(:message_depth, 50)
             )
           rescue StandardError => e
-            log.error("IncrementalSync: #{e.message}")
+            handle_exception(e, level: :error, operation: 'IncrementalSync#manual')
           end
 
           private
@@ -59,7 +61,7 @@ module Legion
           def resolve_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            log.warn("IncrementalSync#resolve_token: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'IncrementalSync#resolve_token')
             nil
           end
         end

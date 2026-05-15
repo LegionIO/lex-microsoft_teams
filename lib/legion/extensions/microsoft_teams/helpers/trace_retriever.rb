@@ -9,6 +9,7 @@ module Legion
           MAX_TRACES = 20
 
           def retrieve_context(message:, owner_id:, chat_id: nil, channel_id: nil) # rubocop:disable Lint/UnusedMethodArgument
+            log.debug("TraceRetriever#retrieve_context owner_id=#{owner_id} chat_id=#{chat_id}") if defined?(log)
             return nil unless memory_trace_available?
 
             traces = []
@@ -129,7 +130,11 @@ module Legion
           def log_trace_error(method, error)
             return unless defined?(log)
 
-            log.debug("TraceRetriever##{method} failed: #{error.message}")
+            if defined?(handle_exception)
+              handle_exception(error, level: :debug, operation: "TraceRetriever##{method}")
+            else
+              log.debug("TraceRetriever##{method} failed: #{error.message}")
+            end
           end
         end
       end

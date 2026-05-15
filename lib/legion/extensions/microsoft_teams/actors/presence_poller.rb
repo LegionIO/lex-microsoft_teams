@@ -25,11 +25,12 @@ module Legion
           def enabled?
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
-            log.debug("PresencePoller#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'PresencePoller#enabled?')
             false
           end
 
           def manual
+            log.debug('PresencePoller#manual starting')
             token = delegated_token
             unless token
               log.debug('No token available, skipping presence poll')
@@ -52,7 +53,7 @@ module Legion
               @last_presence = current
             end
           rescue StandardError => e
-            log.error("PresencePoller: #{e.message}")
+            handle_exception(e, level: :error, operation: 'PresencePoller#manual')
           end
 
           private
@@ -60,7 +61,7 @@ module Legion
           def delegated_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            log.warn("PresencePoller#delegated_token: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'PresencePoller#delegated_token')
             nil
           end
         end

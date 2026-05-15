@@ -84,6 +84,9 @@ unless defined?(Legion::Extensions::Absorbers)
         end
 
         class Base
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
+
           attr_accessor :job_id, :runners
 
           class << self

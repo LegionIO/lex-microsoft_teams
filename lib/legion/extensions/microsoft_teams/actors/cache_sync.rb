@@ -33,6 +33,7 @@ module Legion
           end
 
           def manual
+            log.debug('CacheSync#manual starting')
             result = runner_class.send(runner_function, since: @last_sync_time, skip_bots: true)
             if result.is_a?(Hash) && result[:result]
               latest = result[:result][:latest_time]
@@ -41,7 +42,7 @@ module Legion
               log.info("CacheSync: ingested #{stored} new Teams messages") if stored.positive?
             end
           rescue StandardError => e
-            log.error("CacheSync: #{e.message}")
+            handle_exception(e, level: :error, operation: 'CacheSync#manual')
           end
         end
       end

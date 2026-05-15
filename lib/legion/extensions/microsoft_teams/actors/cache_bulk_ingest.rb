@@ -24,10 +24,10 @@ module Legion
           def manual
             log.info('CacheBulkIngest firing')
             result = runner_class.ingest_cache(**args)
-            log.info("Complete: #{result.inspect[0, 200]}")
+            log.info("CacheBulkIngest complete: #{result.inspect[0, 200]}")
             result
           rescue StandardError => e
-            log.error("CacheBulkIngest error: #{e.message}")
+            handle_exception(e, level: :error, operation: 'CacheBulkIngest#manual')
           end
 
           def args
@@ -41,7 +41,7 @@ module Legion
 
             Legion::Extensions::Coldstart::Helpers::Bootstrap.new.imprint_active?
           rescue StandardError => e
-            log.debug("CacheBulkIngest#imprint_active?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'CacheBulkIngest#imprint_active?')
             false
           end
         end

@@ -45,7 +45,7 @@ module Legion
           def entra_delegated_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            log.debug("entra_delegated_token: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'Client#entra_delegated_token')
             nil
           end
         end

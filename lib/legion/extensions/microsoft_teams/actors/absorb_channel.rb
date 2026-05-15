@@ -14,11 +14,12 @@ module Legion
             defined?(Legion::Extensions::Absorbers::Base) &&
               defined?(Legion::Extensions::MicrosoftTeams::Absorbers::Channel)
           rescue StandardError => e
-            log.debug("AbsorbChannel#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'AbsorbChannel#enabled?')
             false
           end
 
           def work(payload)
+            log.debug("AbsorbChannel#work payload=#{payload.inspect[0, 100]}")
             parsed   = parse_payload(payload)
             absorber = Absorbers::Channel.new
             result   = absorber.absorb(
@@ -30,7 +31,8 @@ module Legion
               if result[:success]
                 ack!
               else
-                log.error("AbsorbChannel actor absorb failed: #{result.inspect}")
+                handle_exception(RuntimeError.new(result.inspect), level:     :error,
+                                                                   operation: 'AbsorbChannel#work')
                 reject!(requeue: false)
               end
             else
@@ -38,19 +40,20 @@ module Legion
             end
             result
           rescue StandardError => e
-            log.error("AbsorbChannel actor error: #{e.message}")
+            handle_exception(e, level: :error, operation: 'AbsorbChannel#work')
             reject!(requeue: false)
           end
 
           private
 
           def parse_payload(payload)
+            log.debug('AbsorbChannel#parse_payload')
             data = payload.is_a?(String) ? json_load(payload) : payload
             return {} unless data.is_a?(Hash)
 
             data.transform_keys(&:to_sym)
           rescue StandardError => e
-            log.debug("AbsorbChannel#parse_payload: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'AbsorbChannel#parse_payload')
             {}
           end
         end
