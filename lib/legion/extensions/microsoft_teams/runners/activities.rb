@@ -9,16 +9,10 @@ module Legion
         module Activities
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
-          def list_activity_feed(user_id: 'me', top: 50, **)
-            params = { '$top' => top }
-            response = graph_connection(**).get("#{user_path(user_id)}/teamwork/installedApps", params)
-            { result: response.body }
-          end
-
-          def send_activity_notification(user_id:, topic:, activity_type:, preview_text: nil, **)
+          def send_activity_notification(topic:, activity_type:, user_id: 'me', preview_text: nil, **)
             payload = { topic: topic, activityType: activity_type }
             payload[:previewText] = preview_text if preview_text
-            response = graph_connection(**).post("users/#{user_id}/teamwork/sendActivityNotification", payload)
+            response = graph_connection(**).post("#{user_path(user_id)}/teamwork/sendActivityNotification", payload)
             { result: response.body }
           end
 
