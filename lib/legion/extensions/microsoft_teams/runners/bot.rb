@@ -180,12 +180,14 @@ module Legion
             instructions = session[:system_prompt]
             instructions = "#{instructions}\n\n#{trace_context}" if trace_context && !trace_context.empty?
 
-            response = llm_chat(
-              text,
-              instructions: instructions,
-              model:        config[:model],
-              intent:       config[:intent],
-              caller:       { id: session[:owner_id], extension: 'lex-microsoft_teams', mode: :bot_response }
+            response = Legion::LLM.chat( # rubocop:disable Legion/HelperMigration/DirectLlm
+              message: [
+                { role: 'system', content: instructions },
+                { role: 'user', content: text }
+              ],
+              model:   config[:model],
+              intent:  config[:intent],
+              caller:  { id: session[:owner_id], extension: 'lex-microsoft_teams', mode: :bot_response }
             )
             response.content
           rescue StandardError => e
@@ -241,7 +243,13 @@ module Legion
             prompt = resolve_prompt(mode: :observe, conversation_id: nil)
             context = "#{from[:name] || peer_name} said: #{text}"
 
-            response = llm_chat(context, instructions: prompt, caller: { id: owner_id, extension: 'lex-microsoft_teams', mode: :observe })
+            response = Legion::LLM.chat( # rubocop:disable Legion/HelperMigration/DirectLlm
+              message: [
+                { role: 'system', content: prompt },
+                { role: 'user', content: context }
+              ],
+              caller:  { id: owner_id, extension: 'lex-microsoft_teams', mode: :observe }
+            )
             parse_extraction(response.content)
           rescue StandardError => e
             log.error("Observation extraction failed: #{e.message}")

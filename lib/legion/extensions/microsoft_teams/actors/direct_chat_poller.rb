@@ -34,12 +34,8 @@ module Legion
             false
           end
 
-          def token_cache
-            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
-          end
-
           def manual
-            token = token_cache.cached_delegated_token
+            token = delegated_token
             unless token
               log.debug('No token available, skipping poll')
               return
@@ -99,6 +95,13 @@ module Legion
             return nil unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :bot, :bot_id)
+          end
+
+          def delegated_token
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            log.warn("DirectChatPoller#delegated_token: #{e.message}")
+            nil
           end
 
           def settings_interval(key, default)

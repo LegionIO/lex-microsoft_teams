@@ -36,21 +36,15 @@ module Legion
           end
 
           def enabled?
-            return false unless defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-
             channel_setting(:enabled, false) == true
           rescue StandardError => e
             log.debug("ChannelPoller#enabled?: #{e.message}")
             false
           end
 
-          def token_cache
-            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
-          end
-
           def manual
             log.info('ChannelPoller polling team channels')
-            token = token_cache.cached_delegated_token
+            token = delegated_token
             unless token
               log.debug('No token available, skipping poll')
               return
@@ -153,6 +147,13 @@ module Legion
 
           def max_channels_per_team
             channel_setting(:max_channels_per_team, DEFAULT_MAX_CHANNELS)
+          end
+
+          def delegated_token
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            log.warn("ChannelPoller#delegated_token: #{e.message}")
+            nil
           end
 
           def channel_setting(key, default)

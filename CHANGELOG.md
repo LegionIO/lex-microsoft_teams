@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Bot response and observation extraction now pass explicit system and user messages to native `Legion::LLM.chat` dispatch instead of routing through the legacy nil-input `llm_chat` helper path.
 
 ## [0.6.45] - 2026-04-23
 

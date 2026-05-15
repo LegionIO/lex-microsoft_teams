@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'legion/extensions/identity/entra/helpers/token_manager'
 require 'legion/extensions/microsoft_teams/version'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/runners/auth'
@@ -21,6 +22,11 @@ require 'legion/extensions/microsoft_teams/runners/people'
 require 'legion/extensions/microsoft_teams/runners/profile_ingest'
 require 'legion/extensions/microsoft_teams/runners/ownership'
 require 'legion/extensions/microsoft_teams/runners/api_ingest'
+require 'legion/extensions/microsoft_teams/runners/activities'
+require 'legion/extensions/microsoft_teams/runners/meeting_artifacts'
+require 'legion/extensions/microsoft_teams/runners/call_events'
+require 'legion/extensions/microsoft_teams/runners/app_installations'
+require 'legion/extensions/microsoft_teams/runners/files'
 
 # Helpers (bot)
 require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
@@ -28,9 +34,6 @@ require 'legion/extensions/microsoft_teams/helpers/prompt_resolver'
 require 'legion/extensions/microsoft_teams/helpers/trace_retriever'
 require 'legion/extensions/microsoft_teams/helpers/session_manager'
 require 'legion/extensions/microsoft_teams/helpers/subscription_registry'
-require 'legion/extensions/microsoft_teams/helpers/token_cache'
-require 'legion/extensions/microsoft_teams/helpers/callback_server'
-require 'legion/extensions/microsoft_teams/helpers/browser_auth'
 require 'legion/extensions/microsoft_teams/helpers/permission_guard'
 require 'legion/extensions/microsoft_teams/helpers/transform_definitions'
 require 'legion/extensions/microsoft_teams/helpers/graph_client'

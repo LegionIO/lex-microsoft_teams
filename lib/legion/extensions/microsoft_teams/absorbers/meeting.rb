@@ -47,14 +47,10 @@ module Legion
           end
 
           def graph_token
-            return @graph_token if defined?(@graph_token)
-
-            @graph_token = begin
-              Helpers::TokenCache.instance.cached_graph_token if defined?(Helpers::TokenCache)
-            rescue StandardError => e
-              log.warn("graph_token unavailable: #{e.message}")
-              nil
-            end
+            @graph_token ||= Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            log.warn("graph_token unavailable: #{e.message}")
+            nil
           end
 
           def resolve_meeting(url)

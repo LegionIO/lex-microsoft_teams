@@ -9,8 +9,8 @@ module Legion
 
           DEFAULT_INGEST_INTERVAL = 300
 
-          def runner_class    = Legion::Extensions::MicrosoftTeams::Helpers::TokenCache
-          def runner_function = 'cached_delegated_token'
+          def runner_class    = self.class
+          def runner_function = 'manual'
           def run_now?        = false
           def use_runner?     = false
           def check_subtask?  = false
@@ -32,7 +32,7 @@ module Legion
           end
 
           def enabled?
-            defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
             log.debug("MeetingIngest#enabled?: #{e.message}")
             false
@@ -46,13 +46,9 @@ module Legion
             @memory_runner ||= Object.new.extend(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           end
 
-          def token_cache
-            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
-          end
-
           def manual
             log.info('MeetingIngest polling for meetings')
-            token = token_cache.cached_delegated_token
+            token = Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
             return if token.nil?
 
             conn = graph_connection(token: token)

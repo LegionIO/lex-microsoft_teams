@@ -36,16 +36,12 @@ module Legion
             false
           end
 
-          def token_cache
-            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
-          end
-
           def subscription_registry
             @subscription_registry ||= Legion::Extensions::MicrosoftTeams::Helpers::SubscriptionRegistry.new
           end
 
           def manual
-            token = token_cache.cached_app_token
+            token = delegated_token
             return unless token
 
             subscriptions = subscription_registry.active_subscriptions
@@ -99,6 +95,13 @@ module Legion
                 content_type:    m.dig('body', 'contentType') || 'text'
               }
             end
+          end
+
+          def delegated_token
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            log.warn("ObservedChatPoller#delegated_token: #{e.message}")
+            nil
           end
 
           def settings_interval(key, default)

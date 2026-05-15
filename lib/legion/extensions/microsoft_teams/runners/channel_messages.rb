@@ -43,6 +43,14 @@ module Legion
             { result: response.body }
           end
 
+          def edit_channel_message(team_id:, channel_id:, message_id:, content:, content_type: 'text', **)
+            payload = { body: { contentType: content_type, content: content } }
+            response = graph_connection(**).patch(
+              "teams/#{team_id}/channels/#{channel_id}/messages/#{message_id}", payload
+            )
+            { result: response.body }
+          end
+
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
                                                       Legion::Extensions::Helpers.const_defined?(:Lex, false)
         end

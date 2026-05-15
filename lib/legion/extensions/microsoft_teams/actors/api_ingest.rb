@@ -18,13 +18,12 @@ module Legion
           def run_now? = true
 
           def delay
-            if defined?(Legion::Extensions::MicrosoftTeams::Actor::AuthValidator)
-              auth_validator = Legion::Extensions::MicrosoftTeams::Actor::AuthValidator.allocate
-              base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 90.0
-              [base_delay + 5.0, 30].max
-            else
-              30
-            end
+            auth_validator = Legion::Extensions::Identity::Entra::Delegated::Actor::AuthValidator.allocate
+            base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 9.0
+            [base_delay + 5.0, 14].max
+          rescue StandardError => e
+            log.debug("ApiIngest#delay: #{e.message}")
+            14
           end
 
           def time
@@ -68,9 +67,7 @@ module Legion
           end
 
           def resolve_token
-            if defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-              Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance.cached_delegated_token
-            end
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
             log.warn("ApiIngest#resolve_token: #{e.message}")
             nil

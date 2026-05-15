@@ -57,9 +57,7 @@ module Legion
           end
 
           def resolve_token
-            if defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-              Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance.cached_delegated_token
-            end
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
             log.warn("IncrementalSync#resolve_token: #{e.message}")
             nil

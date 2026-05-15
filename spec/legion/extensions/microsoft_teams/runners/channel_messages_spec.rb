@@ -42,4 +42,33 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ChannelMessages do
       expect(result[:result]['id']).to eq('cm3')
     end
   end
+
+  describe '#edit_channel_message' do
+    it 'patches an existing channel message' do
+      response = instance_double(Faraday::Response, body: { 'id' => 'cm1' })
+      allow(graph_conn).to receive(:patch).with(
+        'teams/t1/channels/ch1/messages/cm1',
+        { body: { contentType: 'text', content: 'Updated content' } }
+      ).and_return(response)
+
+      result = runner.edit_channel_message(
+        team_id: 't1', channel_id: 'ch1', message_id: 'cm1', content: 'Updated content'
+      )
+      expect(result[:result]['id']).to eq('cm1')
+    end
+
+    it 'supports html content_type' do
+      response = instance_double(Faraday::Response, body: { 'id' => 'cm1' })
+      allow(graph_conn).to receive(:patch).with(
+        'teams/t1/channels/ch1/messages/cm1',
+        { body: { contentType: 'html', content: '<b>Bold</b>' } }
+      ).and_return(response)
+
+      result = runner.edit_channel_message(
+        team_id: 't1', channel_id: 'ch1', message_id: 'cm1',
+        content: '<b>Bold</b>', content_type: 'html'
+      )
+      expect(result[:result]['id']).to eq('cm1')
+    end
+  end
 end
