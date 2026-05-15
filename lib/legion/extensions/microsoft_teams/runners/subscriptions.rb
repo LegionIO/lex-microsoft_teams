@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['subscription', 'webhook', 'change notification']
+            %w[subscription subscriptions webhook webhooks subscribe watch]
           end
 
           definition :list_subscriptions,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_subscriptions',
                      mcp_tier:      :standard,
                      idempotent:    true,
-                     trigger_words: ['list subscriptions', 'active subscriptions', 'webhooks']
+                     trigger_words: %w[subscriptions webhooks]
 
           def list_subscriptions(**)
             response = graph_connection(**).get('subscriptions')
@@ -34,7 +34,7 @@ module Legion
                      idempotent:    true,
                      inputs:        { properties: { subscription_id: { type: 'string' } },
                                       required:   ['subscription_id'] },
-                     trigger_words: ['get subscription', 'subscription details', 'webhook details']
+                     trigger_words: %w[subscription webhook]
 
           def get_subscription(subscription_id:, **)
             response = graph_connection(**).get("subscriptions/#{subscription_id}")
@@ -56,7 +56,7 @@ module Legion
                                                     expiration:       { type:        'string',
                                                                         description: 'ISO 8601 expiration datetime' } },
                                       required:   %w[resource change_type notification_url expiration] },
-                     trigger_words: ['create subscription', 'new webhook', 'subscribe to', 'create webhook']
+                     trigger_words: %w[subscribe webhook create]
 
           def create_subscription(resource:, change_type:, notification_url:, expiration:,
                                   client_state: nil, include_resource_data: false, **)
@@ -82,7 +82,7 @@ module Legion
                                                     expiration:      { type:        'string',
                                                                        description: 'New ISO 8601 expiration datetime' } },
                                       required:   %w[subscription_id expiration] },
-                     trigger_words: ['renew subscription', 'extend webhook', 'renew webhook']
+                     trigger_words: %w[renew extend]
 
           def renew_subscription(subscription_id:, expiration:, **)
             payload = { expirationDateTime: expiration }
@@ -98,7 +98,7 @@ module Legion
                      idempotent:    false,
                      inputs:        { properties: { subscription_id: { type: 'string' } },
                                       required:   ['subscription_id'] },
-                     trigger_words: ['delete subscription', 'remove webhook', 'delete webhook']
+                     trigger_words: %w[unsubscribe delete]
 
           def delete_subscription(subscription_id:, **)
             response = graph_connection(**).delete("subscriptions/#{subscription_id}")
@@ -115,7 +115,7 @@ module Legion
                                                     notification_url: { type: 'string' },
                                                     expiration:       { type: 'string' } },
                                       required:   %w[chat_id notification_url expiration] },
-                     trigger_words: ['subscribe chat', 'watch chat messages', 'chat webhook']
+                     trigger_words: %w[subscribe watch chat]
 
           def subscribe_to_chat_messages(chat_id:, notification_url:, expiration:, client_state: nil, **)
             create_subscription(
@@ -139,7 +139,7 @@ module Legion
                                                     notification_url: { type: 'string' },
                                                     expiration:       { type: 'string' } },
                                       required:   %w[team_id channel_id notification_url expiration] },
-                     trigger_words: ['subscribe channel', 'watch channel messages', 'channel webhook']
+                     trigger_words: %w[subscribe watch channel]
 
           def subscribe_to_channel_messages(team_id:, channel_id:, notification_url:, expiration:,
                                             client_state: nil, **)

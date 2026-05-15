@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['call', 'calls', 'call session', 'pstn']
+            %w[call calls session sessions segment pstn]
           end
 
           definition :list_call_sessions,
@@ -20,7 +20,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { call_id: { type: 'string' } }, required: ['call_id'] },
-                     trigger_words: ['call sessions', 'list sessions', 'call record sessions']
+                     trigger_words: %w[sessions calls records]
 
           def list_call_sessions(call_id:, **)
             response = graph_connection(**).get("communications/callRecords/#{call_id}/sessions")
@@ -36,7 +36,7 @@ module Legion
                      inputs:        { properties: { call_id:    { type: 'string' },
                                                     session_id: { type: 'string' } },
                                       required:   %w[call_id session_id] },
-                     trigger_words: ['get call session', 'session details']
+                     trigger_words: %w[session call record]
 
           def get_call_session(call_id:, session_id:, **)
             response = graph_connection(**).get(
@@ -54,7 +54,7 @@ module Legion
                      inputs:        { properties: { call_id:    { type: 'string' },
                                                     session_id: { type: 'string' } },
                                       required:   %w[call_id session_id] },
-                     trigger_words: ['session segments', 'call segments', 'pstn segments']
+                     trigger_words: %w[segments pstn]
 
           def list_session_segments(call_id:, session_id:, **)
             response = graph_connection(**).get(

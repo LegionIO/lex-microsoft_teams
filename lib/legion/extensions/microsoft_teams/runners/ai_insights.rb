@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['ai insight', 'insight', 'action item', 'meeting summary']
+            %w[insight insights summary callrecord recorded]
           end
 
           definition :list_meeting_ai_insights,
@@ -20,7 +20,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['ai insights', 'meeting insights', 'action items', 'meeting summary']
+                     trigger_words: %w[insights summary ai]
 
           def list_meeting_ai_insights(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/aiInsights")
@@ -36,7 +36,7 @@ module Legion
                      inputs:        { properties: { meeting_id: { type: 'string' },
                                                     insight_id: { type: 'string' } },
                                       required:   %w[meeting_id insight_id] },
-                     trigger_words: ['get insight', 'ai insight details']
+                     trigger_words: %w[insight details]
 
           def get_meeting_ai_insight(meeting_id:, insight_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/aiInsights/#{insight_id}")
@@ -50,7 +50,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['list recordings', 'meeting recordings', 'recorded meetings']
+                     trigger_words: %w[recordings recorded]
 
           def list_meeting_recordings(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/recordings")
@@ -66,7 +66,7 @@ module Legion
                      inputs:        { properties: { meeting_id:   { type: 'string' },
                                                     recording_id: { type: 'string' } },
                                       required:   %w[meeting_id recording_id] },
-                     trigger_words: ['get recording', 'download recording', 'recording details']
+                     trigger_words: %w[recording download]
 
           def get_meeting_recording(meeting_id:, recording_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/recordings/#{recording_id}")
@@ -79,7 +79,7 @@ module Legion
                      mcp_category:  'teams_meetings',
                      mcp_tier:      :standard,
                      idempotent:    true,
-                     trigger_words: ['call records', 'list calls', 'call history']
+                     trigger_words: %w[records calls history]
 
           def list_call_records(**)
             response = graph_connection(**).get('communications/callRecords')
@@ -93,7 +93,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { call_id: { type: 'string' } }, required: ['call_id'] },
-                     trigger_words: ['get call record', 'call record details']
+                     trigger_words: %w[callrecord record]
 
           def get_call_record(call_id:, **)
             response = graph_connection(**).get("communications/callRecords/#{call_id}")

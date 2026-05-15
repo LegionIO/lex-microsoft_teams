@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['channel', 'channels', 'team channel']
+            %w[channel channels post posts feed]
           end
 
           definition :list_channels,
@@ -20,7 +20,7 @@ module Legion
                      mcp_tier:      :low,
                      idempotent:    true,
                      inputs:        { properties: { team_id: { type: 'string' } }, required: ['team_id'] },
-                     trigger_words: ['list channels', 'channels in team']
+                     trigger_words: %w[channels list]
 
           def list_channels(team_id:, **)
             response = graph_connection(**).get("teams/#{team_id}/channels")
@@ -36,7 +36,7 @@ module Legion
                      inputs:        { properties: { team_id:    { type: 'string' },
                                                     channel_id: { type: 'string' } },
                                       required:   %w[team_id channel_id] },
-                     trigger_words: ['get channel', 'channel info']
+                     trigger_words: %w[channel details]
 
           def get_channel(team_id:, channel_id:, **)
             response = graph_connection(**).get("teams/#{team_id}/channels/#{channel_id}")
@@ -52,7 +52,7 @@ module Legion
                      inputs:        { properties: { team_id:      { type: 'string' },
                                                     display_name: { type: 'string' } },
                                       required:   %w[team_id display_name] },
-                     trigger_words: ['create channel', 'new channel', 'add channel']
+                     trigger_words: %w[create channel]
 
           def create_channel(team_id:, display_name:, description: nil, membership_type: 'standard', **)
             payload = { displayName: display_name, membershipType: membership_type }
@@ -70,7 +70,7 @@ module Legion
                      inputs:        { properties: { team_id:    { type: 'string' },
                                                     channel_id: { type: 'string' } },
                                       required:   %w[team_id channel_id] },
-                     trigger_words: ['update channel', 'rename channel']
+                     trigger_words: %w[update rename]
 
           def update_channel(team_id:, channel_id:, display_name: nil, description: nil, **)
             payload = {}
@@ -89,7 +89,7 @@ module Legion
                      inputs:        { properties: { team_id:    { type: 'string' },
                                                     channel_id: { type: 'string' } },
                                       required:   %w[team_id channel_id] },
-                     trigger_words: ['delete channel', 'remove channel']
+                     trigger_words: %w[delete remove]
 
           def delete_channel(team_id:, channel_id:, **)
             response = graph_connection(**).delete("teams/#{team_id}/channels/#{channel_id}")
@@ -105,7 +105,7 @@ module Legion
                      inputs:        { properties: { team_id:    { type: 'string' },
                                                     channel_id: { type: 'string' } },
                                       required:   %w[team_id channel_id] },
-                     trigger_words: ['channel members']
+                     trigger_words: %w[members roster]
 
           def list_channel_members(team_id:, channel_id:, **)
             response = graph_connection(**).get("teams/#{team_id}/channels/#{channel_id}/members")

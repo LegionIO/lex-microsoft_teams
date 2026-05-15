@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['activity', 'notification', 'activity feed']
+            %w[notification notifications activity alert alerts]
           end
 
           definition :send_activity_notification,
@@ -24,7 +24,7 @@ module Legion
                                                     activity_type: { type:        'string',
                                                                      description: 'Activity type registered in app manifest' } },
                                       required:   %w[topic activity_type] },
-                     trigger_words: ['send notification', 'activity notification', 'notify user']
+                     trigger_words: %w[notify notification activity]
 
           def send_activity_notification(topic:, activity_type:, user_id: 'me', preview_text: nil, **)
             payload = { topic: topic, activityType: activity_type }

@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['message', 'messages', 'chat message', 'read messages']
+            %w[message messages reply replies thread send]
           end
 
           definition :list_chat_messages,
@@ -22,8 +22,7 @@ module Legion
                      inputs:        { properties: { chat_id: { type:        'string',
                                                                description: 'Teams chat ID' } },
                                       required:   ['chat_id'] },
-                     trigger_words: ['read messages', 'chat history', 'messages in chat',
-                                     'list messages', 'conversation history']
+                     trigger_words: %w[messages history read]
 
           def list_chat_messages(chat_id:, top: 50, **)
             params = { '$top' => top }
@@ -40,7 +39,7 @@ module Legion
                      inputs:        { properties: { chat_id:    { type: 'string' },
                                                     message_id: { type: 'string' } },
                                       required:   %w[chat_id message_id] },
-                     trigger_words: ['get message', 'read message']
+                     trigger_words: %w[message fetch]
 
           def get_chat_message(chat_id:, message_id:, **)
             response = graph_connection(**).get("chats/#{chat_id}/messages/#{message_id}")
@@ -57,7 +56,7 @@ module Legion
                                                     content: { type:        'string',
                                                                description: 'Message text or HTML' } },
                                       required:   %w[chat_id content] },
-                     trigger_words: ['send message', 'send chat', 'reply', 'post message']
+                     trigger_words: %w[send post write]
 
           def send_chat_message(chat_id:, content:, content_type: 'text', attachments: [], **)
             payload = { body: { contentType: content_type, content: content } }
@@ -76,7 +75,7 @@ module Legion
                                                     message_id: { type: 'string' },
                                                     content:    { type: 'string' } },
                                       required:   %w[chat_id message_id content] },
-                     trigger_words: ['reply to', 'reply message', 'respond to']
+                     trigger_words: %w[reply respond]
 
           def reply_to_chat_message(chat_id:, message_id:, content:, content_type: 'text', **)
             payload = { body: { contentType: content_type, content: content } }
@@ -93,7 +92,7 @@ module Legion
                      inputs:        { properties: { chat_id:    { type: 'string' },
                                                     message_id: { type: 'string' } },
                                       required:   %w[chat_id message_id] },
-                     trigger_words: ['replies', 'message thread', 'thread replies']
+                     trigger_words: %w[replies thread]
 
           def list_message_replies(chat_id:, message_id:, top: 50, **)
             params = { '$top' => top }

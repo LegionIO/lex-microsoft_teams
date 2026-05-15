@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['file', 'files', 'drive', 'onedrive', 'teams file']
+            %w[file files drive onedrive sharepoint document documents]
           end
 
           definition :list_drive_items,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_files',
                      mcp_tier:      :standard,
                      idempotent:    true,
-                     trigger_words: ['list files', 'onedrive files', 'my files', 'drive files']
+                     trigger_words: %w[files drive onedrive]
 
           def list_drive_items(user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/drive/root/children")
@@ -33,7 +33,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { item_id: { type: 'string' } }, required: ['item_id'] },
-                     trigger_words: ['get file', 'file details', 'drive item']
+                     trigger_words: %w[file item]
 
           def get_drive_item(item_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/drive/items/#{item_id}")
@@ -47,7 +47,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { item_id: { type: 'string' } }, required: ['item_id'] },
-                     trigger_words: ['download file', 'file content', 'read file']
+                     trigger_words: %w[download content read]
 
           def get_drive_item_content(item_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/drive/items/#{item_id}/content")
@@ -61,7 +61,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { team_id: { type: 'string' } }, required: ['team_id'] },
-                     trigger_words: ['team files', 'sharepoint files', 'team documents', 'team drive']
+                     trigger_words: %w[sharepoint documents team]
 
           def list_team_drive_items(team_id:, **)
             response = graph_connection(**).get("teams/#{team_id}/drive/root/children")

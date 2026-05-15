@@ -15,7 +15,7 @@ module Legion
           }.freeze
 
           def self.trigger_words
-            ['transcript', 'transcripts', 'meeting transcript']
+            %w[transcript transcripts vtt spoken]
           end
 
           definition :list_transcripts,
@@ -25,7 +25,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['list transcripts', 'meeting transcripts']
+                     trigger_words: ['transcripts']
 
           def list_transcripts(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/transcripts")
@@ -41,7 +41,7 @@ module Legion
                      inputs:        { properties: { meeting_id:    { type: 'string' },
                                                     transcript_id: { type: 'string' } },
                                       required:   %w[meeting_id transcript_id] },
-                     trigger_words: ['get transcript', 'transcript details']
+                     trigger_words: %w[transcript details]
 
           def get_transcript(meeting_id:, transcript_id:, user_id: 'me', **)
             response = graph_connection(**).get(
@@ -59,7 +59,7 @@ module Legion
                      inputs:        { properties: { meeting_id:    { type: 'string' },
                                                     transcript_id: { type: 'string' } },
                                       required:   %w[meeting_id transcript_id] },
-                     trigger_words: ['get transcript content', 'read transcript', 'vtt', 'transcript text']
+                     trigger_words: %w[content vtt text read]
 
           def get_transcript_content(meeting_id:, transcript_id:, user_id: 'me', format: :vtt, **)
             accept = CONTENT_TYPES.fetch(format)

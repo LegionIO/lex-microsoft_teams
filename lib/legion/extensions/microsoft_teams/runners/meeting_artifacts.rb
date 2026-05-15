@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['artifact', 'recording', 'whiteboard', 'meeting file']
+            %w[recording recordings whiteboard artifact artifacts]
           end
 
           definition :list_meeting_artifacts,
@@ -20,7 +20,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['list artifacts', 'meeting recordings', 'meeting files', 'whiteboards']
+                     trigger_words: %w[artifacts recordings whiteboards]
 
           def list_meeting_artifacts(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/artifacts")
@@ -36,7 +36,7 @@ module Legion
                      inputs:        { properties: { meeting_id:  { type: 'string' },
                                                     artifact_id: { type: 'string' } },
                                       required:   %w[meeting_id artifact_id] },
-                     trigger_words: ['get artifact', 'download recording', 'get whiteboard']
+                     trigger_words: %w[artifact recording whiteboard download]
 
           def get_meeting_artifact(meeting_id:, artifact_id:, user_id: 'me', **)
             response = graph_connection(**).get(

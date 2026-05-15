@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['meeting', 'meetings', 'calendar', 'online meeting']
+            %w[meeting meetings calendar schedule scheduled attendance attendee]
           end
 
           definition :list_meetings,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_meetings',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     trigger_words: ['list meetings', 'my meetings', 'upcoming meetings']
+                     trigger_words: %w[meetings upcoming calendar]
 
           def list_meetings(user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings")
@@ -33,7 +33,7 @@ module Legion
                      mcp_tier:      :low,
                      idempotent:    true,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['get meeting', 'meeting details', 'meeting info']
+                     trigger_words: %w[meeting details]
 
           def get_meeting(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}")
@@ -52,7 +52,7 @@ module Legion
                                                     end_time:   { type:        'string',
                                                                   description: 'ISO 8601 end datetime' } },
                                       required:   %w[subject start_time end_time] },
-                     trigger_words: ['create meeting', 'new meeting', 'schedule meeting']
+                     trigger_words: %w[create schedule]
 
           def create_meeting(subject:, start_time:, end_time:, user_id: 'me', **)
             payload = {
@@ -71,7 +71,7 @@ module Legion
                      mcp_tier:      :elevated,
                      idempotent:    false,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['update meeting', 'reschedule meeting', 'edit meeting']
+                     trigger_words: %w[update reschedule]
 
           def update_meeting(meeting_id:, user_id: 'me', subject: nil, start_time: nil, end_time: nil, **)
             payload = {}
@@ -89,7 +89,7 @@ module Legion
                      mcp_tier:      :high,
                      idempotent:    false,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['delete meeting', 'cancel meeting', 'remove meeting']
+                     trigger_words: %w[delete cancel]
 
           def delete_meeting(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).delete("#{user_path(user_id)}/onlineMeetings/#{meeting_id}")
@@ -105,7 +105,7 @@ module Legion
                      inputs:        { properties: { join_url: { type:        'string',
                                                                 description: 'Teams join URL' } },
                                       required:   ['join_url'] },
-                     trigger_words: ['meeting by url', 'join url', 'find meeting']
+                     trigger_words: %w[url join find]
 
           def get_meeting_by_join_url(join_url:, user_id: 'me', **)
             params = { '$filter' => "joinWebUrl eq '#{join_url.gsub("'", "''")}'" }
@@ -120,7 +120,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
-                     trigger_words: ['attendance report', 'who attended', 'meeting attendance']
+                     trigger_words: %w[attendance attendees report]
 
           def list_attendance_reports(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/attendanceReports")
@@ -136,7 +136,7 @@ module Legion
                      inputs:        { properties: { meeting_id: { type: 'string' },
                                                     report_id:  { type: 'string' } },
                                       required:   %w[meeting_id report_id] },
-                     trigger_words: ['get attendance report', 'attendance details']
+                     trigger_words: %w[attendance details]
 
           def get_attendance_report(meeting_id:, report_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/attendanceReports/#{report_id}")
@@ -149,7 +149,7 @@ module Legion
                      mcp_category:  'teams_meetings',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     trigger_words: ['resolve meeting', 'find meeting from chat', 'meeting from thread']
+                     trigger_words: %w[resolve find]
 
           def resolve_meeting(chat_thread_id: nil, join_url: nil, user_id: 'me', **)
             return { error: 'provide chat_thread_id or join_url' } unless chat_thread_id || join_url

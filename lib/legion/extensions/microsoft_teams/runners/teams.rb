@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['team', 'teams', 'joined teams', 'my teams']
+            %w[team teams workspace group membership]
           end
 
           definition :list_joined_teams,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_teams',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     trigger_words: ['my teams', 'joined teams', 'list teams', 'teams i belong to']
+                     trigger_words: %w[teams joined membership]
 
           def list_joined_teams(user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/joinedTeams")
@@ -33,7 +33,7 @@ module Legion
                      mcp_tier:      :low,
                      idempotent:    true,
                      inputs:        { properties: { team_id: { type: 'string' } }, required: ['team_id'] },
-                     trigger_words: ['team details', 'team info']
+                     trigger_words: %w[team details workspace]
 
           def get_team(team_id:, **)
             response = graph_connection(**).get("teams/#{team_id}")
@@ -47,7 +47,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { team_id: { type: 'string' } }, required: ['team_id'] },
-                     trigger_words: ['team members', 'who is in the team']
+                     trigger_words: %w[members roster]
 
           def list_team_members(team_id:, **)
             response = graph_connection(**).get("teams/#{team_id}/members")

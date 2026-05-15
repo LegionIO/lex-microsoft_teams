@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['app', 'apps', 'installation', 'installed apps']
+            %w[app apps addon addons installation installed]
           end
 
           definition :list_installed_apps_for_user,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_apps',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     trigger_words: ['installed apps', 'my apps', 'list apps', 'user apps']
+                     trigger_words: %w[apps installed]
 
           def list_installed_apps_for_user(user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/teamwork/installedApps")
@@ -33,7 +33,7 @@ module Legion
                      mcp_tier:      :low,
                      idempotent:    true,
                      inputs:        { properties: { chat_id: { type: 'string' } }, required: ['chat_id'] },
-                     trigger_words: ['apps in chat', 'chat apps', 'installed in chat']
+                     trigger_words: %w[apps chat]
 
           def list_installed_apps_in_chat(chat_id:, **)
             response = graph_connection(**).get("chats/#{chat_id}/installedApps")
@@ -49,7 +49,7 @@ module Legion
                      inputs:        { properties: { app_id: { type:        'string',
                                                               description: 'Teams app catalog ID' } },
                                       required:   ['app_id'] },
-                     trigger_words: ['install app', 'add app', 'install teams app']
+                     trigger_words: %w[install add app]
 
           def install_app_for_user(app_id:, user_id: 'me', **)
             payload = {
@@ -67,7 +67,7 @@ module Legion
                      idempotent:    false,
                      inputs:        { properties: { installation_id: { type: 'string' } },
                                       required:   ['installation_id'] },
-                     trigger_words: ['uninstall app', 'remove app', 'delete app installation']
+                     trigger_words: %w[uninstall remove]
 
           def uninstall_app_for_user(installation_id:, user_id: 'me', **)
             response = graph_connection(**).delete(

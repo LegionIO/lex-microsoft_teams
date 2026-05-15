@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            %w[people profile contacts colleagues coworkers]
+            %w[profile people person colleague colleagues contact contacts]
           end
 
           definition :get_profile,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_people',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     trigger_words: ['my profile', 'who am i', 'user profile', 'get profile']
+                     trigger_words: %w[profile self]
 
           def get_profile(user_id: 'me', **)
             log.debug("People#get_profile user_id=#{user_id}")
@@ -36,7 +36,7 @@ module Legion
                      mcp_category:  'teams_people',
                      mcp_tier:      :standard,
                      idempotent:    true,
-                     trigger_words: ['people around me', 'colleagues', 'contacts', 'list people']
+                     trigger_words: %w[people colleagues contacts]
 
           def list_people(user_id: 'me', top: 25, **)
             log.debug("People#list_people user_id=#{user_id} top=#{top}")

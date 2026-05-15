@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['presence', 'availability', 'status', 'online status']
+            %w[presence availability available status online busy away]
           end
 
           definition :get_presence,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_presence',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     trigger_words: ['presence', 'availability', 'status', 'am i online', 'online status']
+                     trigger_words: %w[presence availability status online]
 
           def get_presence(user_id: 'me', **)
             log.debug("Presence#get_presence user_id=#{user_id}")

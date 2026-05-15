@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['channel message', 'channel messages', 'channel post']
+            %w[post posts feed thread reply]
           end
 
           definition :list_channel_messages,
@@ -22,7 +22,7 @@ module Legion
                      inputs:        { properties: { team_id:    { type: 'string' },
                                                     channel_id: { type: 'string' } },
                                       required:   %w[team_id channel_id] },
-                     trigger_words: ['read channel', 'channel history', 'channel posts', 'channel feed']
+                     trigger_words: %w[channel history posts feed]
 
           def list_channel_messages(team_id:, channel_id:, top: 50, **)
             params = { '$top' => top }
@@ -40,7 +40,7 @@ module Legion
                                                     channel_id: { type: 'string' },
                                                     message_id: { type: 'string' } },
                                       required:   %w[team_id channel_id message_id] },
-                     trigger_words: ['get channel message']
+                     trigger_words: %w[message fetch]
 
           def get_channel_message(team_id:, channel_id:, message_id:, **)
             response = graph_connection(**).get("teams/#{team_id}/channels/#{channel_id}/messages/#{message_id}")
@@ -57,7 +57,7 @@ module Legion
                                                     channel_id: { type: 'string' },
                                                     content:    { type: 'string' } },
                                       required:   %w[team_id channel_id content] },
-                     trigger_words: ['post to channel', 'post message', 'send to channel']
+                     trigger_words: %w[post send write]
 
           def send_channel_message(team_id:, channel_id:, content:, content_type: 'text', attachments: [], **)
             payload = { body: { contentType: content_type, content: content } }
@@ -77,7 +77,7 @@ module Legion
                                                     message_id: { type: 'string' },
                                                     content:    { type: 'string' } },
                                       required:   %w[team_id channel_id message_id content] },
-                     trigger_words: ['reply in channel', 'channel reply']
+                     trigger_words: %w[reply respond]
 
           def reply_to_channel_message(team_id:, channel_id:, message_id:, content:, content_type: 'text', **)
             payload = { body: { contentType: content_type, content: content } }
@@ -97,7 +97,7 @@ module Legion
                                                     channel_id: { type: 'string' },
                                                     message_id: { type: 'string' } },
                                       required:   %w[team_id channel_id message_id] },
-                     trigger_words: ['channel thread', 'channel replies']
+                     trigger_words: %w[replies thread]
 
           def list_channel_message_replies(team_id:, channel_id:, message_id:, top: 50, **)
             params = { '$top' => top }
@@ -118,7 +118,7 @@ module Legion
                                                     message_id: { type: 'string' },
                                                     content:    { type: 'string' } },
                                       required:   %w[team_id channel_id message_id content] },
-                     trigger_words: ['edit message', 'update message']
+                     trigger_words: %w[edit update]
 
           def edit_channel_message(team_id:, channel_id:, message_id:, content:, content_type: 'text', **)
             payload = { body: { contentType: content_type, content: content } }

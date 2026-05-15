@@ -10,7 +10,7 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
-            ['chat', 'chats', 'conversation', 'dm', 'direct message']
+            %w[chat chats conversation conversations dm direct]
           end
 
           definition :list_chats,
@@ -19,7 +19,7 @@ module Legion
                      mcp_category:  'teams_chat',
                      mcp_tier:      :standard,
                      idempotent:    true,
-                     trigger_words: ['list chats', 'my chats', 'conversations']
+                     trigger_words: %w[chats conversations]
 
           def list_chats(user_id: 'me', top: 50, **)
             params = { '$top' => top }
@@ -36,7 +36,7 @@ module Legion
                      inputs:        { properties: { chat_id: { type:        'string',
                                                                description: 'The Teams chat ID (19:...@thread.v2)' } },
                                       required:   ['chat_id'] },
-                     trigger_words: ['get chat', 'chat details', 'chat info']
+                     trigger_words: %w[chat details]
 
           def get_chat(chat_id:, **)
             response = graph_connection(**).get("chats/#{chat_id}")
@@ -54,7 +54,7 @@ module Legion
                                                     chat_type: { type:        'string',
                                                                  description: 'oneOnOne or group' } },
                                       required:   ['members'] },
-                     trigger_words: ['create chat', 'new chat', 'start chat', 'start conversation']
+                     trigger_words: %w[create conversation start]
 
           def create_chat(members:, chat_type: 'oneOnOne', topic: nil, **)
             payload = { chatType: chat_type, members: members }
@@ -70,7 +70,7 @@ module Legion
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { chat_id: { type: 'string' } }, required: ['chat_id'] },
-                     trigger_words: ['chat members', 'participants', 'who is in']
+                     trigger_words: %w[members participants]
 
           def list_chat_members(chat_id:, **)
             response = graph_connection(**).get("chats/#{chat_id}/members")
@@ -86,7 +86,7 @@ module Legion
                      inputs:        { properties: { chat_id: { type: 'string' },
                                                     user_id: { type: 'string' } },
                                       required:   %w[chat_id user_id] },
-                     trigger_words: ['add member', 'add to chat', 'invite to chat']
+                     trigger_words: %w[invite add member]
 
           def add_chat_member(chat_id:, user_id:, roles: ['owner'], **)
             payload = {
