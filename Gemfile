@@ -3,8 +3,6 @@
 source 'https://rubygems.org'
 gemspec
 
-gem 'lex-identity-entra', path: '../../extensions-identity/lex-identity-entra'
-
 group :test do
   gem 'rake'
   gem 'rspec'
