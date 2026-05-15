@@ -26,32 +26,35 @@ end
 
 $LOADED_FEATURES << 'legion/extensions/actors/once' unless $LOADED_FEATURES.include?('legion/extensions/actors/once')
 
-require 'legion/extensions/microsoft_teams/actors/auth_validator'
 require 'legion/extensions/microsoft_teams/actors/api_ingest'
 
 RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ApiIngest do
   let(:actor) { described_class.allocate }
 
   describe '#delay' do
-    context 'when AuthValidator is defined' do
-      it 'returns AuthValidator delay plus 5 seconds' do
-        auth_validator = Legion::Extensions::MicrosoftTeams::Actor::AuthValidator.allocate
-        expect(actor.delay).to eq(auth_validator.delay.to_f + 5.0)
+    context 'when Entra Delegated AuthValidator is defined' do
+      before do
+        stub_const('Legion::Extensions::Identity::Entra::Delegated::Actor::AuthValidator',
+                   Class.new { def delay = 9.0 })
       end
 
-      it 'fires after AuthValidator to ensure boot ordering' do
-        auth_validator = Legion::Extensions::MicrosoftTeams::Actor::AuthValidator.allocate
+      it 'returns entra AuthValidator delay plus 5 seconds' do
+        expect(actor.delay).to eq(14.0)
+      end
+
+      it 'fires after entra AuthValidator to ensure boot ordering' do
+        auth_validator = Legion::Extensions::Identity::Entra::Delegated::Actor::AuthValidator.allocate
         expect(actor.delay).to be > auth_validator.delay
       end
     end
 
-    context 'when AuthValidator is unavailable' do
+    context 'when Entra AuthValidator is unavailable' do
       before do
-        hide_const('Legion::Extensions::MicrosoftTeams::Actor::AuthValidator')
+        hide_const('Legion::Extensions::Identity::Entra::Delegated::Actor::AuthValidator')
       end
 
-      it 'falls back to 30 seconds' do
-        expect(actor.delay).to eq(30)
+      it 'falls back to 14 seconds' do
+        expect(actor.delay).to eq(14)
       end
     end
   end

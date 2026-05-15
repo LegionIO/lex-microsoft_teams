@@ -11,6 +11,7 @@ module Legion
           description 'Absorbs Teams meeting transcripts, AI insights, and participants into Apollo'
 
           def absorb(url: nil, content: nil, metadata: {}, context: {}) # rubocop:disable Lint/UnusedMethodArgument
+            log.debug("Meeting#absorb url=#{url.inspect}")
             report_progress(message: 'resolving meeting from link')
             meeting = resolve_meeting(url)
             return { success: false, error: 'could not resolve meeting' } unless meeting
@@ -26,9 +27,10 @@ module Legion
             ingest_participants(meeting, subject, results)
 
             report_progress(message: 'done', percent: 100)
+            log.info("Meeting#absorb complete meeting_id=#{meeting_id} subject=#{subject} chunks=#{results[:chunks]}")
             results.merge(success: true)
           rescue StandardError => e
-            log.error("Meeting absorber failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Meeting#absorb', url: url)
             { success: false, error: e.message }
           end
 
@@ -47,17 +49,14 @@ module Legion
           end
 
           def graph_token
-            return @graph_token if defined?(@graph_token)
-
-            @graph_token = begin
-              Helpers::TokenCache.instance.cached_graph_token if defined?(Helpers::TokenCache)
-            rescue StandardError => e
-              log.warn("graph_token unavailable: #{e.message}")
-              nil
-            end
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            handle_exception(e, level: :debug, operation: 'Meeting#graph_token')
+            nil
           end
 
           def resolve_meeting(url)
+            log.debug("Meeting#resolve_meeting url=#{url.inspect}")
             thread_id = extract_meeting_thread_id(url)
             if thread_id
               report_progress(message: 'resolving meeting from chat thread', percent: 5)
@@ -67,7 +66,7 @@ module Legion
             report_progress(message: 'looking up meeting by join URL', percent: 5)
             resolve_meeting_by_join_url(url)
           rescue StandardError => e
-            log.warn("Could not resolve meeting: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Meeting#resolve_meeting', url: url)
             nil
           end
 
@@ -76,11 +75,12 @@ module Legion
             match = uri.path.match(%r{/l/chat/(19:meeting_[^/]+)})
             match&.[](1)
           rescue URI::InvalidURIError => e
-            log.debug("extract_meeting_thread_id: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'Meeting#extract_meeting_thread_id', url: url)
             nil
           end
 
           def resolve_meeting_from_chat(thread_id)
+            log.debug("Meeting#resolve_meeting_from_chat thread_id=#{thread_id}")
             chats_runner = Object.new.extend(Runners::Chats)
             response = chats_runner.get_chat(chat_id: thread_id, token: graph_token)
             body = response.is_a?(Hash) ? response[:result] : nil
@@ -95,6 +95,7 @@ module Legion
           end
 
           def resolve_meeting_by_join_url(url)
+            log.debug("Meeting#resolve_meeting_by_join_url url=#{url.inspect}")
             response = meetings_runner.get_meeting_by_join_url(join_url: url, token: graph_token)
             return nil unless response.is_a?(Hash)
 
@@ -108,6 +109,7 @@ module Legion
           end
 
           def ingest_transcript(meeting_id, subject, results)
+            log.debug("Meeting#ingest_transcript meeting_id=#{meeting_id} subject=#{subject}")
             report_progress(message: 'fetching transcripts', percent: 20)
             transcripts_response = transcripts_runner.list_transcripts(meeting_id: meeting_id, token: graph_token)
             transcripts_body     = transcripts_response.is_a?(Hash) ? transcripts_response[:result] : nil
@@ -136,11 +138,13 @@ module Legion
               )
               results[:chunks] += 1
             end
+            log.info("Meeting#ingest_transcript stored #{results[:chunks]} transcript(s) for meeting_id=#{meeting_id}")
           rescue StandardError => e
-            log.warn("Transcript ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Meeting#ingest_transcript', meeting_id: meeting_id)
           end
 
           def ingest_ai_insights(meeting_id, subject, results)
+            log.debug("Meeting#ingest_ai_insights meeting_id=#{meeting_id}")
             report_progress(message: 'fetching AI insights', percent: 60)
             insights = ai_insights_runner.list_meeting_ai_insights(meeting_id: meeting_id, token: graph_token)
             return unless insights.is_a?(Hash)
@@ -150,8 +154,9 @@ module Legion
             return unless items.is_a?(Array) && items.any?
 
             items.each { |item| absorb_insight_item(item, meeting_id, subject, results) }
+            log.info("Meeting#ingest_ai_insights processed #{items.length} insight(s) for meeting_id=#{meeting_id}")
           rescue StandardError => e
-            log.warn("AI insights ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Meeting#ingest_ai_insights', meeting_id: meeting_id)
           end
 
           def absorb_insight_item(item, meeting_id, subject, results)
@@ -175,6 +180,7 @@ module Legion
           end
 
           def ingest_participants(meeting, subject, results)
+            log.debug("Meeting#ingest_participants subject=#{subject}")
             report_progress(message: 'recording participants', percent: 80)
             participants = meeting.dig('participants', 'attendees') || meeting.dig(:participants, :attendees)
             return unless participants.is_a?(Array) && participants.any?
@@ -192,8 +198,9 @@ module Legion
               metadata:     { meeting_id: meeting_id, participant_count: names.length }
             )
             results[:chunks] += 1
+            log.info("Meeting#ingest_participants stored #{names.length} participants for meeting_id=#{meeting_id}")
           rescue StandardError => e
-            log.warn("Participant ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Meeting#ingest_participants', subject: subject)
           end
         end
       end

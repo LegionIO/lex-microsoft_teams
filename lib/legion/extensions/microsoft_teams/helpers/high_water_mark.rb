@@ -59,7 +59,8 @@ module Legion
 
             raw.is_a?(Hash) ? raw : ::JSON.parse(raw, symbolize_names: true)
           rescue StandardError => e
-            log.debug("HighWaterMark: get_extended_hwm failed to parse cached value: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'HighWaterMark#get_extended_hwm',
+                             chat_id: chat_id)
             nil
           end
 
@@ -108,7 +109,7 @@ module Legion
                                last_ingested_at: data[:last_ingested_at], message_count: data[:message_count] || 0)
             end
           rescue StandardError => e
-            log.warn("Failed to restore HWM from traces: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'HighWaterMark#restore_hwm_from_traces')
           end
 
           def memory_runner

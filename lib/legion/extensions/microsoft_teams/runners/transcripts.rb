@@ -14,10 +14,34 @@ module Legion
             docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           }.freeze
 
+          def self.trigger_words
+            %w[transcript transcripts vtt spoken]
+          end
+
+          definition :list_transcripts,
+                     desc:          'List transcripts for an online meeting',
+                     mcp_prefix:    'teams.list_transcripts',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
+                     trigger_words: ['transcripts']
+
           def list_transcripts(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/transcripts")
             { result: response.body }
           end
+
+          definition :get_transcript,
+                     desc:          'Get metadata for a specific meeting transcript',
+                     mcp_prefix:    'teams.get_transcript',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { meeting_id:    { type: 'string' },
+                                                    transcript_id: { type: 'string' } },
+                                      required:   %w[meeting_id transcript_id] },
+                     trigger_words: %w[transcript details]
 
           def get_transcript(meeting_id:, transcript_id:, user_id: 'me', **)
             response = graph_connection(**).get(
@@ -25,6 +49,17 @@ module Legion
             )
             { result: response.body }
           end
+
+          definition :get_transcript_content,
+                     desc:          'Download the content of a meeting transcript (VTT or DOCX)',
+                     mcp_prefix:    'teams.get_transcript_content',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { meeting_id:    { type: 'string' },
+                                                    transcript_id: { type: 'string' } },
+                                      required:   %w[meeting_id transcript_id] },
+                     trigger_words: %w[content vtt text read]
 
           def get_transcript_content(meeting_id:, transcript_id:, user_id: 'me', format: :vtt, **)
             accept = CONTENT_TYPES.fetch(format)

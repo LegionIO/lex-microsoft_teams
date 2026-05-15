@@ -71,7 +71,7 @@ module Legion
                 extract_from_record(value, messages, seen_hashes)
               end
             rescue StandardError => e
-              warn "LocalCache: error reading #{File.basename(path)}: #{e.message}"
+              warn "LocalCache: error reading #{File.basename(path)}: #{e.class} — #{e.message}"
             end
 
             messages = apply_filters(messages, since: since, channels: channels,

@@ -180,16 +180,18 @@ module Legion
             instructions = session[:system_prompt]
             instructions = "#{instructions}\n\n#{trace_context}" if trace_context && !trace_context.empty?
 
-            response = llm_chat(
-              text,
-              instructions: instructions,
-              model:        config[:model],
-              intent:       config[:intent],
-              caller:       { id: session[:owner_id], extension: 'lex-microsoft_teams', mode: :bot_response }
+            response = Legion::LLM.chat( # rubocop:disable Legion/HelperMigration/DirectLlm
+              message: [
+                { role: 'system', content: instructions },
+                { role: 'user', content: text }
+              ],
+              model:   config[:model],
+              intent:  config[:intent],
+              caller:  { id: session[:owner_id], extension: 'lex-microsoft_teams', mode: :bot_response }
             )
             response.content
           rescue StandardError => e
-            log.error("LLM call failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#llm_respond')
             'I encountered an error processing your message. Please try again.'
           end
 
@@ -198,7 +200,7 @@ module Legion
 
             retrieve_context(message: message, owner_id: owner_id, chat_id: chat_id)
           rescue StandardError => e
-            log.debug("retrieve_trace_context failed: #{e.message}") if defined?(log)
+            handle_exception(e, level: :debug, operation: 'Bot#retrieve_trace_context') if defined?(handle_exception)
             nil
           end
 
@@ -241,10 +243,16 @@ module Legion
             prompt = resolve_prompt(mode: :observe, conversation_id: nil)
             context = "#{from[:name] || peer_name} said: #{text}"
 
-            response = llm_chat(context, instructions: prompt, caller: { id: owner_id, extension: 'lex-microsoft_teams', mode: :observe })
+            response = Legion::LLM.chat( # rubocop:disable Legion/HelperMigration/DirectLlm
+              message: [
+                { role: 'system', content: prompt },
+                { role: 'user', content: context }
+              ],
+              caller:  { id: owner_id, extension: 'lex-microsoft_teams', mode: :observe }
+            )
             parse_extraction(response.content)
           rescue StandardError => e
-            log.error("Observation extraction failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#extract_from_message')
             nil
           end
 
@@ -275,7 +283,7 @@ module Legion
               confidence:      0.6
             )
           rescue StandardError => e
-            log.error("Observation store failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#store_observation')
           end
 
           def notify_owner(owner_id:, peer_name:, extraction: nil) # rubocop:disable Lint/UnusedMethodArgument
@@ -413,7 +421,7 @@ module Legion
             end
             nil
           rescue StandardError => e
-            log.error("find_chat_with_person failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Bot#find_chat_with_person', name: name)
             nil
           end
 

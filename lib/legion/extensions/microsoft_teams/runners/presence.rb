@@ -9,7 +9,20 @@ module Legion
         module Presence
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            %w[presence availability available status online busy away]
+          end
+
+          definition :get_presence,
+                     desc:          'Get the presence/availability status for a user',
+                     mcp_prefix:    'teams.get_presence',
+                     mcp_category:  'teams_presence',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     trigger_words: %w[presence availability status online]
+
           def get_presence(user_id: 'me', **)
+            log.debug("Presence#get_presence user_id=#{user_id}")
             conn = graph_connection(**)
             response = conn.get("#{user_path(user_id)}/presence")
             body = response.body || {}
@@ -19,6 +32,7 @@ module Legion
               fetched_at:   Time.now.utc
             }
           rescue StandardError => e
+            handle_exception(e, level: :warn, operation: 'Presence#get_presence', user_id: user_id)
             { availability: 'Offline', activity: 'OffWork', error: e.message, fetched_at: Time.now.utc }
           end
 

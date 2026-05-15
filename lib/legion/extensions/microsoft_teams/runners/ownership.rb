@@ -13,7 +13,12 @@ module Legion
           TEAMS_SELECT = 'id,displayName,mail'
           OWNERS_SELECT = 'id,displayName,mail'
 
+          definition :sync_owners, mcp_exposed: false
+          definition :detect_orphans, mcp_exposed: false
+          definition :get_team_owners, mcp_exposed: false
+
           def sync_owners(team_id: nil, **)
+            log.debug("Ownership#sync_owners team_id=#{team_id.inspect}")
             conn = graph_connection(**)
             if team_id
               owners = fetch_owners(conn: conn, team_id: team_id)
@@ -26,10 +31,12 @@ module Legion
               { owners: all_owners, team_count: teams.length, synced_at: Time.now.utc.iso8601 }
             end
           rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'Ownership#sync_owners', team_id: team_id)
             { error: e.message }
           end
 
           def detect_orphans(**)
+            log.debug('Ownership#detect_orphans')
             conn = graph_connection(**)
             teams = fetch_all_teams(conn: conn)
             orphaned = []
@@ -39,16 +46,20 @@ module Legion
               orphaned << { id: team['id'], display_name: team['displayName'], mail: team['mail'] } if owners.empty?
             end
 
+            log.info("Ownership#detect_orphans found #{orphaned.length}/#{teams.length} orphaned teams")
             { orphaned_teams: orphaned, total_scanned: teams.length, orphan_count: orphaned.length }
           rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'Ownership#detect_orphans')
             { error: e.message }
           end
 
           def get_team_owners(team_id:, **)
+            log.debug("Ownership#get_team_owners team_id=#{team_id}")
             conn = graph_connection(**)
             owners = fetch_owners(conn: conn, team_id: team_id)
             { team_id: team_id, owners: owners }
           rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'Ownership#get_team_owners', team_id: team_id)
             { error: e.message }
           end
 

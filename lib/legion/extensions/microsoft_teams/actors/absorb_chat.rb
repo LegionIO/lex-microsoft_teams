@@ -14,11 +14,12 @@ module Legion
             defined?(Legion::Extensions::Absorbers::Base) &&
               defined?(Legion::Extensions::MicrosoftTeams::Absorbers::Chat)
           rescue StandardError => e
-            log.debug("AbsorbChat#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'AbsorbChat#enabled?')
             false
           end
 
           def work(payload)
+            log.debug("AbsorbChat#work payload=#{payload.inspect[0, 100]}")
             parsed   = parse_payload(payload)
             absorber = Absorbers::Chat.new
             result   = absorber.absorb(
@@ -30,7 +31,8 @@ module Legion
               if result[:success]
                 ack!
               else
-                log.error("AbsorbChat actor absorb failed: #{result.inspect}")
+                handle_exception(RuntimeError.new(result.inspect), level:     :error,
+                                                                   operation: 'AbsorbChat#work')
                 reject!(requeue: false)
               end
             else
@@ -38,19 +40,20 @@ module Legion
             end
             result
           rescue StandardError => e
-            log.error("AbsorbChat actor error: #{e.message}")
+            handle_exception(e, level: :error, operation: 'AbsorbChat#work')
             reject!(requeue: false)
           end
 
           private
 
           def parse_payload(payload)
+            log.debug('AbsorbChat#parse_payload')
             data = payload.is_a?(String) ? json_load(payload) : payload
             return {} unless data.is_a?(Hash)
 
             data.transform_keys(&:to_sym)
           rescue StandardError => e
-            log.debug("AbsorbChat#parse_payload: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'AbsorbChat#parse_payload')
             {}
           end
         end

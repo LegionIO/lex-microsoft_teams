@@ -12,20 +12,19 @@ module Legion
           def generate_task?  = false
 
           def delay
-            if defined?(Legion::Extensions::MicrosoftTeams::Actor::AuthValidator)
-              auth_validator = Legion::Extensions::MicrosoftTeams::Actor::AuthValidator.allocate
-              base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 90.0
-              base_delay + 5.0
-            else
-              95.0
-            end
+            auth_validator = Legion::Extensions::Identity::Entra::Delegated::Actor::AuthValidator.allocate
+            base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 9.0
+            base_delay + 5.0
+          rescue StandardError => e
+            handle_exception(e, level: :debug, operation: 'ProfileIngest#delay')
+            14.0
           end
 
           def enabled?
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
-            log.debug("ProfileIngest#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ProfileIngest#enabled?')
             false
           end
 
@@ -33,15 +32,15 @@ module Legion
             log.info('ProfileIngest firing')
             token = resolve_token
             unless token
-              log.warn('No token available, skipping')
+              log.warn('ProfileIngest: no token available, skipping')
               return
             end
-            log.info('Token acquired, starting ingest')
+            log.info('ProfileIngest: token acquired, starting ingest')
 
             settings = begin
               Legion::Settings[:microsoft_teams] || {}
             rescue StandardError => e
-              log.debug("ProfileIngest#manual settings: #{e.message}")
+              handle_exception(e, level: :debug, operation: 'ProfileIngest#manual settings')
               {}
             end
             ingest = settings[:ingest] || {}
@@ -51,7 +50,7 @@ module Legion
               message_depth: ingest.fetch(:message_depth, 50)
             )
           rescue StandardError => e
-            log.error("ProfileIngest: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ProfileIngest#manual')
           end
 
           private
@@ -61,11 +60,9 @@ module Legion
           end
 
           def resolve_token
-            if defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-              Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance.cached_delegated_token
-            end
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            log.warn("ProfileIngest#resolve_token: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'ProfileIngest#resolve_token')
             nil
           end
         end

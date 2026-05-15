@@ -11,6 +11,11 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
           include Legion::JSON::Helper
 
+          definition :create_loop_file, mcp_exposed: false
+          definition :loop_attachment, mcp_exposed: false
+          definition :post_loop_to_chat, mcp_exposed: false
+          definition :post_loop_to_channel, mcp_exposed: false
+
           # Creates a new .loop file in the user's OneDrive via the Graph API.
           # The Fluid Framework collaborative session is initialized by Teams on first open.
           # Returns the drive item metadata including +webUrl+, which can be passed to

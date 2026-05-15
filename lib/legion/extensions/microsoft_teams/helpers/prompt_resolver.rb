@@ -54,7 +54,10 @@ module Legion
             profile = Legion::Extensions::Mesh::Helpers::PreferenceProfile.resolve(owner_id: owner_id)
             Legion::Extensions::Mesh::Helpers::PreferenceProfile.preference_instructions(profile: profile)
           rescue StandardError => e
-            log.debug("PromptResolver: preference_instructions_for failed: #{e.message}") if defined?(log)
+            if defined?(handle_exception)
+              handle_exception(e, level: :debug, operation: 'PromptResolver#preference_instructions_for',
+                               owner_id: owner_id)
+            end
             nil
           end
         end

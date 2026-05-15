@@ -36,52 +36,49 @@ module Legion
           end
 
           def enabled?
-            return false unless defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
-
             channel_setting(:enabled, false) == true
           rescue StandardError => e
-            log.debug("ChannelPoller#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'ChannelPoller#enabled?')
             false
-          end
-
-          def token_cache
-            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
           end
 
           def manual
             log.info('ChannelPoller polling team channels')
-            token = token_cache.cached_delegated_token
+            token = delegated_token
             unless token
               log.debug('No token available, skipping poll')
               return
             end
 
             teams = fetch_joined_teams(token: token)
-            log.debug("Found #{teams.length} joined team(s)")
+            log.debug("ChannelPoller#manual found #{teams.length} joined team(s)")
 
             teams.first(max_teams).each do |team|
               poll_team(team: team, token: token)
             rescue StandardError => e
-              log.error("Error polling team #{team['displayName']}: #{e.message}")
+              handle_exception(e, level: :error, operation: 'ChannelPoller#manual',
+                               team: team['displayName'])
             end
           rescue StandardError => e
-            log.error("ChannelPoller: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ChannelPoller#manual')
           end
 
           private
 
           def fetch_joined_teams(token:)
+            log.debug('ChannelPoller#fetch_joined_teams')
             conn = graph_connection(token: token)
             response = conn.get('me/joinedTeams')
             response.body&.dig('value') || []
           rescue StandardError => e
-            log.error("Failed to fetch joined teams: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ChannelPoller#fetch_joined_teams')
             []
           end
 
           def poll_team(team:, token:)
             team_id   = team['id']
             team_name = team['displayName'] || team_id
+            log.debug("ChannelPoller#poll_team team_id=#{team_id} team_name=#{team_name}")
 
             channels = fetch_channels(team_id: team_id, token: token)
             selected = select_channels(channels)
@@ -89,16 +86,18 @@ module Legion
             selected.first(max_channels_per_team).each do |channel|
               poll_channel(team_id: team_id, team_name: team_name, channel: channel, token: token)
             rescue StandardError => e
-              log.error("Error polling channel #{channel['displayName']} in #{team_name}: #{e.message}")
+              handle_exception(e, level: :error, operation: 'ChannelPoller#poll_team',
+                               channel: channel['displayName'], team: team_name)
             end
           end
 
           def fetch_channels(team_id:, token:)
+            log.debug("ChannelPoller#fetch_channels team_id=#{team_id}")
             conn = graph_connection(token: token)
             response = conn.get("teams/#{team_id}/channels")
             response.body&.dig('value') || []
           rescue StandardError => e
-            log.error("Failed to fetch channels for team #{team_id}: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ChannelPoller#fetch_channels', team_id: team_id)
             []
           end
 
@@ -112,6 +111,7 @@ module Legion
           def poll_channel(team_id:, team_name:, channel:, token:)
             channel_id   = channel['id']
             channel_name = channel['displayName'] || channel_id
+            log.debug("ChannelPoller#poll_channel team_id=#{team_id} channel_name=#{channel_name}")
 
             conn     = graph_connection(token: token)
             response = conn.get(
@@ -155,12 +155,19 @@ module Legion
             channel_setting(:max_channels_per_team, DEFAULT_MAX_CHANNELS)
           end
 
+          def delegated_token
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            handle_exception(e, level: :warn, operation: 'ChannelPoller#delegated_token')
+            nil
+          end
+
           def channel_setting(key, default)
             return default unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :channels, key) || default
           rescue StandardError => e
-            log.debug("ChannelPoller#channel_setting(#{key}): #{e.message}")
+            handle_exception(e, level: :debug, operation: "ChannelPoller#channel_setting(#{key})")
             default
           end
 
@@ -169,6 +176,7 @@ module Legion
           end
 
           def store_channel_message_trace(team_name:, channel_name:, msg:)
+            log.debug("ChannelPoller#store_channel_message_trace team=#{team_name} channel=#{channel_name}")
             sender = msg.dig('from', 'user', 'displayName') || 'Unknown'
             content = (msg.dig('body', 'content') || '').gsub(/<[^>]+>/, '').strip
             memory_runner.store_trace(
@@ -179,7 +187,8 @@ module Legion
               confidence:      0.7
             )
           rescue StandardError => e
-            log.error("Failed to store channel message trace: #{e.message}")
+            handle_exception(e, level: :error, operation: 'ChannelPoller#store_channel_message_trace',
+                             team: team_name, channel: channel_name)
           end
         end
       end

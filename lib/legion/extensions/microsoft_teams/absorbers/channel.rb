@@ -10,6 +10,7 @@ module Legion
           description 'Absorbs a Teams channel thread (messages, replies, members) into Apollo'
 
           def absorb(url: nil, content: nil, metadata: {}, context: {}) # rubocop:disable Lint/UnusedMethodArgument
+            log.debug("Channel#absorb url=#{url.inspect}")
             report_progress(message: 'extracting ids from url')
             ids = extract_ids(url)
             return { success: false, error: 'could not extract team/channel ids from url' } unless ids
@@ -36,9 +37,10 @@ module Legion
             ingest_members(team_id, channel_id, channel_name, results)
 
             report_progress(message: 'done', percent: 100)
+            log.info("Channel#absorb complete team_id=#{team_id} channel=#{channel_name} chunks=#{results[:chunks]}")
             results.merge(success: true)
           rescue StandardError => e
-            log.error("Channel absorber failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Channel#absorb', url: url)
             { success: false, error: e.message }
           end
 
@@ -53,20 +55,17 @@ module Legion
           end
 
           def graph_token
-            return @graph_token if defined?(@graph_token)
-
-            @graph_token = begin
-              Helpers::TokenCache.instance.cached_delegated_token if defined?(Helpers::TokenCache)
-            rescue StandardError => e
-              log.warn("graph_token unavailable: #{e.message}")
-              nil
-            end
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            handle_exception(e, level: :debug, operation: 'Channel#graph_token')
+            nil
           end
 
           # Teams channel URL formats:
           #   /l/channel/<encoded_channel_id>/<channel_name>?groupId=<team_id>&...
           #   /l/message/<encoded_channel_id>/<message_id>?groupId=<team_id>&...
           def extract_ids(url)
+            log.debug("Channel#extract_ids url=#{url.inspect}")
             return nil unless url.is_a?(String)
 
             uri    = URI.parse(url)
@@ -86,22 +85,25 @@ module Legion
 
             { team_id: team_id, channel_id: channel_id, message_id: message_id }
           rescue StandardError => e
-            log.debug("extract_ids failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'Channel#extract_ids', url: url)
             nil
           end
 
           def resolve_channel(team_id, channel_id)
+            log.debug("Channel#resolve_channel team_id=#{team_id} channel_id=#{channel_id}")
             response = channels_runner.get_channel(team_id: team_id, channel_id: channel_id, token: graph_token)
             body = response.is_a?(Hash) ? response[:result] : nil
             return nil unless body.is_a?(Hash) && !body['error'] && !body[:error]
 
             body
           rescue StandardError => e
-            log.warn("resolve_channel failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Channel#resolve_channel',
+                             team_id: team_id, channel_id: channel_id)
             nil
           end
 
           def ingest_messages(team_id, channel_id, channel_name, results)
+            log.debug("Channel#ingest_messages team_id=#{team_id} channel_id=#{channel_id}")
             report_progress(message: 'fetching channel messages', percent: 25)
             response = channel_messages_runner.list_channel_messages(
               team_id: team_id, channel_id: channel_id, top: 50, token: graph_token
@@ -114,10 +116,12 @@ module Legion
               ingest_single_message(team_id, channel_id, msg, channel_name, results)
             end
           rescue StandardError => e
-            log.warn("Channel message ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Channel#ingest_messages',
+                             team_id: team_id, channel_id: channel_id)
           end
 
           def ingest_thread(team_id, channel_id, message_id, channel_name, results)
+            log.debug("Channel#ingest_thread team_id=#{team_id} channel_id=#{channel_id} message_id=#{message_id}")
             report_progress(message: 'fetching thread root message', percent: 20)
             response = channel_messages_runner.get_channel_message(
               team_id: team_id, channel_id: channel_id, message_id: message_id, token: graph_token
@@ -127,7 +131,8 @@ module Legion
 
             ingest_single_message(team_id, channel_id, body, channel_name, results, scoped_thread: true)
           rescue StandardError => e
-            log.warn("Thread ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Channel#ingest_thread',
+                             team_id: team_id, channel_id: channel_id, message_id: message_id)
           end
 
           def ingest_single_message(team_id, channel_id, msg, channel_name, results, scoped_thread: false)
@@ -135,7 +140,8 @@ module Legion
             return if msg['deletedDateTime'] || msg[:deletedDateTime]
             return if (msg['messageType'] || msg[:messageType]) == 'unknownFutureValue'
 
-            msg_id       = msg['id'] || msg[:id]
+            msg_id = msg['id'] || msg[:id]
+            log.debug("Channel#ingest_single_message msg_id=#{msg_id} channel=#{channel_name}")
             sender       = msg.dig('from', 'user', 'displayName') ||
                            msg.dig(:from, :user, :displayName) ||
                            'unknown'
@@ -166,12 +172,14 @@ module Legion
             )
             results[:chunks] += 1
           rescue StandardError => e
-            log.warn("ingest_single_message failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Channel#ingest_single_message',
+                             msg_id: msg_id, channel: channel_name)
           end
 
           def fetch_reply_lines(team_id, channel_id, message_id)
             return [] unless message_id
 
+            log.debug("Channel#fetch_reply_lines team_id=#{team_id} channel_id=#{channel_id} message_id=#{message_id}")
             response = channel_messages_runner.list_channel_message_replies(
               team_id: team_id, channel_id: channel_id, message_id: message_id, top: 50, token: graph_token
             )
@@ -193,11 +201,13 @@ module Legion
               "  ↳ [#{timestamp}] #{sender}: #{text}"
             end
           rescue StandardError => e
-            log.debug("fetch_reply_lines failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'Channel#fetch_reply_lines',
+                             team_id: team_id, channel_id: channel_id, message_id: message_id)
             []
           end
 
           def ingest_members(team_id, channel_id, channel_name, results)
+            log.debug("Channel#ingest_members team_id=#{team_id} channel_id=#{channel_id}")
             report_progress(message: 'fetching channel members', percent: 85)
             response = channels_runner.list_channel_members(
               team_id: team_id, channel_id: channel_id, token: graph_token
@@ -216,8 +226,10 @@ module Legion
               metadata:     { team_id: team_id, channel_id: channel_id, member_count: names.length }
             )
             results[:chunks] += 1
+            log.info("Channel#ingest_members stored #{names.length} members for channel=#{channel_name}")
           rescue StandardError => e
-            log.warn("Member ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Channel#ingest_members',
+                             team_id: team_id, channel_id: channel_id)
           end
         end
       end

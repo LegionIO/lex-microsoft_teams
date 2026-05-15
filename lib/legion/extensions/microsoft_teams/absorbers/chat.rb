@@ -10,6 +10,7 @@ module Legion
           description 'Absorbs a Teams chat thread (messages, replies, participants) into Apollo'
 
           def absorb(url: nil, content: nil, metadata: {}, context: {}) # rubocop:disable Lint/UnusedMethodArgument
+            log.debug("Chat#absorb url=#{url.inspect}")
             report_progress(message: 'extracting chat id from url')
             chat_id = extract_chat_id(url)
             return { success: false, error: 'could not extract chat id from url' } unless chat_id
@@ -25,9 +26,10 @@ module Legion
             ingest_members(chat_id, topic, results)
 
             report_progress(message: 'done', percent: 100)
+            log.info("Chat#absorb complete chat_id=#{chat_id} topic=#{topic} chunks=#{results[:chunks]}")
             results.merge(success: true)
           rescue StandardError => e
-            log.error("Chat absorber failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'Chat#absorb', url: url)
             { success: false, error: e.message }
           end
 
@@ -42,17 +44,14 @@ module Legion
           end
 
           def graph_token
-            return @graph_token if defined?(@graph_token)
-
-            @graph_token = begin
-              Helpers::TokenCache.instance.cached_delegated_token if defined?(Helpers::TokenCache)
-            rescue StandardError => e
-              log.warn("graph_token unavailable: #{e.message}")
-              nil
-            end
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            handle_exception(e, level: :debug, operation: 'Chat#graph_token')
+            nil
           end
 
           def extract_chat_id(url)
+            log.debug("Chat#extract_chat_id url=#{url.inspect}")
             return nil unless url.is_a?(String)
 
             # teams.microsoft.com/l/chat/19:XXXXX@unq.gbl.spaces/...
@@ -61,22 +60,24 @@ module Legion
 
             URI.decode_uri_component(match[1])
           rescue StandardError => e
-            log.debug("extract_chat_id failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'Chat#extract_chat_id', url: url)
             nil
           end
 
           def resolve_chat(chat_id)
+            log.debug("Chat#resolve_chat chat_id=#{chat_id}")
             response = chats_runner.get_chat(chat_id: chat_id, token: graph_token)
             body = response.is_a?(Hash) ? response[:result] : nil
             return nil unless body.is_a?(Hash) && !body['error'] && !body[:error]
 
             body
           rescue StandardError => e
-            log.warn("resolve_chat failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Chat#resolve_chat', chat_id: chat_id)
             nil
           end
 
           def ingest_messages(chat_id, topic, results)
+            log.debug("Chat#ingest_messages chat_id=#{chat_id} topic=#{topic}")
             report_progress(message: 'fetching messages', percent: 25)
             response = messages_runner.list_chat_messages(chat_id: chat_id, top: 50, token: graph_token)
             body = response.is_a?(Hash) ? response[:result] : nil
@@ -118,13 +119,15 @@ module Legion
               content_type: 'teams_chat_thread'
             )
             results[:chunks] += 1
+            log.info("Chat#ingest_messages stored #{lines.length} lines for chat_id=#{chat_id}")
           rescue StandardError => e
-            log.warn("Message ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Chat#ingest_messages', chat_id: chat_id)
           end
 
           def fetch_reply_lines(chat_id, message_id, _topic)
             return [] unless message_id
 
+            log.debug("Chat#fetch_reply_lines chat_id=#{chat_id} message_id=#{message_id}")
             response = messages_runner.list_message_replies(
               chat_id: chat_id, message_id: message_id, top: 50, token: graph_token
             )
@@ -146,11 +149,13 @@ module Legion
               "  ↳ [#{timestamp}] #{sender}: #{text}"
             end
           rescue StandardError => e
-            log.debug("fetch_reply_lines failed: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'Chat#fetch_reply_lines',
+                             chat_id: chat_id, message_id: message_id)
             []
           end
 
           def ingest_members(chat_id, topic, results)
+            log.debug("Chat#ingest_members chat_id=#{chat_id} topic=#{topic}")
             report_progress(message: 'fetching members', percent: 80)
             response = chats_runner.list_chat_members(chat_id: chat_id, token: graph_token)
             body = response.is_a?(Hash) ? response[:result] : nil
@@ -171,8 +176,9 @@ module Legion
               metadata:     { chat_id: chat_id, participant_count: names.length }
             )
             results[:chunks] += 1
+            log.info("Chat#ingest_members stored #{names.length} participants for chat_id=#{chat_id}")
           rescue StandardError => e
-            log.warn("Member ingest failed: #{e.message}")
+            handle_exception(e, level: :warn, operation: 'Chat#ingest_members', chat_id: chat_id)
           end
         end
       end

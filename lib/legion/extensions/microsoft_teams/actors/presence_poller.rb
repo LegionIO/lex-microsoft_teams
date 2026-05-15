@@ -23,18 +23,15 @@ module Legion
           end
 
           def enabled?
-            defined?(Legion::Extensions::MicrosoftTeams::Helpers::TokenCache)
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
-            log.debug("PresencePoller#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'PresencePoller#enabled?')
             false
           end
 
-          def token_cache
-            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
-          end
-
           def manual
-            token = token_cache.cached_delegated_token
+            log.debug('PresencePoller#manual starting')
+            token = delegated_token
             unless token
               log.debug('No token available, skipping presence poll')
               return
@@ -56,7 +53,16 @@ module Legion
               @last_presence = current
             end
           rescue StandardError => e
-            log.error("PresencePoller: #{e.message}")
+            handle_exception(e, level: :error, operation: 'PresencePoller#manual')
+          end
+
+          private
+
+          def delegated_token
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            handle_exception(e, level: :warn, operation: 'PresencePoller#delegated_token')
+            nil
           end
         end
       end

@@ -84,6 +84,9 @@ unless defined?(Legion::Extensions::Absorbers)
         end
 
         class Base
+          include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
+                                                      Legion::Extensions::Helpers.const_defined?(:Lex, false)
+
           attr_accessor :job_id, :runners
 
           class << self
@@ -130,6 +133,24 @@ unless defined?(Legion::Extensions::Absorbers)
     end
   end
 end
+
+# Stub Legion::Extensions::Definitions so `definition :method_name, **opts`
+# calls inside runner modules are no-ops in the test environment (the real
+# implementation is auto-extended by builders/runners.rb at runtime).
+unless defined?(Legion::Extensions::Definitions)
+  module Legion
+    module Extensions
+      module Definitions
+        def definition(_method_name, **_opts); end
+      end
+    end
+  end
+end
+
+# Patch Module so every module/class has a no-op `definition` method.
+# This allows top-level `definition` DSL calls inside runner module bodies
+# to resolve at load time without the full Legion builders.
+Module.include(Legion::Extensions::Definitions)
 
 require 'legion/extensions/microsoft_teams'
 

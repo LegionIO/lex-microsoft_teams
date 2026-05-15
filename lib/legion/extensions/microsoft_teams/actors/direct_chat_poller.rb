@@ -30,16 +30,13 @@ module Legion
             defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               Legion.const_defined?(:Transport, false)
           rescue StandardError => e
-            log.debug("DirectChatPoller#enabled?: #{e.message}")
+            handle_exception(e, level: :debug, operation: 'DirectChatPoller#enabled?')
             false
           end
 
-          def token_cache
-            Legion::Extensions::MicrosoftTeams::Helpers::TokenCache.instance
-          end
-
           def manual
-            token = token_cache.cached_delegated_token
+            log.debug('DirectChatPoller#manual starting')
+            token = delegated_token
             unless token
               log.debug('No token available, skipping poll')
               return
@@ -47,21 +44,23 @@ module Legion
 
             log.info('Polling bot DM chats')
             chats = fetch_bot_chats(token: token)
-            log.info("Found #{chats.length} bot chats")
+            log.info("DirectChatPoller found #{chats.length} bot chats")
             chats.each { |chat| poll_chat(chat_id: chat[:id], token: token) }
           rescue StandardError => e
-            log.error("DirectChatPoller: #{e.message}")
+            handle_exception(e, level: :error, operation: 'DirectChatPoller#manual')
           end
 
           private
 
           def fetch_bot_chats(token:)
+            log.debug('DirectChatPoller#fetch_bot_chats')
             conn = graph_connection(token: token)
             response = conn.get('me/chats', { '$filter' => "chatType eq 'oneOnOne'", '$top' => 50 })
             response.body&.dig('value') || []
           end
 
           def poll_chat(chat_id:, token:)
+            log.debug("DirectChatPoller#poll_chat chat_id=#{chat_id}")
             conn = graph_connection(token: token)
             response = conn.get("chats/#{chat_id}/messages",
                                 { '$top' => 10, '$orderby' => 'createdDateTime desc' })
@@ -71,7 +70,7 @@ module Legion
             new_msgs.reject! { |m| m[:from_id] == @bot_id }
             return if new_msgs.empty?
 
-            log.info("Chat #{chat_id}: #{new_msgs.length} new message(s)")
+            log.info("DirectChatPoller chat #{chat_id}: #{new_msgs.length} new message(s)")
             new_msgs.each { |msg| publish_message(msg.merge(chat_id: chat_id, mode: :direct)) }
             update_hwm_from_messages(chat_id: chat_id, messages: new_msgs)
           end
@@ -79,7 +78,7 @@ module Legion
           def publish_message(payload)
             Legion::Extensions::MicrosoftTeams::Transport::Messages::TeamsMessage.new.publish(payload)
           rescue StandardError => e
-            log.error("DirectChatPoller publish failed: #{e.message}")
+            handle_exception(e, level: :error, operation: 'DirectChatPoller#publish_message')
           end
 
           def normalize_messages(messages)
@@ -99,6 +98,13 @@ module Legion
             return nil unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :bot, :bot_id)
+          end
+
+          def delegated_token
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+          rescue StandardError => e
+            handle_exception(e, level: :warn, operation: 'DirectChatPoller#delegated_token')
+            nil
           end
 
           def settings_interval(key, default)

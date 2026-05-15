@@ -43,7 +43,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::DirectChatPoller do
     expect(actor.runner_function).to eq('handle_message')
   end
 
-  it 'exposes a token_cache' do
-    expect(actor).to respond_to(:token_cache)
+  it 'exposes a delegated_token private method' do
+    expect(actor.private_methods).to include(:delegated_token)
   end
 end

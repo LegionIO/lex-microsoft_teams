@@ -58,7 +58,8 @@ module Legion
             when 0x00 then block
             when 0x01 then Snappy.inflate(block)
             end
-          rescue Snappy::Error => _e
+          rescue Snappy::Error => e
+            warn "SSTableReader: snappy decompression failed at offset=#{offset}: #{e.message}"
             nil
           end
 
