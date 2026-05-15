@@ -9,15 +9,45 @@ module Legion
         module Teams
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            ['team', 'teams', 'joined teams', 'my teams']
+          end
+
+          definition :list_joined_teams,
+                     desc:          'List Teams the current user has joined',
+                     mcp_prefix:    'teams.list_joined_teams',
+                     mcp_category:  'teams_teams',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     trigger_words: ['my teams', 'joined teams', 'list teams', 'teams i belong to']
+
           def list_joined_teams(user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/joinedTeams")
             { result: response.body }
           end
 
+          definition :get_team,
+                     desc:          'Get details for a specific Team by ID',
+                     mcp_prefix:    'teams.get_team',
+                     mcp_category:  'teams_teams',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     inputs:        { properties: { team_id: { type: 'string' } }, required: ['team_id'] },
+                     trigger_words: ['team details', 'team info']
+
           def get_team(team_id:, **)
             response = graph_connection(**).get("teams/#{team_id}")
             { result: response.body }
           end
+
+          definition :list_team_members,
+                     desc:          'List members of a Team',
+                     mcp_prefix:    'teams.list_team_members',
+                     mcp_category:  'teams_teams',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { team_id: { type: 'string' } }, required: ['team_id'] },
+                     trigger_words: ['team members', 'who is in the team']
 
           def list_team_members(team_id:, **)
             response = graph_connection(**).get("teams/#{team_id}/members")

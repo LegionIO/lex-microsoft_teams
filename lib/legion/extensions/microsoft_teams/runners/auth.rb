@@ -9,6 +9,9 @@ module Legion
         module Auth
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          definition :acquire_token, mcp_exposed: false
+          definition :acquire_bot_token, mcp_exposed: false
+
           def acquire_token(tenant_id:, client_id:, client_secret:, scope: 'https://graph.microsoft.com/.default', **)
             response = oauth_connection(tenant_id: tenant_id).post('oauth2/v2.0/token', {
                                                                      grant_type:    'client_credentials',

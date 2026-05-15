@@ -9,16 +9,52 @@ module Legion
         module Chats
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            ['chat', 'chats', 'conversation', 'dm', 'direct message']
+          end
+
+          definition :list_chats,
+                     desc:          'List Teams chats for the current user',
+                     mcp_prefix:    'teams.list_chats',
+                     mcp_category:  'teams_chat',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     trigger_words: ['list chats', 'my chats', 'conversations']
+
           def list_chats(user_id: 'me', top: 50, **)
             params = { '$top' => top }
             response = graph_connection(**).get("#{user_path(user_id)}/chats", params)
             { result: response.body }
           end
 
+          definition :get_chat,
+                     desc:          'Get metadata for a specific Teams chat by ID',
+                     mcp_prefix:    'teams.get_chat',
+                     mcp_category:  'teams_chat',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { chat_id: { type:        'string',
+                                                               description: 'The Teams chat ID (19:...@thread.v2)' } },
+                                      required:   ['chat_id'] },
+                     trigger_words: ['get chat', 'chat details', 'chat info']
+
           def get_chat(chat_id:, **)
             response = graph_connection(**).get("chats/#{chat_id}")
             { result: response.body }
           end
+
+          definition :create_chat,
+                     desc:          'Create a new 1:1 or group Teams chat',
+                     mcp_prefix:    'teams.create_chat',
+                     mcp_category:  'teams_chat',
+                     mcp_tier:      :elevated,
+                     idempotent:    false,
+                     inputs:        { properties: { members:   { type:        'array',
+                                                                 description: 'Array of user IDs or UPNs' },
+                                                    chat_type: { type:        'string',
+                                                                 description: 'oneOnOne or group' } },
+                                      required:   ['members'] },
+                     trigger_words: ['create chat', 'new chat', 'start chat', 'start conversation']
 
           def create_chat(members:, chat_type: 'oneOnOne', topic: nil, **)
             payload = { chatType: chat_type, members: members }
@@ -27,10 +63,30 @@ module Legion
             { result: response.body }
           end
 
+          definition :list_chat_members,
+                     desc:          'List members of a Teams chat',
+                     mcp_prefix:    'teams.list_chat_members',
+                     mcp_category:  'teams_chat',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { chat_id: { type: 'string' } }, required: ['chat_id'] },
+                     trigger_words: ['chat members', 'participants', 'who is in']
+
           def list_chat_members(chat_id:, **)
             response = graph_connection(**).get("chats/#{chat_id}/members")
             { result: response.body }
           end
+
+          definition :add_chat_member,
+                     desc:          'Add a member to a Teams chat',
+                     mcp_prefix:    'teams.add_chat_member',
+                     mcp_category:  'teams_chat',
+                     mcp_tier:      :elevated,
+                     idempotent:    false,
+                     inputs:        { properties: { chat_id: { type: 'string' },
+                                                    user_id: { type: 'string' } },
+                                      required:   %w[chat_id user_id] },
+                     trigger_words: ['add member', 'add to chat', 'invite to chat']
 
           def add_chat_member(chat_id:, user_id:, roles: ['owner'], **)
             payload = {

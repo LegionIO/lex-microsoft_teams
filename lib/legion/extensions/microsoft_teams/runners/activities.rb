@@ -9,6 +9,23 @@ module Legion
         module Activities
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            ['activity', 'notification', 'activity feed']
+          end
+
+          definition :send_activity_notification,
+                     desc:          'Send an activity notification to a Teams user',
+                     mcp_prefix:    'teams.send_activity_notification',
+                     mcp_category:  'teams_activities',
+                     mcp_tier:      :elevated,
+                     idempotent:    false,
+                     inputs:        { properties: { topic:         { type:        'string',
+                                                                     description: 'Notification topic object' },
+                                                    activity_type: { type:        'string',
+                                                                     description: 'Activity type registered in app manifest' } },
+                                      required:   %w[topic activity_type] },
+                     trigger_words: ['send notification', 'activity notification', 'notify user']
+
           def send_activity_notification(topic:, activity_type:, user_id: 'me', preview_text: nil, **)
             payload = { topic: topic, activityType: activity_type }
             payload[:previewText] = preview_text if preview_text

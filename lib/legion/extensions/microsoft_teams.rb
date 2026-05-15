@@ -60,6 +60,10 @@ module Legion
     module MicrosoftTeams
       extend Legion::Extensions::Core if Legion::Extensions.const_defined? :Core, false
 
+      def self.trigger_words
+        %w[teams microsoft_teams microsoftteams microsoft-teams msteams ms-teams]
+      end
+
       def self.remote_invocable?
         false
       end

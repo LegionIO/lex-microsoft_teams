@@ -9,15 +9,50 @@ module Legion
         module Meetings
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            ['meeting', 'meetings', 'calendar', 'online meeting']
+          end
+
+          definition :list_meetings,
+                     desc:          'List online meetings for the current user',
+                     mcp_prefix:    'teams.list_meetings',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     trigger_words: ['list meetings', 'my meetings', 'upcoming meetings']
+
           def list_meetings(user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings")
             { result: response.body }
           end
 
+          definition :get_meeting,
+                     desc:          'Get details for a specific online meeting',
+                     mcp_prefix:    'teams.get_meeting',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
+                     trigger_words: ['get meeting', 'meeting details', 'meeting info']
+
           def get_meeting(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}")
             { result: response.body }
           end
+
+          definition :create_meeting,
+                     desc:          'Create a new online meeting',
+                     mcp_prefix:    'teams.create_meeting',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :elevated,
+                     idempotent:    false,
+                     inputs:        { properties: { subject:    { type: 'string' },
+                                                    start_time: { type:        'string',
+                                                                  description: 'ISO 8601 start datetime' },
+                                                    end_time:   { type:        'string',
+                                                                  description: 'ISO 8601 end datetime' } },
+                                      required:   %w[subject start_time end_time] },
+                     trigger_words: ['create meeting', 'new meeting', 'schedule meeting']
 
           def create_meeting(subject:, start_time:, end_time:, user_id: 'me', **)
             payload = {
@@ -29,6 +64,15 @@ module Legion
             { result: response.body }
           end
 
+          definition :update_meeting,
+                     desc:          'Update an existing online meeting',
+                     mcp_prefix:    'teams.update_meeting',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :elevated,
+                     idempotent:    false,
+                     inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
+                     trigger_words: ['update meeting', 'reschedule meeting', 'edit meeting']
+
           def update_meeting(meeting_id:, user_id: 'me', subject: nil, start_time: nil, end_time: nil, **)
             payload = {}
             payload[:subject] = subject if subject
@@ -38,10 +82,30 @@ module Legion
             { result: response.body }
           end
 
+          definition :delete_meeting,
+                     desc:          'Delete an online meeting',
+                     mcp_prefix:    'teams.delete_meeting',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :high,
+                     idempotent:    false,
+                     inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
+                     trigger_words: ['delete meeting', 'cancel meeting', 'remove meeting']
+
           def delete_meeting(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).delete("#{user_path(user_id)}/onlineMeetings/#{meeting_id}")
             { result: response.body }
           end
+
+          definition :get_meeting_by_join_url,
+                     desc:          'Look up a meeting by its join URL',
+                     mcp_prefix:    'teams.get_meeting_by_join_url',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     inputs:        { properties: { join_url: { type:        'string',
+                                                                description: 'Teams join URL' } },
+                                      required:   ['join_url'] },
+                     trigger_words: ['meeting by url', 'join url', 'find meeting']
 
           def get_meeting_by_join_url(join_url:, user_id: 'me', **)
             params = { '$filter' => "joinWebUrl eq '#{join_url.gsub("'", "''")}'" }
@@ -49,15 +113,43 @@ module Legion
             { result: response.body }
           end
 
+          definition :list_attendance_reports,
+                     desc:          'List attendance reports for an online meeting',
+                     mcp_prefix:    'teams.list_attendance_reports',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { meeting_id: { type: 'string' } }, required: ['meeting_id'] },
+                     trigger_words: ['attendance report', 'who attended', 'meeting attendance']
+
           def list_attendance_reports(meeting_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/attendanceReports")
             { result: response.body }
           end
 
+          definition :get_attendance_report,
+                     desc:          'Get a specific attendance report for an online meeting',
+                     mcp_prefix:    'teams.get_attendance_report',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { meeting_id: { type: 'string' },
+                                                    report_id:  { type: 'string' } },
+                                      required:   %w[meeting_id report_id] },
+                     trigger_words: ['get attendance report', 'attendance details']
+
           def get_attendance_report(meeting_id:, report_id:, user_id: 'me', **)
             response = graph_connection(**).get("#{user_path(user_id)}/onlineMeetings/#{meeting_id}/attendanceReports/#{report_id}")
             { result: response.body }
           end
+
+          definition :resolve_meeting,
+                     desc:          'Resolve a Teams meeting from a chat thread ID or join URL',
+                     mcp_prefix:    'teams.resolve_meeting',
+                     mcp_category:  'teams_meetings',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     trigger_words: ['resolve meeting', 'find meeting from chat', 'meeting from thread']
 
           def resolve_meeting(chat_thread_id: nil, join_url: nil, user_id: 'me', **)
             return { error: 'provide chat_thread_id or join_url' } unless chat_thread_id || join_url

@@ -16,6 +16,13 @@ module Legion
           include Helpers::HighWaterMark
           extend self
 
+          definition :full_ingest, mcp_exposed: false
+          definition :ingest_self, mcp_exposed: false
+          definition :ingest_people, mcp_exposed: false
+          definition :ingest_conversations, mcp_exposed: false
+          definition :ingest_teams_and_meetings, mcp_exposed: false
+          definition :incremental_sync, mcp_exposed: false
+
           def full_ingest(token:, top_people: 10, message_depth: 50, **)
             log.debug("ProfileIngest#full_ingest top_people=#{top_people} message_depth=#{message_depth}")
             self_result = ingest_self(token: token)

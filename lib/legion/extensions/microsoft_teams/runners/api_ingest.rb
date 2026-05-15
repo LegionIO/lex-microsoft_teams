@@ -16,6 +16,8 @@ module Legion
           include Helpers::HighWaterMark
           extend self
 
+          definition :ingest_api, mcp_exposed: false
+
           # Fetch top contacts via /me/people, then pull recent messages from
           # their 1:1 chats. Stores each message as an individual memory trace
           # (same format as CacheIngest) with dedup by content hash.

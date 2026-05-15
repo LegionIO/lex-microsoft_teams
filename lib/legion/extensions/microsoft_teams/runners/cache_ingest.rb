@@ -7,6 +7,8 @@ module Legion
     module MicrosoftTeams
       module Runners
         module CacheIngest
+          definition :ingest_cache, mcp_exposed: false
+
           # Ingest Teams messages from local cache into lex-memory traces.
           # Returns count of new traces stored and the latest compose_time seen.
           def ingest_cache(since: nil, skip_bots: true, db_path: nil, imprint_active: false, **)

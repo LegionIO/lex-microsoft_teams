@@ -9,10 +9,34 @@ module Legion
         module CallEvents
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            ['call', 'calls', 'call session', 'pstn']
+          end
+
+          definition :list_call_sessions,
+                     desc:          'List sessions for a Teams call record',
+                     mcp_prefix:    'teams.list_call_sessions',
+                     mcp_category:  'teams_calls',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { call_id: { type: 'string' } }, required: ['call_id'] },
+                     trigger_words: ['call sessions', 'list sessions', 'call record sessions']
+
           def list_call_sessions(call_id:, **)
             response = graph_connection(**).get("communications/callRecords/#{call_id}/sessions")
             { result: response.body }
           end
+
+          definition :get_call_session,
+                     desc:          'Get a specific session from a Teams call record',
+                     mcp_prefix:    'teams.get_call_session',
+                     mcp_category:  'teams_calls',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { call_id:    { type: 'string' },
+                                                    session_id: { type: 'string' } },
+                                      required:   %w[call_id session_id] },
+                     trigger_words: ['get call session', 'session details']
 
           def get_call_session(call_id:, session_id:, **)
             response = graph_connection(**).get(
@@ -20,6 +44,17 @@ module Legion
             )
             { result: response.body }
           end
+
+          definition :list_session_segments,
+                     desc:          'List segments for a session in a Teams call record',
+                     mcp_prefix:    'teams.list_session_segments',
+                     mcp_category:  'teams_calls',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     inputs:        { properties: { call_id:    { type: 'string' },
+                                                    session_id: { type: 'string' } },
+                                      required:   %w[call_id session_id] },
+                     trigger_words: ['session segments', 'call segments', 'pstn segments']
 
           def list_session_segments(call_id:, session_id:, **)
             response = graph_connection(**).get(

@@ -9,6 +9,18 @@ module Legion
         module People
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            %w[people profile contacts colleagues coworkers]
+          end
+
+          definition :get_profile,
+                     desc:          'Get the Microsoft Graph profile for a user',
+                     mcp_prefix:    'teams.get_profile',
+                     mcp_category:  'teams_people',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     trigger_words: ['my profile', 'who am i', 'user profile', 'get profile']
+
           def get_profile(user_id: 'me', **)
             log.debug("People#get_profile user_id=#{user_id}")
             response = graph_connection(**).get(user_path(user_id).to_s)
@@ -17,6 +29,14 @@ module Legion
             handle_exception(e, level: :error, operation: 'People#get_profile', user_id: user_id)
             { error: e.message }
           end
+
+          definition :list_people,
+                     desc:          'List people relevant to the current user (colleagues, contacts)',
+                     mcp_prefix:    'teams.list_people',
+                     mcp_category:  'teams_people',
+                     mcp_tier:      :standard,
+                     idempotent:    true,
+                     trigger_words: ['people around me', 'colleagues', 'contacts', 'list people']
 
           def list_people(user_id: 'me', top: 25, **)
             log.debug("People#list_people user_id=#{user_id} top=#{top}")

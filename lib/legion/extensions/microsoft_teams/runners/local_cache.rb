@@ -7,6 +7,10 @@ module Legion
     module MicrosoftTeams
       module Runners
         module LocalCache
+          definition :extract_local_messages, mcp_exposed: false
+          definition :local_cache_available?, mcp_exposed: false
+          definition :local_cache_stats, mcp_exposed: false
+
           # Extract messages from the local Teams LevelDB cache.
           # Works offline without Graph API credentials.
           def extract_local_messages(db_path: nil, since: nil, channels: nil, senders: nil, skip_bots: true, **)

@@ -13,6 +13,10 @@ module Legion
           TEAMS_SELECT = 'id,displayName,mail'
           OWNERS_SELECT = 'id,displayName,mail'
 
+          definition :sync_owners, mcp_exposed: false
+          definition :detect_orphans, mcp_exposed: false
+          definition :get_team_owners, mcp_exposed: false
+
           def sync_owners(team_id: nil, **)
             log.debug("Ownership#sync_owners team_id=#{team_id.inspect}")
             conn = graph_connection(**)

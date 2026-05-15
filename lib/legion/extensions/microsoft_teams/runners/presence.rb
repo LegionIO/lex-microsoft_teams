@@ -9,6 +9,18 @@ module Legion
         module Presence
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
+          def self.trigger_words
+            ['presence', 'availability', 'status', 'online status']
+          end
+
+          definition :get_presence,
+                     desc:          'Get the presence/availability status for a user',
+                     mcp_prefix:    'teams.get_presence',
+                     mcp_category:  'teams_presence',
+                     mcp_tier:      :low,
+                     idempotent:    true,
+                     trigger_words: ['presence', 'availability', 'status', 'am i online', 'online status']
+
           def get_presence(user_id: 'me', **)
             log.debug("Presence#get_presence user_id=#{user_id}")
             conn = graph_connection(**)
