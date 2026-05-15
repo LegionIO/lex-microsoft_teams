@@ -42,7 +42,7 @@ module Legion
           end
 
           def graph_token
-            @graph_token ||= Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
+            Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
             log.warn("graph_token unavailable: #{e.message}")
             nil
