@@ -7,6 +7,8 @@ module Legion
     module MicrosoftTeams
       module Runners
         module CacheIngest
+          extend Legion::Extensions::Definitions
+
           definition :ingest_cache, mcp_exposed: false
 
           # Ingest Teams messages from local cache into lex-memory traces.

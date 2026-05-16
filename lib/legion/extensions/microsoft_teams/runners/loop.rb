@@ -8,6 +8,7 @@ module Legion
     module MicrosoftTeams
       module Runners
         module Loop
+          extend Legion::Extensions::Definitions
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
           include Legion::JSON::Helper
 
