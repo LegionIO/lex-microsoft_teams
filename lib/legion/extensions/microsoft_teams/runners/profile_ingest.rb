@@ -11,6 +11,7 @@ module Legion
     module MicrosoftTeams
       module Runners
         module ProfileIngest
+          extend Legion::Extensions::Definitions
           include Helpers::Client
           include Helpers::PermissionGuard
           include Helpers::HighWaterMark

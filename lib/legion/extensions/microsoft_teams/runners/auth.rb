@@ -7,6 +7,7 @@ module Legion
     module MicrosoftTeams
       module Runners
         module Auth
+          extend Legion::Extensions::Definitions
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           definition :acquire_token, mcp_exposed: false
