@@ -1,8 +1,13 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.48] - 2026-05-18
+### Added
+- Definition DSL declarations across all runners for proper tool discovery and MCP exposure
+- Fix transformer API: map definition[:prompt] to transform(transformation:) for lex-transformer 0.3.8
+
 ### Fixed
 - Bot response and observation extraction now pass explicit system and user messages to native `Legion::LLM.chat` dispatch instead of routing through the legacy nil-input `llm_chat` helper path.
+- Runner modules that declare `definition` now explicitly `extend Legion::Extensions::Definitions` before those DSL calls, fixing `NoMethodError: undefined method 'definition'` during Legion extension boot.
 
 ## [0.6.45] - 2026-04-23
 
