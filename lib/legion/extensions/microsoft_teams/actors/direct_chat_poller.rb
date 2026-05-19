@@ -27,7 +27,6 @@ module Legion
           def generate_task?  = false
 
           def enabled?
-            return false
             defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               Legion.const_defined?(:Transport, false)
           rescue StandardError => e

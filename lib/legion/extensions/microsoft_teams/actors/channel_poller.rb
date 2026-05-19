@@ -36,7 +36,6 @@ module Legion
           end
 
           def enabled?
-            false
             # channel_setting(:enabled, false) == true
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'ChannelPoller#enabled?')

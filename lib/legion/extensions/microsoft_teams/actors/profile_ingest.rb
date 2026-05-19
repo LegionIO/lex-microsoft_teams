@@ -21,7 +21,6 @@ module Legion
           end
 
           def enabled?
-            return false
             defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
