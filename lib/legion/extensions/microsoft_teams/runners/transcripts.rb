@@ -7,6 +7,7 @@ module Legion
     module MicrosoftTeams
       module Runners
         module Transcripts
+          extend Legion::Extensions::Definitions
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           CONTENT_TYPES = {

@@ -23,6 +23,7 @@ module Legion
           end
 
           def enabled?
+            return false
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'PresencePoller#enabled?')

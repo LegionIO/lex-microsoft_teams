@@ -26,6 +26,7 @@ module Legion
                      trigger_words: %w[messages history read]
 
           def list_chat_messages(chat_id:, top: 50, **)
+            log.debug "list_chat_messages(chat_id: #{chat_id}, top: #{top})"
             params = { '$top' => top }
             response = graph_connection(**).get("chats/#{chat_id}/messages", params)
             { result: response.body }
@@ -43,6 +44,7 @@ module Legion
                      trigger_words: %w[message fetch]
 
           def get_chat_message(chat_id:, message_id:, **)
+            log.debug "get_chat_message(chat_id: #{chat_id}, message_id: #{message_id})"
             response = graph_connection(**).get("chats/#{chat_id}/messages/#{message_id}")
             { result: response.body }
           end
@@ -60,6 +62,7 @@ module Legion
                      trigger_words: %w[send post write]
 
           def send_chat_message(chat_id:, content:, content_type: 'text', attachments: [], **)
+            log.debug "send_chat_message(chat_id: #{chat_id}, content: #{content}, content_type: #{content_type})"
             payload = { body: { contentType: content_type, content: content } }
             payload[:attachments] = attachments unless attachments.empty?
             response = graph_connection(**).post("chats/#{chat_id}/messages", payload)
@@ -79,6 +82,7 @@ module Legion
                      trigger_words: %w[reply respond]
 
           def reply_to_chat_message(chat_id:, message_id:, content:, content_type: 'text', **)
+            log.debug "reply_to_chat_message(chat_id: #{chat_id}, message_id: #{message_id}, content: #{content}, content_type: #{content_type})"
             payload = { body: { contentType: content_type, content: content } }
             response = graph_connection(**).post("chats/#{chat_id}/messages/#{message_id}/replies", payload)
             { result: response.body }
@@ -96,6 +100,7 @@ module Legion
                      trigger_words: %w[replies thread]
 
           def list_message_replies(chat_id:, message_id:, top: 50, **)
+            log.debug "list_message_replies(chat_id: #{chat_id}, message_id: #{message_id}, top: #{top})"
             params = { '$top' => top }
             response = graph_connection(**).get("chats/#{chat_id}/messages/#{message_id}/replies", params)
             { result: response.body }

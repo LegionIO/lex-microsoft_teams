@@ -7,6 +7,8 @@ module Legion
     module MicrosoftTeams
       module Runners
         module LocalCache
+          extend Legion::Extensions::Definitions
+
           definition :extract_local_messages, mcp_exposed: false
           definition :local_cache_available?, mcp_exposed: false
           definition :local_cache_stats, mcp_exposed: false

@@ -26,6 +26,7 @@ module Legion
           def generate_task?  = false
 
           def enabled?
+            return false
             return false unless defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot)
             return false unless Legion.const_defined?(:Transport, false)
             return false unless defined?(Legion::Settings)

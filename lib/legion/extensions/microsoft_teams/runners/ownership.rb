@@ -7,6 +7,7 @@ module Legion
     module MicrosoftTeams
       module Runners
         module Ownership
+          extend Legion::Extensions::Definitions
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           TEAMS_FILTER = "resourceProvisioningOptions/Any(x:x eq 'Team')"

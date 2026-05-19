@@ -7,6 +7,7 @@ module Legion
     module MicrosoftTeams
       module Runners
         module CallEvents
+          extend Legion::Extensions::Definitions
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
