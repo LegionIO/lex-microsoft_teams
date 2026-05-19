@@ -23,6 +23,7 @@ module Legion
                      trigger_words: %w[chats conversations]
 
           def list_chats(user_id: 'me', top: 50, **)
+            log.debug "list_chats(user_id: #{user_id}, top: #{top})"
             params = { '$top' => top }
             response = graph_connection(**).get("#{user_path(user_id)}/chats", params)
             { result: response.body }
@@ -40,6 +41,7 @@ module Legion
                      trigger_words: %w[chat details]
 
           def get_chat(chat_id:, **)
+            log.debug("get_chat(chat_id: #{chat_id}, **)")
             response = graph_connection(**).get("chats/#{chat_id}")
             { result: response.body }
           end
@@ -74,6 +76,7 @@ module Legion
                      trigger_words: %w[members participants]
 
           def list_chat_members(chat_id:, **)
+            log.debug "list_chat_members(chat_id: #{chat_id})"
             response = graph_connection(**).get("chats/#{chat_id}/members")
             { result: response.body }
           end

@@ -7,6 +7,7 @@ module Legion
     module MicrosoftTeams
       module Runners
         module Files
+          extend Legion::Extensions::Definitions
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
           def self.trigger_words
@@ -22,6 +23,7 @@ module Legion
                      trigger_words: %w[files drive onedrive]
 
           def list_drive_items(user_id: 'me', **)
+            log.debug "list_drive_items(user_id: #{user_id})"
             response = graph_connection(**).get("#{user_path(user_id)}/drive/root/children")
             { result: response.body }
           end
@@ -36,6 +38,7 @@ module Legion
                      trigger_words: %w[file item]
 
           def get_drive_item(item_id:, user_id: 'me', **)
+            log.debug "get_drive_item(item_id: #{item_id}), user_id: #{user_id}"
             response = graph_connection(**).get("#{user_path(user_id)}/drive/items/#{item_id}")
             { result: response.body }
           end
@@ -50,6 +53,7 @@ module Legion
                      trigger_words: %w[download content read]
 
           def get_drive_item_content(item_id:, user_id: 'me', **)
+            log.debug "get_drive_item_content(item_id: #{item_id}, user_id: #{user_id})"
             response = graph_connection(**).get("#{user_path(user_id)}/drive/items/#{item_id}/content")
             { result: response.body }
           end
@@ -64,6 +68,7 @@ module Legion
                      trigger_words: %w[sharepoint documents team]
 
           def list_team_drive_items(team_id:, **)
+            log.debug "list_team_drive_items(team_id: #{team_id})"
             response = graph_connection(**).get("teams/#{team_id}/drive/root/children")
             { result: response.body }
           end

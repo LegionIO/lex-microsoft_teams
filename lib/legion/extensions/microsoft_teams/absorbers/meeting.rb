@@ -134,7 +134,8 @@ module Legion
                 tags:         ['meeting', 'transcript', subject],
                 source_file:  "teams://meetings/#{meeting_id}/transcripts/#{transcript_id}",
                 heading:      "Transcript: #{subject}",
-                content_type: 'meeting_transcript'
+                content_type: 'meeting_transcript',
+                access_scope: 'private'
               )
               results[:chunks] += 1
             end
@@ -174,7 +175,8 @@ module Legion
               tags:         ['meeting', 'ai-insight', 'action-item', subject],
               source_file:  "teams://meetings/#{meeting_id}/insights/#{insight_id}",
               heading:      "AI Insight: #{subject}",
-              content_type: 'meeting_insight'
+              content_type: 'meeting_insight',
+              access_scope: 'private'
             )
             results[:chunks] += 1
           end

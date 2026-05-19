@@ -241,7 +241,13 @@ module Legion
 
             if defined?(Legion::Extensions::Transformer::Client)
               client = Legion::Extensions::Transformer::Client.new
-              result = client.transform(text: text, **definition)
+              result = client.transform(
+                payload:        text,
+                transformation: definition[:prompt],
+                schema:         definition[:schema],
+                engine_options: definition[:engine_options] || {},
+                name:           definition[:name]
+              )
               result[:result] || result[:error] ? nil : result
             elsif defined?(Legion::LLM)
               llm_ask(message: "#{definition[:prompt]}\n\nConversation with #{peer_name}:\n#{text}")
