@@ -327,6 +327,7 @@ module Legion
                 source_agent:    'teams-api-ingest',
                 source_provider: 'microsoft',
                 source_channel:  'teams_graph_api',
+                access_scope:    'private',
                 context:         { person: person_name, message_count: texts.length }
               )
               ingested += 1 if result[:success]
@@ -356,6 +357,7 @@ module Legion
                 source_agent:    'teams-entity-extractor',
                 source_provider: 'microsoft',
                 source_channel:  'teams_graph_api',
+                access_scope:    'private',
                 context:         { entity_name: entity[:name], entity_type: entity[:type],
                                    confidence: entity[:confidence], extracted_from: person_name }
               )

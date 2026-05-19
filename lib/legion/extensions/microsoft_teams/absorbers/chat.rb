@@ -116,7 +116,8 @@ module Legion
               tags:         ['teams', 'chat', 'messages', topic],
               source_file:  "teams://chats/#{chat_id}/messages",
               heading:      "Chat: #{topic}",
-              content_type: 'teams_chat_thread'
+              content_type: 'teams_chat_thread',
+              access_scope: 'private'
             )
             results[:chunks] += 1
             log.info("Chat#ingest_messages stored #{lines.length} lines for chat_id=#{chat_id}")

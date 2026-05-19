@@ -168,7 +168,8 @@ module Legion
               tags:         ['teams', 'channel', 'thread', channel_name],
               source_file:  "teams://teams/#{team_id}/channels/#{channel_id}/messages/#{msg_id}",
               heading:      "Channel Thread: #{channel_name}#{" — #{subject}" if subject}",
-              content_type: 'teams_channel_thread'
+              content_type: 'teams_channel_thread',
+              access_scope: 'private'
             )
             results[:chunks] += 1
           rescue StandardError => e
