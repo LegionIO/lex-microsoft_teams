@@ -1,15 +1,21 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.51] - 2026-05-27
 ### Added
 - `Faraday::RetryAfter` middleware honoring `Retry-After` per RFC 9110 §10.2.3 (originally RFC 7231 §7.1.3) in both delta-seconds and HTTP-date forms. Retries HTTP 429 by default; 503/504 opt-in. Bounded by `max_retries` and cumulative `max_wait`; ±jitter on advertised wait to avoid thundering-herd. Configurable via `microsoft_teams.client.retry.{max_retries,max_wait,jitter,fallback_wait,retry_statuses}`; `fetch` semantics preserve explicit falsey values.
 - `Errors::Throttled` exception with `status`, `retry_after` (nullable; `nil` distinguishes "no server guidance" from "retry immediately"), `retry_after_known?` predicate, `request`, and `attempts`.
 - `Faraday::RetryAfter.parse_header` shared class method (single source of truth for Retry-After parsing).
+- `default_settings` for all actors with explicit `enabled`, `interval`, and tuning knobs. Actors no longer need nil guards — values are guaranteed by the extension settings merge on boot. Defaults: `api_ingest` 3600s, `incremental_sync` 900s, `presence_poller` disabled, `channel_poller` disabled, `direct_chat_poller` disabled, `observed_chat_poller` disabled, `meeting_ingest` 900s, `profile_ingest` enabled (once on boot).
+- `Helpers::GraphCache` module — `cached_graph_get` wraps Graph API calls with `Legion::Cache` TTL-based caching. Supports `shared: true` for resource-scoped endpoints (e.g., `/chats/{id}/members` — same data for all participants) vs user-scoped for `/me/*` endpoints. Cache keys incorporate the process identity UUID to prevent cross-user leakage.
 
 ### Fixed
 - Stuck or chatty consumers no longer brown out other users on the same Entra app registration's Graph quota. The `RetryAfter` middleware now raises `Errors::Throttled` **centrally on exhaustion** — every consumer of `graph_connection` and `bot_connection` gets the typed event without per-callsite handling. Fixes #18.
 - `Helpers::GraphClient#handle_graph_response` retains a defensive 429/503/504 branch that raises `Errors::Throttled` for callers that build a Faraday connection without the middleware (custom tests, ad-hoc tooling).
 - Logger acquisition failures no longer silently drop retry telemetry — falls back to `Legion::Logging` unconditionally; loss of those signals was how the original outage went undiagnosed for days.
+- **O(N×M) member scan eliminated** — `ProfileIngest#find_chat_for_person` and `ApiIngest#match_chat_to_person` previously called `GET /chats/{id}/members` for every chat × every person (up to 500+ calls per tick). Replaced with `build_chat_member_index` that fetches members once per chat and builds an in-memory lookup hash. Reduces ~514 calls/tick to ~50 for `IncrementalSync`; ~7,500 calls/tick to ~65 for `ApiIngest`.
+- `IncrementalSync` interval raised from 120s to 900s (was the single largest source of sustained Graph pressure).
+- `ApiIngest` interval raised from 1800s to 3600s.
+- Actors that were accidentally re-enabled by `952607c` (rubocop removed `return false` guards) are now properly gated by `settings[:actor_name][:enabled]` — `presence_poller`, `channel_poller`, `direct_chat_poller`, and `observed_chat_poller` all default to `false`.
 
 ### Known follow-up
 - Actors (`*_poller.rb`, `meeting_ingest`, `profile_ingest`) still catch `Errors::Throttled` via the generic `rescue StandardError` block but do not yet *defer their next scheduled run* using the carried `retry_after`. To be addressed in a follow-up issue.
