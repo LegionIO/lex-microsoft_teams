@@ -73,14 +73,27 @@ module Legion
                   headers['X-Ms-Throttle-Limit-Percentage']
             return unless raw
 
-            percentage = raw.to_f / 100.0
+            percentage = raw.to_f
             return unless percentage >= @soft_percentage
 
-            ttl = @soft_ttl
             path = request_path(env)
-            @logger&.warn("[throttle_circuit] soft circuit: throttle=#{(percentage * 100).round}% " \
-                          "path=#{path} ttl=#{ttl}s")
-            set_circuit(ttl: ttl)
+            log_throttle_diagnostics(headers, path: path, percentage: percentage)
+            set_circuit(ttl: @soft_ttl)
+          end
+
+          def log_throttle_diagnostics(headers, path:, percentage:)
+            scope = headers['x-ms-throttle-scope'] || headers['X-Ms-Throttle-Scope']
+            info = headers['x-ms-throttle-information'] || headers['X-Ms-Throttle-Information']
+            ru = headers['x-ms-resource-unit'] || headers['X-Ms-Resource-Unit']
+            req_id = headers['request-id'] || headers['Request-Id']
+            client_req_id = headers['client-request-id'] || headers['Client-Request-Id']
+
+            @logger&.warn(
+              "[throttle_circuit] soft circuit: percentage=#{percentage} " \
+              "path=#{path} ttl=#{@soft_ttl}s scope=#{scope} " \
+              "info=#{info} resource_unit=#{ru} " \
+              "request_id=#{req_id} client_request_id=#{client_req_id}"
+            )
           end
 
           def set_hard_circuit(path:, retry_after:)
@@ -89,7 +102,10 @@ module Legion
                   else
                     classified_ttl(path)
                   end
-            @logger&.warn("[throttle_circuit] hard circuit: path=#{path} ttl=#{ttl}s")
+            @logger&.error(
+              "[throttle_circuit] hard circuit: path=#{path} " \
+              "retry_after=#{retry_after} ttl=#{ttl}s"
+            )
             set_circuit(ttl: ttl)
           end
 
