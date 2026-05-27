@@ -3,6 +3,7 @@
 require 'json'
 require 'digest'
 require 'legion/extensions/microsoft_teams/helpers/client'
+require 'legion/extensions/microsoft_teams/helpers/graph_cache'
 require 'legion/extensions/microsoft_teams/helpers/permission_guard'
 require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
 
@@ -15,6 +16,7 @@ module Legion
           include Helpers::Client
           include Helpers::PermissionGuard
           include Helpers::HighWaterMark
+          include Helpers::GraphCache
           extend self
 
           definition :ingest_api, mcp_exposed: false
@@ -41,6 +43,7 @@ module Legion
 
             existing_hashes = load_existing_hashes
             conn = graph_connection(token: token)
+            chat_index = build_chat_member_index(conn: conn, chats: chats)
             stored = 0
             skipped = 0
             people_ingested = 0
@@ -48,7 +51,7 @@ module Legion
             person_texts = Hash.new { |h, k| h[k] = [] }
 
             people.each do |person|
-              chat = match_chat_to_person(chats: chats, person: person, conn: conn)
+              chat = find_chat_for_person_indexed(person: person, chat_index: chat_index)
               unless chat
                 log.debug("ApiIngest: no chat match for #{person['displayName']} " \
                           "(email=#{person.dig('scoredEmailAddresses', 0, 'address')}, id=#{person['id']})")
@@ -164,33 +167,42 @@ module Legion
             []
           end
 
-          def match_chat_to_person(chats:, person:, conn:)
-            email = person.dig('scoredEmailAddresses', 0, 'address')&.downcase
-            display_name = person['displayName']&.downcase
-            user_id = person['id']
-            return nil unless email || user_id || display_name
+          def build_chat_member_index(conn:, chats:)
+            by_email = {}
+            by_user_id = {}
+            by_name = {}
 
-            chats.find do |chat|
-              members_resp = conn.get("chats/#{chat['id']}/members")
-              members = (members_resp.body || {}).fetch('value', [])
-              members.any? do |m|
-                match_member?(m, email: email, user_id: user_id, display_name: display_name)
+            chats.each do |chat|
+              members = cached_graph_get(conn: conn, path: "chats/#{chat['id']}/members",
+                                         shared: true)
+                        .then { |body| (body || {}).fetch('value', []) }
+              members.each do |m|
+                email = m['email']&.downcase
+                alt_email = m.dig('additionalData', 'email')&.downcase
+                uid = m['userId']
+                name = m['displayName']&.downcase
+
+                by_email[email] ||= chat if email
+                by_email[alt_email] ||= chat if alt_email
+                by_user_id[uid] ||= chat if uid
+                by_name[name] ||= chat if name
               end
             end
+
+            { email: by_email, user_id: by_user_id, name: by_name }
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#match_chat_to_person')
-            nil
+            handle_exception(e, level: :warn, operation: 'ApiIngest#build_chat_member_index')
+            { email: {}, user_id: {}, name: {} }
           end
 
-          def match_member?(member, email:, user_id:, display_name:)
-            return true if email && member['email']&.downcase == email
-            return true if user_id && member['userId'] == user_id
-            return true if email && member.dig('additionalData', 'email')&.downcase == email
+          def find_chat_for_person_indexed(person:, chat_index:)
+            email = person.dig('scoredEmailAddresses', 0, 'address')&.downcase
+            user_id = person['id']
+            display_name = person['displayName']&.downcase
 
-            member_name = member['displayName']&.downcase
-            return true if display_name && member_name && member_name == display_name
-
-            false
+            chat_index[:email][email] ||
+              chat_index[:user_id][user_id] ||
+              chat_index[:name][display_name]
           end
 
           def fetch_chat_messages(conn:, chat_id:, depth: 50)

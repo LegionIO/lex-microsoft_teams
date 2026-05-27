@@ -7,8 +7,6 @@ module Legion
         class PresencePoller < Legion::Extensions::Actors::Every
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
-          DEFAULT_POLL_INTERVAL = 60
-
           def runner_class    = self.class
           def runner_function = 'manual'
           def run_now?        = false
@@ -17,13 +15,12 @@ module Legion
           def generate_task?  = false
 
           def time
-            return DEFAULT_POLL_INTERVAL unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :presence, :poll_interval) || DEFAULT_POLL_INTERVAL
+            Legion::Settings.dig(:microsoft_teams, :presence_poller, :interval)
           end
 
           def enabled?
-            Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
+            Legion::Settings.dig(:microsoft_teams, :presence_poller, :enabled) &&
+              Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'PresencePoller#enabled?')
             false

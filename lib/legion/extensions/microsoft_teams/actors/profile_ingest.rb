@@ -21,7 +21,8 @@ module Legion
           end
 
           def enabled?
-            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
+            Legion::Settings.dig(:microsoft_teams, :profile_ingest, :enabled) &&
+              defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'ProfileIngest#enabled?')
@@ -37,17 +38,11 @@ module Legion
             end
             log.info('ProfileIngest: token acquired, starting ingest')
 
-            settings = begin
-              Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError => e
-              handle_exception(e, level: :debug, operation: 'ProfileIngest#manual settings')
-              {}
-            end
-            ingest = settings[:ingest] || {}
+            pi_settings = Legion::Settings.dig(:microsoft_teams, :profile_ingest)
             runner_class.full_ingest(
               token:         token,
-              top_people:    ingest.fetch(:top_people, 10),
-              message_depth: ingest.fetch(:message_depth, 50)
+              top_people:    pi_settings[:top_people],
+              message_depth: pi_settings[:message_depth]
             )
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ProfileIngest#manual')

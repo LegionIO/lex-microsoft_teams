@@ -7,10 +7,6 @@ module Legion
         class ChannelPoller < Legion::Extensions::Actors::Every
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
-          DEFAULT_INTERVAL       = 60
-          DEFAULT_MAX_TEAMS      = 10
-          DEFAULT_MAX_CHANNELS   = 5
-
           def initialize(**opts)
             return unless enabled?
 
@@ -20,7 +16,7 @@ module Legion
 
           def runner_class    = self.class
           def runner_function = 'manual'
-          def time            = channel_setting(:poll_interval, DEFAULT_INTERVAL)
+          def time            = Legion::Settings.dig(:microsoft_teams, :channel_poller, :interval)
           def delay           = 300
           def run_now?        = false
           def use_runner?     = false
@@ -36,7 +32,7 @@ module Legion
           end
 
           def enabled?
-            # channel_setting(:enabled, false) == true
+            Legion::Settings.dig(:microsoft_teams, :channel_poller, :enabled)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'ChannelPoller#enabled?')
             false
@@ -148,11 +144,11 @@ module Legion
           end
 
           def max_teams
-            channel_setting(:max_teams, DEFAULT_MAX_TEAMS)
+            Legion::Settings.dig(:microsoft_teams, :channel_poller, :max_teams)
           end
 
           def max_channels_per_team
-            channel_setting(:max_channels_per_team, DEFAULT_MAX_CHANNELS)
+            Legion::Settings.dig(:microsoft_teams, :channel_poller, :max_channels_per_team)
           end
 
           def delegated_token
@@ -162,17 +158,8 @@ module Legion
             nil
           end
 
-          def channel_setting(key, default)
-            return default unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :channels, key) || default
-          rescue StandardError => e
-            handle_exception(e, level: :debug, operation: "ChannelPoller#channel_setting(#{key})")
-            default
-          end
-
           def channel_traces_enabled?
-            channel_setting(:store_traces, false) == true
+            Legion::Settings.dig(:microsoft_teams, :channel_poller, :store_traces) == true
           end
 
           def store_channel_message_trace(team_name:, channel_name:, msg:)

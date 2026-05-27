@@ -8,8 +8,6 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
           include Legion::Extensions::MicrosoftTeams::Helpers::HighWaterMark
 
-          POLL_INTERVAL = 30
-
           def initialize(**opts)
             return unless enabled?
 
@@ -18,7 +16,7 @@ module Legion
 
           def runner_class    = Legion::Extensions::MicrosoftTeams::Runners::Bot
           def runner_function = 'observe_message'
-          def time            = settings_interval(:observe_poll_interval, POLL_INTERVAL)
+          def time            = Legion::Settings.dig(:microsoft_teams, :observed_chat_poller, :interval)
           def delay           = 180
           def run_now?        = false
           def use_runner?     = false
@@ -26,11 +24,9 @@ module Legion
           def generate_task?  = false
 
           def enabled?
-            return false unless defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot)
-            return false unless Legion.const_defined?(:Transport, false)
-            return false unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :bot, :observe, :enabled) == true
+            Legion::Settings.dig(:microsoft_teams, :observed_chat_poller, :enabled) &&
+              defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
+              Legion.const_defined?(:Transport, false)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'ObservedChatPoller#enabled?')
             false
@@ -105,12 +101,6 @@ module Legion
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ObservedChatPoller#delegated_token')
             nil
-          end
-
-          def settings_interval(key, default)
-            return default unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :bot, key) || default
           end
         end
       end

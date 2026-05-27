@@ -2,6 +2,7 @@
 
 require 'json'
 require 'legion/extensions/microsoft_teams/helpers/client'
+require 'legion/extensions/microsoft_teams/helpers/graph_cache'
 require 'legion/extensions/microsoft_teams/helpers/permission_guard'
 require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
 require 'legion/extensions/microsoft_teams/helpers/transform_definitions'
@@ -15,6 +16,7 @@ module Legion
           include Helpers::Client
           include Helpers::PermissionGuard
           include Helpers::HighWaterMark
+          include Helpers::GraphCache
           extend self
 
           definition :full_ingest, mcp_exposed: false
@@ -106,15 +108,19 @@ module Legion
             return { ingested: 0 } if people.empty?
 
             conn = graph_connection(token: token)
-            chats_resp = conn.get('me/chats', { '$top' => 50 })
-            chats = (chats_resp.body || {}).fetch('value', [])
+            chats = cached_graph_get(conn: conn, path: 'me/chats',
+                                     params: { '$top' => 50 })
+                    .then { |body| (body || {}).fetch('value', []) }
+            one_on_ones = chats.select { |c| c['chatType'] == 'oneOnOne' }
+
+            email_to_chat = build_chat_member_index(conn: conn, chats: one_on_ones)
             ingested = 0
 
             people.first(top_people).each do |person|
-              email = person.dig('scoredEmailAddresses', 0, 'address')
+              email = person.dig('scoredEmailAddresses', 0, 'address')&.downcase
               next unless email
 
-              chat = find_chat_for_person(chats: chats, email: email, conn: conn)
+              chat = email_to_chat[email]
               next unless chat
 
               messages = fetch_new_messages(conn: conn, chat_id: chat['id'], depth: message_depth)
@@ -206,15 +212,21 @@ module Legion
 
           private
 
-          def find_chat_for_person(chats:, email:, conn:)
-            chats.select { |c| c['chatType'] == 'oneOnOne' }.find do |chat|
-              members_resp = conn.get("chats/#{chat['id']}/members")
-              members = (members_resp.body || {}).fetch('value', [])
-              members.any? { |m| m['email']&.downcase == email.downcase }
+          def build_chat_member_index(conn:, chats:)
+            index = {}
+            chats.each do |chat|
+              members = cached_graph_get(conn: conn, path: "chats/#{chat['id']}/members",
+                                         shared: true)
+                        .then { |body| (body || {}).fetch('value', []) }
+              members.each do |m|
+                email = m['email']&.downcase
+                index[email] = chat if email && !index.key?(email)
+              end
             end
+            index
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ProfileIngest#find_chat_for_person')
-            nil
+            handle_exception(e, level: :warn, operation: 'ProfileIngest#build_chat_member_index')
+            {}
           end
 
           def fetch_new_messages(conn:, chat_id:, depth: 50)

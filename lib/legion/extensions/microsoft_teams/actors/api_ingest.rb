@@ -27,12 +27,12 @@ module Legion
           end
 
           def time
-            interval = teams_settings.dig(:ingest, :api_interval) || 1800
-            interval.to_i
+            teams_settings.dig(:api_ingest, :interval)
           end
 
           def enabled?
-            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
+            teams_settings.dig(:api_ingest, :enabled) &&
+              defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces)
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#enabled?')
             false
@@ -46,13 +46,13 @@ module Legion
               return
             end
 
-            ingest = teams_settings[:ingest] || {}
+            ai_settings = teams_settings[:api_ingest]
             log.info('ApiIngest: starting Graph API ingest')
             result = runner_class.ingest_api(
               token:          token,
-              top_people:     ingest.fetch(:top_people, 15),
-              message_depth:  ingest.fetch(:message_depth, 50),
-              skip_bots:      ingest.fetch(:skip_bots, true),
+              top_people:     ai_settings[:top_people],
+              message_depth:  ai_settings[:message_depth],
+              skip_bots:      ai_settings[:skip_bots],
               imprint_active: imprint_active?
             )
             log.info("ApiIngest: #{result.inspect[0, 200]}")
@@ -75,12 +75,7 @@ module Legion
           end
 
           def teams_settings
-            return {} unless defined?(Legion::Settings)
-
-            Legion::Settings[:microsoft_teams] || {}
-          rescue StandardError => e
-            handle_exception(e, level: :warn, operation: 'ApiIngest#teams_settings')
-            {}
+            Legion::Settings[:microsoft_teams]
           end
 
           def imprint_active?

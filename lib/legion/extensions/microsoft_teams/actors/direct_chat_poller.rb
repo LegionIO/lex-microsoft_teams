@@ -8,8 +8,6 @@ module Legion
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
           include Legion::Extensions::MicrosoftTeams::Helpers::HighWaterMark
 
-          POLL_INTERVAL = 15
-
           def initialize(**opts)
             return unless enabled?
 
@@ -19,7 +17,7 @@ module Legion
 
           def runner_class    = Legion::Extensions::MicrosoftTeams::Runners::Bot
           def runner_function = 'handle_message'
-          def time            = settings_interval(:direct_poll_interval, POLL_INTERVAL)
+          def time            = Legion::Settings.dig(:microsoft_teams, :direct_chat_poller, :interval)
           def delay           = 60
           def run_now?        = false
           def use_runner?     = false
@@ -27,7 +25,8 @@ module Legion
           def generate_task?  = false
 
           def enabled?
-            defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
+            Legion::Settings.dig(:microsoft_teams, :direct_chat_poller, :enabled) &&
+              defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               Legion.const_defined?(:Transport, false)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'DirectChatPoller#enabled?')
@@ -105,12 +104,6 @@ module Legion
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'DirectChatPoller#delegated_token')
             nil
-          end
-
-          def settings_interval(key, default)
-            return default unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :bot, key) || default
           end
         end
       end
