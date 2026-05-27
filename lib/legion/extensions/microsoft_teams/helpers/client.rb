@@ -53,18 +53,22 @@ module Legion
           end
 
           # Tunable knobs for the Retry-After middleware. Reads from the lex
-          # settings under `microsoft_teams.client.retry.*` when available,
-          # with safe defaults that match the middleware constants. Wires the
-          # Lex logger in when present so retry / giveup events get structured
-          # logging like the rest of the gem.
+          # settings under `client.retry.*` (rooted at the gem's settings
+          # namespace via `Helpers::Lex`, so the full key is
+          # `microsoft_teams.client.retry.*`). Uses `fetch` rather than `||`
+          # so an operator who explicitly sets `max_retries: 0` to disable
+          # retries gets exactly that — not the default. Wires the Lex
+          # logger so retry / giveup events get structured logging.
           def retry_after_options
             cfg = retry_after_settings || {}
             {
-              max_retries:   cfg[:max_retries]   || cfg['max_retries']   || 3,
-              max_wait:      cfg[:max_wait]      || cfg['max_wait']      || 60.0,
-              jitter:        cfg[:jitter]        || cfg['jitter']        || 0.2,
-              fallback_wait: cfg[:fallback_wait] || cfg['fallback_wait'] || 1.0,
-              logger:        retry_after_logger
+              max_retries:    fetch_setting(cfg, :max_retries,    3),
+              max_wait:       fetch_setting(cfg, :max_wait,       60.0),
+              jitter:         fetch_setting(cfg, :jitter,         0.2),
+              fallback_wait:  fetch_setting(cfg, :fallback_wait,  1.0),
+              retry_statuses: fetch_setting(cfg, :retry_statuses,
+                                            Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter::DEFAULT_RETRY_STATUSES),
+              logger:         retry_after_logger
             }
           end
 
@@ -77,11 +81,26 @@ module Legion
             section.dig(:client, :retry) || section.dig('client', 'retry')
           end
 
+          # Read a setting under both symbol and string keys, falling back
+          # to `default` only when neither is present. `fetch` is required
+          # so falsey values (0, false, nil) survive — `||` would silently
+          # promote them to the default.
+          def fetch_setting(cfg, key, default)
+            cfg.fetch(key) { cfg.fetch(key.to_s, default) }
+          end
+
+          # Bind the Lex logger so the middleware emits structured retry /
+          # giveup events. If `log` raises before the include chain is
+          # ready, fall back to `Legion::Logging` (the underlying logger
+          # the helper wraps) so we never silently lose telemetry — losing
+          # those signals is exactly how the original fleet outage went
+          # undiagnosed for days.
           def retry_after_logger
             log
           rescue StandardError => e
-            warn("[microsoft_teams][client] retry_after_logger fallback: #{e.message}") if $DEBUG
-            nil
+            fallback = defined?(::Legion::Logging) ? ::Legion::Logging : nil
+            fallback&.error("[microsoft_teams][client] retry_after_logger fallback: #{e.class}: #{e.message}")
+            fallback
           end
         end
       end

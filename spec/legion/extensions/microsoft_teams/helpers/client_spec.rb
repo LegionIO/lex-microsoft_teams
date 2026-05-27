@@ -79,6 +79,88 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::Client do
     end
   end
 
+  describe 'middleware wiring' do
+    def middleware_classes(conn)
+      # Faraday 2.x exposes the builder via #builder; the handlers array
+      # holds Faraday::MiddlewareRegistry entries whose #klass returns the
+      # class. Works for connections built via both graph_connection and
+      # bot_connection.
+      conn.builder.handlers.map(&:klass)
+    end
+
+    it 'wires RetryAfter into the graph_connection middleware stack' do
+      conn = host.graph_connection(token: 'tok')
+
+      expect(middleware_classes(conn)).to include(
+        Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter
+      )
+    end
+
+    it 'wires RetryAfter into the bot_connection middleware stack' do
+      conn = host.bot_connection(token: 'tok')
+
+      expect(middleware_classes(conn)).to include(
+        Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter
+      )
+    end
+
+    it 'does not wire RetryAfter into oauth_connection (login endpoint is not retry-on-429)' do
+      conn = host.oauth_connection(tenant_id: 'common')
+
+      expect(middleware_classes(conn)).not_to include(
+        Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter
+      )
+    end
+  end
+
+  describe 'retry settings plumbing' do
+    let(:host_with_settings_class) do
+      Class.new do
+        include Legion::Extensions::MicrosoftTeams::Helpers::Client
+
+        attr_writer :_settings
+
+        def settings
+          @_settings || {}
+        end
+      end
+    end
+
+    let(:settings_host) { host_with_settings_class.new }
+
+    it 'honors falsey settings values like max_retries: 0 instead of silently defaulting' do
+      settings_host._settings = { client: { retry: { max_retries: 0 } } }
+      opts = settings_host.send(:retry_after_options)
+
+      expect(opts[:max_retries]).to eq(0)
+    end
+
+    it 'uses defaults when no settings are configured' do
+      opts = settings_host.send(:retry_after_options)
+
+      expect(opts[:max_retries]).to eq(3)
+      expect(opts[:max_wait]).to eq(60.0)
+      expect(opts[:jitter]).to eq(0.2)
+      expect(opts[:fallback_wait]).to eq(1.0)
+      expect(opts[:retry_statuses]).to eq([429])
+    end
+
+    it 'plumbs retry_statuses through settings' do
+      settings_host._settings = { client: { retry: { retry_statuses: [429, 503] } } }
+      opts = settings_host.send(:retry_after_options)
+
+      expect(opts[:retry_statuses]).to eq([429, 503])
+    end
+
+    it 'accepts string keys for backward compatibility' do
+      settings_host._settings = { 'client' => { 'retry' => { 'max_retries' => 7, 'jitter' => 0.5 } } }
+      opts = settings_host.send(:retry_after_options)
+
+      expect(opts[:max_retries]).to eq(7)
+      expect(opts[:jitter]).to eq(0.5)
+    end
+  end
+
   describe '#user_path' do
     it 'returns me for default' do
       expect(host.user_path).to eq('me')

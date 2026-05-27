@@ -2,19 +2,19 @@
 
 require 'spec_helper'
 require 'legion/extensions/microsoft_teams/faraday/retry_after'
+require 'legion/extensions/microsoft_teams/errors'
 
 RSpec.describe Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter do
-  let(:slept) { [] }
-  let(:sleeper) { ->(seconds) { slept << seconds } }
-  let(:logger) { instance_double('Logger', warn: nil, error: nil, debug: nil) }
+  let(:slept)     { [] }
+  let(:sleeper)   { ->(seconds) { slept << seconds } }
+  let(:logger)    { instance_double('Logger', warn: nil, error: nil, debug: nil) }
   let(:fixed_now) { Time.utc(2026, 5, 27, 17, 0, 0) }
-  let(:clock) { -> { fixed_now } }
+  let(:clock)     { -> { fixed_now } }
 
-  # Builds a Faraday connection with a Stubs adapter so we can drive responses
-  # deterministically. The stub takes a list of [status, headers, body]
-  # tuples and serves them in order for each retry attempt.
-  # rubocop:disable Style/ArgumentsForwarding -- anonymous ** cannot be combined with
-  # explicit kwargs at the call site, and the call site here passes explicit kwargs.
+  # Builds a Faraday connection backed by the test adapter. `responses` is a
+  # list of [status, headers, body] tuples served in order — one per call.
+  # rubocop:disable Style/ArgumentsForwarding -- anonymous ** cannot combine with
+  # explicit kwargs at the call site.
   def build_connection(responses, **opts)
     stubs = Faraday::Adapter::Test::Stubs.new
 
@@ -31,9 +31,48 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter do
   end
   # rubocop:enable Style/ArgumentsForwarding
 
+  describe '.parse_header' do
+    it 'returns nil for nil input' do
+      expect(described_class.parse_header(nil)).to be_nil
+    end
+
+    it 'returns nil for empty string' do
+      expect(described_class.parse_header('')).to be_nil
+      expect(described_class.parse_header('   ')).to be_nil
+    end
+
+    it 'parses delta-seconds integers' do
+      expect(described_class.parse_header('120')).to eq(120.0)
+    end
+
+    it 'parses fractional delta-seconds' do
+      expect(described_class.parse_header('0.5')).to eq(0.5)
+    end
+
+    it 'parses HTTP-date and computes delta from clock' do
+      now    = Time.utc(2026, 5, 27, 12, 0, 0)
+      target = now + 30
+      result = described_class.parse_header(target.httpdate, clock: -> { now })
+
+      expect(result).to be_within(0.01).of(30.0)
+    end
+
+    it 'clamps past HTTP-dates to zero' do
+      now  = Time.utc(2026, 5, 27, 12, 0, 0)
+      past = now - 60
+
+      expect(described_class.parse_header(past.httpdate, clock: -> { now })).to eq(0.0)
+    end
+
+    it 'returns nil for garbage' do
+      expect(described_class.parse_header('not-a-thing')).to be_nil
+      expect(described_class.parse_header('Mon BAD DATE')).to be_nil
+    end
+  end
+
   describe 'success path' do
     it 'returns the response unchanged when status is not retryable' do
-      conn = build_connection([[200, { 'Content-Type' => 'application/json' }, '{"value":[]}']])
+      conn     = build_connection([[200, { 'Content-Type' => 'application/json' }, '{"value":[]}']])
       response = conn.get('/v1.0/me/chats')
 
       expect(response.status).to eq(200)
@@ -68,7 +107,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter do
 
   describe '429 with Retry-After in HTTP-date form' do
     it 'computes seconds from clock to httpdate target' do
-      future = fixed_now + 7 # 7 seconds in the future
+      future = fixed_now + 7
       conn = build_connection([
                                 [429, { 'Retry-After' => future.httpdate }, ''],
                                 [200, {}, '']
@@ -109,34 +148,90 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter do
   end
 
   describe 'retry exhaustion' do
-    it 'returns the throttled response after max_retries' do
-      responses = Array.new(5) { [429, { 'Retry-After' => '1' }, '{"error":"throttled"}'] }
+    it 'raises Errors::Throttled after max_retries with carried advertised retry_after' do
+      responses = Array.new(5) { [429, { 'Retry-After' => '7' }, '{"error":"throttled"}'] }
       conn = build_connection(responses, max_retries: 2)
 
-      response = conn.get('/v1.0/me/chats')
+      raised = nil
+      begin
+        conn.get('/v1.0/me/chats')
+      rescue Legion::Extensions::MicrosoftTeams::Errors::Throttled => e
+        raised = e
+      end
 
-      expect(response.status).to eq(429)
+      expect(raised).not_to be_nil
+      expect(raised.status).to eq(429)
+      expect(raised.retry_after).to eq(7.0)
+      expect(raised.retry_after_known?).to be(true)
+      expect(raised.attempts).to eq(2)
+      expect(raised.request).to eq('/v1.0/me/chats')
       expect(slept.length).to eq(2)
       expect(logger).to have_received(:error).at_least(:once)
+    end
+
+    it 'gives up without sleeping when first Retry-After exceeds max_wait' do
+      conn = build_connection(
+        [[429, { 'Retry-After' => '600' }, '{"error":"throttled"}']],
+        max_retries: 5,
+        max_wait:    60.0
+      )
+
+      expect { conn.get('/v1.0/me/chats') }.to raise_error(
+        Legion::Extensions::MicrosoftTeams::Errors::Throttled
+      ) do |e|
+        expect(e.retry_after).to eq(600.0)
+        expect(e.attempts).to eq(0)
+      end
+
+      expect(slept).to be_empty
     end
 
     it 'stops when cumulative wait would exceed max_wait' do
       responses = [
         [429, { 'Retry-After' => '40' }, ''],
-        [429, { 'Retry-After' => '40' }, ''],
-        [200, {}, '']
+        [429, { 'Retry-After' => '40' }, '']
       ]
       conn = build_connection(responses, max_retries: 5, max_wait: 50.0)
 
-      response = conn.get('/v1.0/me/chats')
-
-      expect(response.status).to eq(429)
+      expect { conn.get('/v1.0/me/chats') }.to raise_error(
+        Legion::Extensions::MicrosoftTeams::Errors::Throttled
+      )
       expect(slept).to eq([40.0])
+    end
+
+    it 'raises Throttled with retry_after=nil when server gave no usable header' do
+      responses = Array.new(5) { [429, {}, ''] }
+      conn = build_connection(responses, max_retries: 1, fallback_wait: 0.1)
+
+      raised = nil
+      begin
+        conn.get('/v1.0/me/chats')
+      rescue Legion::Extensions::MicrosoftTeams::Errors::Throttled => e
+        raised = e
+      end
+
+      expect(raised.retry_after).to be_nil
+      expect(raised.retry_after_known?).to be(false)
+    end
+
+    it 'raises Throttled with retry_after=nil when header was unparseable garbage' do
+      responses = Array.new(5) { [429, { 'Retry-After' => 'never' }, ''] }
+      conn = build_connection(responses, max_retries: 1, fallback_wait: 0.1)
+
+      raised = nil
+      begin
+        conn.get('/v1.0/me/chats')
+      rescue Legion::Extensions::MicrosoftTeams::Errors::Throttled => e
+        raised = e
+      end
+
+      expect(raised.retry_after).to be_nil
+      expect(logger).to have_received(:warn).with(/unparseable Retry-After/).at_least(:once)
     end
   end
 
   describe 'retry status configuration' do
-    it 'retries 503 by default-off and only retries 429 unless configured' do
+    it 'does not retry 503 by default' do
       conn = build_connection(
         [
           [503, { 'Retry-After' => '1' }, ''],
@@ -163,6 +258,20 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter do
 
       expect(response.status).to eq(200)
       expect(slept).to eq([1.0])
+    end
+
+    it 'raises Throttled with the 503 status when 503 is opt-in and exhausted' do
+      responses = Array.new(5) { [503, { 'Retry-After' => '1' }, ''] }
+      conn = build_connection(responses, retry_statuses: [429, 503], max_retries: 1)
+
+      raised = nil
+      begin
+        conn.get('/v1.0/me/chats')
+      rescue Legion::Extensions::MicrosoftTeams::Errors::Throttled => e
+        raised = e
+      end
+
+      expect(raised.status).to eq(503)
     end
   end
 
@@ -196,21 +305,41 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter do
 
       expect(slept).to all(be >= 0.0)
     end
-  end
 
-  describe 'malformed Retry-After' do
-    it 'falls back to fallback_wait for garbage values' do
+    it 'returns exactly 0.0 when advertised is 0 and jitter is 0' do
       conn = build_connection(
         [
-          [429, { 'Retry-After' => 'not-a-thing' }, ''],
+          [429, { 'Retry-After' => '0' }, ''],
           [200, {}, '']
         ],
-        fallback_wait: 3.0
+        jitter: 0.0
       )
 
       conn.get('/v1.0/me/chats')
 
-      expect(slept).to eq([3.0])
+      expect(slept).to eq([0.0])
+    end
+  end
+
+  describe 'logging resilience' do
+    it 'does not crash the retry loop if the logger raises in log_retry' do
+      raising_logger = double('Logger')
+      allow(raising_logger).to receive(:warn).and_raise(StandardError, 'sink down')
+      allow(raising_logger).to receive(:error)
+
+      conn = Faraday.new(url: 'https://graph.microsoft.com') do |c|
+        c.use described_class,
+              sleeper: sleeper,
+              logger:  raising_logger,
+              clock:   clock,
+              jitter:  0.0
+        c.adapter :test do |stubs|
+          stubs.get('/v1.0/me/chats') { [429, { 'Retry-After' => '1' }, ''] }
+          stubs.get('/v1.0/me/chats') { [200, {}, ''] }
+        end
+      end
+
+      expect { conn.get('/v1.0/me/chats') }.not_to raise_error
     end
   end
 end

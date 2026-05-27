@@ -2,12 +2,17 @@
 
 ## [Unreleased]
 ### Added
-- `Faraday::RetryAfter` middleware that retries throttled responses (HTTP 429 by default, optionally 503/504) honoring the upstream `Retry-After` header in both delta-seconds and HTTP-date forms (RFC 7231 §7.1.3). Wait time is jittered (±20% by default) to avoid thundering-herd behavior across instances sharing one Entra app registration's Graph quota. Configurable via `microsoft_teams.client.retry.{max_retries,max_wait,jitter,fallback_wait}` lex settings.
-- `Errors::Throttled` exception carrying status, retry_after, request path and attempt count so actors can defer their next scheduled run instead of re-firing on the standard cadence.
-- `Helpers::GraphClient#handle_graph_response` now recognizes HTTP 429 explicitly and raises `Errors::Throttled` with the parsed Retry-After interval (after the middleware exhausts its retry budget).
+- `Faraday::RetryAfter` middleware honoring `Retry-After` per RFC 9110 §10.2.3 (originally RFC 7231 §7.1.3) in both delta-seconds and HTTP-date forms. Retries HTTP 429 by default; 503/504 opt-in. Bounded by `max_retries` and cumulative `max_wait`; ±jitter on advertised wait to avoid thundering-herd. Configurable via `microsoft_teams.client.retry.{max_retries,max_wait,jitter,fallback_wait,retry_statuses}`; `fetch` semantics preserve explicit falsey values.
+- `Errors::Throttled` exception with `status`, `retry_after` (nullable; `nil` distinguishes "no server guidance" from "retry immediately"), `retry_after_known?` predicate, `request`, and `attempts`.
+- `Faraday::RetryAfter.parse_header` shared class method (single source of truth for Retry-After parsing).
 
 ### Fixed
-- Stuck or chatty consumers no longer brown out every other user on the same Entra app registration's Graph quota: 429 responses from Microsoft Graph and the Bot Framework are now detected, retried with backoff, and ultimately surfaced as a typed throttle event instead of being swallowed by `rescue StandardError => e; log.error(...)` and re-firing on the next poll tick. Fixes #18.
+- Stuck or chatty consumers no longer brown out other users on the same Entra app registration's Graph quota. The `RetryAfter` middleware now raises `Errors::Throttled` **centrally on exhaustion** — every consumer of `graph_connection` and `bot_connection` gets the typed event without per-callsite handling. Fixes #18.
+- `Helpers::GraphClient#handle_graph_response` retains a defensive 429/503/504 branch that raises `Errors::Throttled` for callers that build a Faraday connection without the middleware (custom tests, ad-hoc tooling).
+- Logger acquisition failures no longer silently drop retry telemetry — falls back to `Legion::Logging` unconditionally; loss of those signals was how the original outage went undiagnosed for days.
+
+### Known follow-up
+- Actors (`*_poller.rb`, `meeting_ingest`, `profile_ingest`) still catch `Errors::Throttled` via the generic `rescue StandardError` block but do not yet *defer their next scheduled run* using the carried `retry_after`. To be addressed in a follow-up issue.
 
 ## [0.6.50] - 2026-05-27
 ### Added
