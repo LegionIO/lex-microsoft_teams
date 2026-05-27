@@ -58,8 +58,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ProfileIngest do
 
     it 'calls full_ingest on runner_class when token is present' do
       allow(actor).to receive(:resolve_token).and_return('test-token')
-      allow(Legion::Settings).to receive(:[]).and_return({})
-      allow(Legion::Settings).to receive(:[]).with(:microsoft_teams).and_return({})
+      allow(actor).to receive(:settings).and_return({ profile_ingest: { top_people: 10, message_depth: 50 } })
       runner = Legion::Extensions::MicrosoftTeams::Runners::ProfileIngest
       expect(runner).to receive(:full_ingest).with(
         token: 'test-token', top_people: 10, message_depth: 50

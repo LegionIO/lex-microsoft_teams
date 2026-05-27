@@ -14,17 +14,12 @@ module Legion
           def delay           = 60
 
           def time
-            settings = begin
-              Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError => e
-              handle_exception(e, level: :debug, operation: 'IncrementalSync#time')
-              {}
-            end
-            settings.dig(:ingest, :incremental_interval) || 120
+            settings.dig(:incremental_sync, :interval)
           end
 
           def enabled?
-            defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
+            settings.dig(:incremental_sync, :enabled) &&
+              defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'IncrementalSync#enabled?')
@@ -36,17 +31,11 @@ module Legion
             token = resolve_token
             return unless token
 
-            settings = begin
-              Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError => e
-              handle_exception(e, level: :debug, operation: 'IncrementalSync#manual settings')
-              {}
-            end
-            ingest = settings[:ingest] || {}
+            is_settings = settings[:incremental_sync]
             runner_class.incremental_sync(
               token:         token,
-              top_people:    ingest.fetch(:top_people, 10),
-              message_depth: ingest.fetch(:message_depth, 50)
+              top_people:    is_settings[:top_people],
+              message_depth: is_settings[:message_depth]
             )
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'IncrementalSync#manual')

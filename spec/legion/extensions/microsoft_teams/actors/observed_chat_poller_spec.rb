@@ -19,8 +19,9 @@ require 'legion/extensions/microsoft_teams/actors/observed_chat_poller'
 RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ObservedChatPoller do
   subject(:actor) { described_class.allocate }
 
-  it 'has a 30 second interval' do
-    expect(actor.time).to eq(30)
+  it 'reads interval from settings' do
+    allow(actor).to receive(:settings).and_return({ observed_chat_poller: { interval: 60 } })
+    expect(actor.time).to eq(60)
   end
 
   it 'routes to observe_message' do
@@ -39,7 +40,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ObservedChatPoller do
     expect(actor.check_subtask?).to be false
   end
 
-  it 'is disabled when Legion::Settings is not defined' do
+  it 'is disabled when settings say so' do
+    allow(actor).to receive(:settings).and_return({ observed_chat_poller: { enabled: false } })
     expect(actor.enabled?).to be false
   end
 

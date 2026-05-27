@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'legion/extensions/microsoft_teams/errors'
+require 'legion/extensions/microsoft_teams/faraday/retry_after'
+
 module Legion
   module Extensions
     module MicrosoftTeams
@@ -62,11 +65,28 @@ module Legion
             when 403
               detail = error_message || 'Caller does not have sufficient permissions to perform this action.'
               raise GraphError, "Graph API 403 Forbidden on #{path}: #{detail}"
+            when 429, 503, 504
+              # Defensive: the RetryAfter middleware raises Throttled itself
+              # when it exhausts retries, so this branch is rarely hit. It
+              # still fires when a caller uses a Faraday connection without
+              # the middleware installed (custom tests, ad-hoc tooling).
+              raise Errors::Throttled.new(
+                status:      response.status,
+                retry_after: Faraday::RetryAfter.parse_header(retry_after_value(response)),
+                request:     path
+              )
             else
               base_message = "Graph API #{response.status} on #{path}"
               base_message = "#{base_message}: #{error_message}" if error_message
               raise GraphError, base_message
             end
+          end
+
+          def retry_after_value(response)
+            headers = response.respond_to?(:headers) ? response.headers : nil
+            return nil unless headers
+
+            headers['Retry-After'] || headers['retry-after'] || headers['RETRY-AFTER']
           end
         end
       end

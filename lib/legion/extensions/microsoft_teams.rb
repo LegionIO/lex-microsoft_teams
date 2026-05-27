@@ -2,6 +2,8 @@
 
 require 'legion/extensions/identity/entra/helpers/token_manager'
 require 'legion/extensions/microsoft_teams/version'
+require 'legion/extensions/microsoft_teams/errors'
+require 'legion/extensions/microsoft_teams/faraday/retry_after'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/runners/auth'
 require 'legion/extensions/microsoft_teams/runners/teams'
@@ -29,6 +31,7 @@ require 'legion/extensions/microsoft_teams/runners/app_installations'
 require 'legion/extensions/microsoft_teams/runners/files'
 
 # Helpers (bot)
+require 'legion/extensions/microsoft_teams/helpers/graph_cache'
 require 'legion/extensions/microsoft_teams/helpers/high_water_mark'
 require 'legion/extensions/microsoft_teams/helpers/prompt_resolver'
 require 'legion/extensions/microsoft_teams/helpers/trace_retriever'
@@ -59,6 +62,62 @@ module Legion
   module Extensions
     module MicrosoftTeams
       extend Legion::Extensions::Core if Legion::Extensions.const_defined? :Core, false
+
+      def self.default_settings # rubocop:disable Metrics/MethodLength
+        {
+          api_ingest:           {
+            enabled:       true,
+            interval:      3600,
+            top_people:    15,
+            message_depth: 50,
+            skip_bots:     true
+          },
+          incremental_sync:     {
+            enabled:       true,
+            interval:      900,
+            top_people:    10,
+            message_depth: 50
+          },
+          profile_ingest:       {
+            enabled:       true,
+            top_people:    10,
+            message_depth: 50
+          },
+          presence_poller:      {
+            enabled:  false,
+            interval: 300
+          },
+          meeting_ingest:       {
+            enabled:  true,
+            interval: 900
+          },
+          channel_poller:       {
+            enabled:               false,
+            interval:              120,
+            max_teams:             10,
+            max_channels_per_team: 5
+          },
+          direct_chat_poller:   {
+            enabled:  false,
+            interval: 30
+          },
+          observed_chat_poller: {
+            enabled:  false,
+            interval: 60
+          },
+          cache:                {
+            graph_ttl: 300
+          },
+          client:               {
+            throttle_circuit: {
+              soft_percentage: 0.8,
+              soft_ttl:        60,
+              fallback_ttl:    60,
+              insights_ttl:    600
+            }
+          }
+        }
+      end
 
       def self.trigger_words
         %w[teams microsoft_teams microsoftteams microsoft-teams msteams ms-teams]

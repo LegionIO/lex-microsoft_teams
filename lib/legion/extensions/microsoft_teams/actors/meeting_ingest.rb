@@ -7,8 +7,6 @@ module Legion
         class MeetingIngest < Legion::Extensions::Actors::Every
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
 
-          DEFAULT_INGEST_INTERVAL = 300
-
           def runner_class    = self.class
           def runner_function = 'manual'
           def run_now?        = false
@@ -22,17 +20,12 @@ module Legion
           end
 
           def time
-            settings = begin
-              Legion::Settings[:microsoft_teams] || {}
-            rescue StandardError => e
-              handle_exception(e, level: :debug, operation: 'MeetingIngest#time')
-              {}
-            end
-            settings.dig(:meetings, :ingest_interval) || DEFAULT_INGEST_INTERVAL
+            settings.dig(:meeting_ingest, :interval)
           end
 
           def enabled?
-            Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
+            settings.dig(:meeting_ingest, :enabled) &&
+              Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'MeetingIngest#enabled?')
             false
