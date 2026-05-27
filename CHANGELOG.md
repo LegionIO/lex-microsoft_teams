@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- `Faraday::RetryAfter` middleware that retries throttled responses (HTTP 429 by default, optionally 503/504) honoring the upstream `Retry-After` header in both delta-seconds and HTTP-date forms (RFC 7231 §7.1.3). Wait time is jittered (±20% by default) to avoid thundering-herd behavior across instances sharing one Entra app registration's Graph quota. Configurable via `microsoft_teams.client.retry.{max_retries,max_wait,jitter,fallback_wait}` lex settings.
+- `Errors::Throttled` exception carrying status, retry_after, request path and attempt count so actors can defer their next scheduled run instead of re-firing on the standard cadence.
+- `Helpers::GraphClient#handle_graph_response` now recognizes HTTP 429 explicitly and raises `Errors::Throttled` with the parsed Retry-After interval (after the middleware exhausts its retry budget).
+
+### Fixed
+- Stuck or chatty consumers no longer brown out every other user on the same Entra app registration's Graph quota: 429 responses from Microsoft Graph and the Bot Framework are now detected, retried with backoff, and ultimately surfaced as a typed throttle event instead of being swallowed by `rescue StandardError => e; log.error(...)` and re-firing on the next poll tick. Fixes #18.
+
 ## [0.6.50] - 2026-05-27
 ### Added
 - Full OData query parameter support across all Graph API runner methods per Microsoft Graph REST v1.0 docs

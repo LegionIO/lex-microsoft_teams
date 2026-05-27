@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'legion/extensions/microsoft_teams/errors'
+
 module Legion
   module Extensions
     module MicrosoftTeams
@@ -62,10 +64,40 @@ module Legion
             when 403
               detail = error_message || 'Caller does not have sufficient permissions to perform this action.'
               raise GraphError, "Graph API 403 Forbidden on #{path}: #{detail}"
+            when 429
+              raise Legion::Extensions::MicrosoftTeams::Errors::Throttled.new(
+                status:      429,
+                retry_after: parse_retry_after_header(response),
+                request:     path
+              )
             else
               base_message = "Graph API #{response.status} on #{path}"
               base_message = "#{base_message}: #{error_message}" if error_message
               raise GraphError, base_message
+            end
+          end
+
+          # Extracts the Retry-After header from a Faraday response in either
+          # delta-seconds or HTTP-date form. Returns 0.0 when absent or
+          # unparseable so callers always get a numeric value to act on
+          # (defer the next scheduled run, surface to the actor, etc.).
+          def parse_retry_after_header(response)
+            headers = response.respond_to?(:headers) ? response.headers : nil
+            return 0.0 unless headers
+
+            raw = headers['Retry-After'] || headers['retry-after'] || headers['RETRY-AFTER']
+            return 0.0 if raw.nil?
+
+            value = raw.to_s.strip
+            return 0.0 if value.empty?
+            return value.to_f if value.match?(/\A\d+(\.\d+)?\z/)
+
+            begin
+              target = Time.httpdate(value).utc
+              [(target - Time.now.utc), 0.0].max
+            rescue ArgumentError => e
+              warn("[microsoft_teams][graph_client] failed to parse Retry-After=#{value.inspect}: #{e.message}") if $DEBUG
+              0.0
             end
           end
         end
