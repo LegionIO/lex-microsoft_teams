@@ -16,7 +16,7 @@ module Legion
 
           def runner_class    = self.class
           def runner_function = 'manual'
-          def time            = Legion::Settings.dig(:microsoft_teams, :channel_poller, :interval)
+          def time            = settings.dig(:channel_poller, :interval)
           def delay           = 300
           def run_now?        = false
           def use_runner?     = false
@@ -32,7 +32,7 @@ module Legion
           end
 
           def enabled?
-            Legion::Settings.dig(:microsoft_teams, :channel_poller, :enabled)
+            settings.dig(:channel_poller, :enabled)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'ChannelPoller#enabled?')
             false
@@ -144,11 +144,11 @@ module Legion
           end
 
           def max_teams
-            Legion::Settings.dig(:microsoft_teams, :channel_poller, :max_teams)
+            settings.dig(:channel_poller, :max_teams)
           end
 
           def max_channels_per_team
-            Legion::Settings.dig(:microsoft_teams, :channel_poller, :max_channels_per_team)
+            settings.dig(:channel_poller, :max_channels_per_team)
           end
 
           def delegated_token
@@ -159,7 +159,7 @@ module Legion
           end
 
           def channel_traces_enabled?
-            Legion::Settings.dig(:microsoft_teams, :channel_poller, :store_traces) == true
+            settings.dig(:channel_poller, :store_traces) == true
           end
 
           def store_channel_message_trace(team_name:, channel_name:, msg:)

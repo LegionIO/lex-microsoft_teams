@@ -20,8 +20,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ObservedChatPoller do
   subject(:actor) { described_class.allocate }
 
   it 'reads interval from settings' do
-    allow(Legion::Settings).to receive(:dig)
-      .with(:microsoft_teams, :observed_chat_poller, :interval).and_return(60)
+    allow(actor).to receive(:settings).and_return({ observed_chat_poller: { interval: 60 } })
     expect(actor.time).to eq(60)
   end
 
@@ -42,8 +41,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::ObservedChatPoller do
   end
 
   it 'is disabled when settings say so' do
-    allow(Legion::Settings).to receive(:dig)
-      .with(:microsoft_teams, :observed_chat_poller, :enabled).and_return(false)
+    allow(actor).to receive(:settings).and_return({ observed_chat_poller: { enabled: false } })
     expect(actor.enabled?).to be false
   end
 

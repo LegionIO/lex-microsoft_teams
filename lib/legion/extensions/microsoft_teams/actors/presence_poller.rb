@@ -15,11 +15,11 @@ module Legion
           def generate_task?  = false
 
           def time
-            Legion::Settings.dig(:microsoft_teams, :presence_poller, :interval)
+            settings.dig(:presence_poller, :interval)
           end
 
           def enabled?
-            Legion::Settings.dig(:microsoft_teams, :presence_poller, :enabled) &&
+            settings.dig(:presence_poller, :enabled) &&
               Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'PresencePoller#enabled?')

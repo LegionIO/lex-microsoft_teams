@@ -20,11 +20,11 @@ module Legion
           end
 
           def time
-            Legion::Settings.dig(:microsoft_teams, :meeting_ingest, :interval)
+            settings.dig(:meeting_ingest, :interval)
           end
 
           def enabled?
-            Legion::Settings.dig(:microsoft_teams, :meeting_ingest, :enabled) &&
+            settings.dig(:meeting_ingest, :enabled) &&
               Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'MeetingIngest#enabled?')

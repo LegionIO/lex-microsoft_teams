@@ -17,7 +17,7 @@ module Legion
 
           def runner_class    = Legion::Extensions::MicrosoftTeams::Runners::Bot
           def runner_function = 'handle_message'
-          def time            = Legion::Settings.dig(:microsoft_teams, :direct_chat_poller, :interval)
+          def time            = settings.dig(:direct_chat_poller, :interval)
           def delay           = 60
           def run_now?        = false
           def use_runner?     = false
@@ -25,7 +25,7 @@ module Legion
           def generate_task?  = false
 
           def enabled?
-            Legion::Settings.dig(:microsoft_teams, :direct_chat_poller, :enabled) &&
+            settings.dig(:direct_chat_poller, :enabled) &&
               defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               Legion.const_defined?(:Transport, false)
           rescue StandardError => e
@@ -94,9 +94,7 @@ module Legion
           end
 
           def bot_id_from_settings
-            return nil unless defined?(Legion::Settings)
-
-            Legion::Settings.dig(:microsoft_teams, :bot, :bot_id)
+            settings.dig(:bot, :bot_id)
           end
 
           def delegated_token

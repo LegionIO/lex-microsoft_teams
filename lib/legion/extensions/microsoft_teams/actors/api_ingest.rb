@@ -75,7 +75,7 @@ module Legion
           end
 
           def teams_settings
-            Legion::Settings[:microsoft_teams]
+            settings
           end
 
           def imprint_active?

@@ -16,7 +16,7 @@ module Legion
 
           def runner_class    = Legion::Extensions::MicrosoftTeams::Runners::Bot
           def runner_function = 'observe_message'
-          def time            = Legion::Settings.dig(:microsoft_teams, :observed_chat_poller, :interval)
+          def time            = settings.dig(:observed_chat_poller, :interval)
           def delay           = 180
           def run_now?        = false
           def use_runner?     = false
@@ -24,7 +24,7 @@ module Legion
           def generate_task?  = false
 
           def enabled?
-            Legion::Settings.dig(:microsoft_teams, :observed_chat_poller, :enabled) &&
+            settings.dig(:observed_chat_poller, :enabled) &&
               defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               Legion.const_defined?(:Transport, false)
           rescue StandardError => e

@@ -21,8 +21,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::IncrementalSync do
 
   describe '#time' do
     it 'reads interval from settings' do
-      allow(Legion::Settings).to receive(:dig)
-        .with(:microsoft_teams, :incremental_sync, :interval).and_return(900)
+      allow(actor).to receive(:settings).and_return({ incremental_sync: { interval: 900 } })
       expect(actor.time).to eq(900)
     end
   end
@@ -53,9 +52,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::IncrementalSync do
 
     it 'calls incremental_sync on runner_class when token is present' do
       allow(actor).to receive(:resolve_token).and_return('test-token')
-      allow(Legion::Settings).to receive(:dig)
-        .with(:microsoft_teams, :incremental_sync)
-        .and_return({ top_people: 10, message_depth: 50 })
+      allow(actor).to receive(:settings).and_return({ incremental_sync: { top_people: 10, message_depth: 50 } })
       runner = Legion::Extensions::MicrosoftTeams::Runners::ProfileIngest
       expect(runner).to receive(:incremental_sync).with(
         token: 'test-token', top_people: 10, message_depth: 50

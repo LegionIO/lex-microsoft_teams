@@ -14,11 +14,11 @@ module Legion
           def delay           = 60
 
           def time
-            Legion::Settings.dig(:microsoft_teams, :incremental_sync, :interval)
+            settings.dig(:incremental_sync, :interval)
           end
 
           def enabled?
-            Legion::Settings.dig(:microsoft_teams, :incremental_sync, :enabled) &&
+            settings.dig(:incremental_sync, :enabled) &&
               defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
@@ -31,7 +31,7 @@ module Legion
             token = resolve_token
             return unless token
 
-            is_settings = Legion::Settings.dig(:microsoft_teams, :incremental_sync)
+            is_settings = settings[:incremental_sync]
             runner_class.incremental_sync(
               token:         token,
               top_people:    is_settings[:top_people],

@@ -20,8 +20,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Actor::DirectChatPoller do
   subject(:actor) { described_class.allocate }
 
   it 'reads interval from settings' do
-    allow(Legion::Settings).to receive(:dig)
-      .with(:microsoft_teams, :direct_chat_poller, :interval).and_return(30)
+    allow(actor).to receive(:settings).and_return({ direct_chat_poller: { interval: 30 } })
     expect(actor.time).to eq(30)
   end
 

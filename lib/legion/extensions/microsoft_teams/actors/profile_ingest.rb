@@ -21,7 +21,7 @@ module Legion
           end
 
           def enabled?
-            Legion::Settings.dig(:microsoft_teams, :profile_ingest, :enabled) &&
+            settings.dig(:profile_ingest, :enabled) &&
               defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
@@ -38,7 +38,7 @@ module Legion
             end
             log.info('ProfileIngest: token acquired, starting ingest')
 
-            pi_settings = Legion::Settings.dig(:microsoft_teams, :profile_ingest)
+            pi_settings = settings[:profile_ingest]
             runner_class.full_ingest(
               token:         token,
               top_people:    pi_settings[:top_people],
