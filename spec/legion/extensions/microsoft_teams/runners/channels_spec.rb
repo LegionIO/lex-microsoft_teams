@@ -11,7 +11,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Channels do
   describe '#list_channels' do
     it 'lists channels for a team' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'ch1', 'displayName' => 'General' }] })
-      allow(graph_conn).to receive(:get).with('teams/t1/channels').and_return(response)
+      allow(graph_conn).to receive(:get).with('teams/t1/channels', {}).and_return(response)
 
       result = runner.list_channels(team_id: 't1')
       expect(result[:result]['value'].first['displayName']).to eq('General')

@@ -16,6 +16,21 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Chats do
       result = runner.list_chats
       expect(result[:result]['value'].first['id']).to eq('c1')
     end
+
+    it 'paginates when max_pages > 1' do
+      page1_body = { '@odata.context' => 'ctx', 'value' => [{ 'id' => 'c1' }],
+                     '@odata.nextLink' => 'https://graph.microsoft.com/v1.0/me/chats?$skip=50' }
+      page2_body = { 'value' => [{ 'id' => 'c2' }] }
+
+      page1_resp = instance_double(Faraday::Response, body: page1_body)
+      page2_resp = instance_double(Faraday::Response, body: page2_body)
+
+      allow(graph_conn).to receive(:get).with('me/chats', { '$top' => 50 }).and_return(page1_resp)
+      allow(graph_conn).to receive(:get).with('https://graph.microsoft.com/v1.0/me/chats?$skip=50').and_return(page2_resp)
+
+      result = runner.list_chats(max_pages: 2)
+      expect(result[:result]['value'].map { |c| c['id'] }).to eq(%w[c1 c2])
+    end
   end
 
   describe '#get_chat' do

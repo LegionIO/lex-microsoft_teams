@@ -16,6 +16,44 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Messages do
       result = runner.list_chat_messages(chat_id: 'c1')
       expect(result[:result]['value'].first['body']['content']).to eq('Hello')
     end
+
+    it 'paginates across multiple pages when max_pages > 1' do
+      page1_body = { '@odata.context'  => 'ctx',
+                     'value'           => [{ 'id' => 'm1' }],
+                     '@odata.nextLink' => 'https://graph.microsoft.com/v1.0/chats/c1/messages?$skip=50' }
+      page2_body = { 'value'           => [{ 'id' => 'm2' }],
+                     '@odata.nextLink' => 'https://graph.microsoft.com/v1.0/chats/c1/messages?$skip=100' }
+      page3_body = { 'value' => [{ 'id' => 'm3' }] }
+
+      page1_resp = instance_double(Faraday::Response, body: page1_body)
+      page2_resp = instance_double(Faraday::Response, body: page2_body)
+      page3_resp = instance_double(Faraday::Response, body: page3_body)
+
+      allow(graph_conn).to receive(:get).with('chats/c1/messages', { '$top' => 50 }).and_return(page1_resp)
+      allow(graph_conn).to receive(:get).with('https://graph.microsoft.com/v1.0/chats/c1/messages?$skip=50').and_return(page2_resp)
+      allow(graph_conn).to receive(:get).with('https://graph.microsoft.com/v1.0/chats/c1/messages?$skip=100').and_return(page3_resp)
+
+      result = runner.list_chat_messages(chat_id: 'c1', max_pages: 3)
+      expect(result[:result]['value'].map { |m| m['id'] }).to eq(%w[m1 m2 m3])
+      expect(result[:result]).not_to have_key('@odata.nextLink')
+    end
+
+    it 'caps per_page at 50 even if top is higher' do
+      response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'm1' }] })
+      allow(graph_conn).to receive(:get).with('chats/c1/messages', { '$top' => 50 }).and_return(response)
+
+      runner.list_chat_messages(chat_id: 'c1', top: 200)
+      expect(graph_conn).to have_received(:get).with('chats/c1/messages', { '$top' => 50 })
+    end
+
+    it 'stops paginating when no nextLink is returned' do
+      page1_body = { '@odata.context' => 'ctx', 'value' => [{ 'id' => 'm1' }] }
+      page1_resp = instance_double(Faraday::Response, body: page1_body)
+      allow(graph_conn).to receive(:get).with('chats/c1/messages', { '$top' => 50 }).and_return(page1_resp)
+
+      result = runner.list_chat_messages(chat_id: 'c1', max_pages: 5)
+      expect(result[:result]['value'].size).to eq(1)
+    end
   end
 
   describe '#get_chat_message' do

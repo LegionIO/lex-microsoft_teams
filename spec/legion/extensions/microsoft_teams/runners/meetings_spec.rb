@@ -13,7 +13,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Meetings do
   describe '#list_meetings' do
     it 'lists online meetings for a user' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'm1', 'subject' => 'Standup' }] })
-      allow(graph_conn).to receive(:get).with('users/u1/onlineMeetings').and_return(response)
+      allow(graph_conn).to receive(:get).with('users/u1/onlineMeetings', { '$top' => 50 }).and_return(response)
 
       result = runner.list_meetings(user_id: 'u1')
       expect(result[:result]['value'].first['subject']).to eq('Standup')

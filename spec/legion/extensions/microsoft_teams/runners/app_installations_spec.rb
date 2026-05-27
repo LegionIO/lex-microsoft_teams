@@ -14,7 +14,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::AppInstallations do
     it 'lists apps installed for the current user by default' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'inst1' }] })
       allow(graph_conn).to receive(:get)
-        .with('me/teamwork/installedApps')
+        .with('me/teamwork/installedApps', {})
         .and_return(response)
 
       result = runner.list_installed_apps_for_user
@@ -24,7 +24,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::AppInstallations do
     it 'uses the provided user_id' do
       response = instance_double(Faraday::Response, body: { 'value' => [] })
       allow(graph_conn).to receive(:get)
-        .with('users/u1/teamwork/installedApps')
+        .with('users/u1/teamwork/installedApps', {})
         .and_return(response)
 
       result = runner.list_installed_apps_for_user(user_id: 'u1')
@@ -36,7 +36,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::AppInstallations do
     it 'lists apps installed in a specific chat' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'inst2' }] })
       allow(graph_conn).to receive(:get)
-        .with('chats/ch1/installedApps')
+        .with('chats/ch1/installedApps', {})
         .and_return(response)
 
       result = runner.list_installed_apps_in_chat(chat_id: 'ch1')

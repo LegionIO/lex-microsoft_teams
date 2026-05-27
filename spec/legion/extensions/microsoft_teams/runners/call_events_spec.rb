@@ -14,7 +14,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::CallEvents do
     it 'lists all sessions for a call record' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 's1' }] })
       allow(graph_conn).to receive(:get)
-        .with('communications/callRecords/cr1/sessions')
+        .with('communications/callRecords/cr1/sessions', { '$top' => 50 })
         .and_return(response)
 
       result = runner.list_call_sessions(call_id: 'cr1')
@@ -38,7 +38,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::CallEvents do
     it 'lists segments for a session' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'seg1' }, { 'id' => 'seg2' }] })
       allow(graph_conn).to receive(:get)
-        .with('communications/callRecords/cr1/sessions/s1/segments')
+        .with('communications/callRecords/cr1/sessions/s1/segments', { '$top' => 50 })
         .and_return(response)
 
       result = runner.list_session_segments(call_id: 'cr1', session_id: 's1')

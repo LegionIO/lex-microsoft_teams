@@ -15,7 +15,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Transcripts do
       response = instance_double(Faraday::Response,
                                  body: { 'value' => [{ 'id' => 't1', 'createdDateTime' => '2026-03-15T12:00:00Z' }] })
       allow(graph_conn).to receive(:get)
-        .with('users/u1/onlineMeetings/m1/transcripts')
+        .with('users/u1/onlineMeetings/m1/transcripts', { '$top' => 50 })
         .and_return(response)
 
       result = runner.list_transcripts(user_id: 'u1', meeting_id: 'm1')

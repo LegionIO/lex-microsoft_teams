@@ -14,7 +14,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Files do
     it 'lists root drive items for the current user' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'item1', 'name' => 'Documents' }] })
       allow(graph_conn).to receive(:get)
-        .with('me/drive/root/children')
+        .with('me/drive/root/children', { '$top' => 200 })
         .and_return(response)
 
       result = runner.list_drive_items
@@ -24,7 +24,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Files do
     it 'uses the specified user_id' do
       response = instance_double(Faraday::Response, body: { 'value' => [] })
       allow(graph_conn).to receive(:get)
-        .with('users/u1/drive/root/children')
+        .with('users/u1/drive/root/children', { '$top' => 200 })
         .and_return(response)
 
       result = runner.list_drive_items(user_id: 'u1')
@@ -80,7 +80,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::Files do
     it 'lists files in a team drive' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'titem1', 'name' => 'Shared' }] })
       allow(graph_conn).to receive(:get)
-        .with('teams/t1/drive/root/children')
+        .with('teams/t1/drive/root/children', { '$top' => 200 })
         .and_return(response)
 
       result = runner.list_team_drive_items(team_id: 't1')

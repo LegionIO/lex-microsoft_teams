@@ -15,16 +15,24 @@ module Legion
           end
 
           definition :list_channels,
-                     desc:          'List channels in a Team',
+                     desc:          'List channels in a Team with optional filtering and select',
                      mcp_prefix:    'teams.list_channels',
                      mcp_category:  'teams_channels',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     inputs:        { properties: { team_id: { type: 'string' } }, required: ['team_id'] },
+                     inputs:        { properties: { team_id: { type: 'string' },
+                                                    filter:  { type:        'string',
+                                                               description: 'OData $filter (e.g. membershipType eq \'standard\')' },
+                                                    select:  { type:        'string',
+                                                               description: 'Comma-separated fields to return' } },
+                                      required:   ['team_id'] },
                      trigger_words: %w[channels list]
 
-          def list_channels(team_id:, **)
-            response = graph_connection(**).get("teams/#{team_id}/channels")
+          def list_channels(team_id:, filter: nil, select: nil, **)
+            params = {}
+            params['$filter'] = filter if filter
+            params['$select'] = select if select
+            response = graph_connection(**).get("teams/#{team_id}/channels", params)
             { result: response.body }
           end
 
