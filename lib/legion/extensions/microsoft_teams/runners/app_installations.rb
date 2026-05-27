@@ -15,29 +15,39 @@ module Legion
           end
 
           definition :list_installed_apps_for_user,
-                     desc:          'List Teams apps installed for a user',
+                     desc:          'List Teams apps installed for a user with expand support',
                      mcp_prefix:    'teams.list_installed_apps_for_user',
                      mcp_category:  'teams_apps',
                      mcp_tier:      :low,
                      idempotent:    true,
+                     inputs:        { properties: { expand: { type:        'string',
+                                                              description: 'Expand related entities (e.g. teamsApp)' } },
+                                      required:   [] },
                      trigger_words: %w[apps installed]
 
-          def list_installed_apps_for_user(user_id: 'me', **)
-            response = graph_connection(**).get("#{user_path(user_id)}/teamwork/installedApps")
+          def list_installed_apps_for_user(user_id: 'me', expand: nil, **)
+            params = {}
+            params['$expand'] = expand if expand
+            response = graph_connection(**).get("#{user_path(user_id)}/teamwork/installedApps", params)
             { result: response.body }
           end
 
           definition :list_installed_apps_in_chat,
-                     desc:          'List Teams apps installed in a specific chat',
+                     desc:          'List Teams apps installed in a specific chat with expand support',
                      mcp_prefix:    'teams.list_installed_apps_in_chat',
                      mcp_category:  'teams_apps',
                      mcp_tier:      :low,
                      idempotent:    true,
-                     inputs:        { properties: { chat_id: { type: 'string' } }, required: ['chat_id'] },
+                     inputs:        { properties: { chat_id: { type: 'string' },
+                                                    expand:  { type:        'string',
+                                                               description: 'Expand related entities (e.g. teamsApp)' } },
+                                      required:   ['chat_id'] },
                      trigger_words: %w[apps chat]
 
-          def list_installed_apps_in_chat(chat_id:, **)
-            response = graph_connection(**).get("chats/#{chat_id}/installedApps")
+          def list_installed_apps_in_chat(chat_id:, expand: nil, **)
+            params = {}
+            params['$expand'] = expand if expand
+            response = graph_connection(**).get("chats/#{chat_id}/installedApps", params)
             { result: response.body }
           end
 

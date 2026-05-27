@@ -15,20 +15,49 @@ module Legion
           end
 
           definition :list_channel_messages,
-                     desc:          'List messages posted in a Teams channel',
+                     desc:          'List messages posted in a Teams channel with pagination and expand support',
                      mcp_prefix:    'teams.list_channel_messages',
                      mcp_category:  'teams_channel_messages',
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { team_id:    { type: 'string' },
-                                                    channel_id: { type: 'string' } },
+                                                    channel_id: { type: 'string' },
+                                                    top:        { type:        'integer',
+                                                                  description: 'Messages per page (default 20, max 50)' },
+                                                    max_pages:  { type:        'integer',
+                                                                  description: 'Maximum pages to fetch (default 1)' },
+                                                    expand:     { type:        'string',
+                                                                  description: 'Expand related entities (e.g. replies)' } },
                                       required:   %w[team_id channel_id] },
                      trigger_words: %w[channel history posts feed]
 
-          def list_channel_messages(team_id:, channel_id:, top: 50, **)
-            params = { '$top' => top }
-            response = graph_connection(**).get("teams/#{team_id}/channels/#{channel_id}/messages", params)
-            { result: response.body }
+          def list_channel_messages(team_id:, channel_id:, top: 50, max_pages: 1, expand: nil, **)
+            per_page = [top, 50].min
+            params = { '$top' => per_page }
+            params['$expand'] = expand if expand
+            conn = graph_connection(**)
+            response = conn.get("teams/#{team_id}/channels/#{channel_id}/messages", params)
+            body = response.body
+
+            return { result: body } if max_pages <= 1
+
+            all_values = Array(body['value'] || body[:value])
+            next_link = body['@odata.nextLink'] || body[:'@odata.nextLink']
+            pages_fetched = 1
+
+            while next_link && pages_fetched < max_pages
+              response = conn.get(next_link)
+              page_body = response.body
+              items = page_body['value'] || page_body[:value]
+              all_values.concat(Array(items)) if items
+              next_link = page_body['@odata.nextLink'] || page_body[:'@odata.nextLink']
+              pages_fetched += 1
+            end
+
+            result = { '@odata.context' => body['@odata.context'] || body[:'@odata.context'],
+                       'value'          => all_values }
+            result['@odata.nextLink'] = next_link if next_link
+            { result: result }
           end
 
           definition :get_channel_message,
@@ -89,23 +118,49 @@ module Legion
           end
 
           definition :list_channel_message_replies,
-                     desc:          'List replies in a Teams channel message thread',
+                     desc:          'List replies in a Teams channel message thread with pagination',
                      mcp_prefix:    'teams.list_channel_message_replies',
                      mcp_category:  'teams_channel_messages',
                      mcp_tier:      :standard,
                      idempotent:    true,
                      inputs:        { properties: { team_id:    { type: 'string' },
                                                     channel_id: { type: 'string' },
-                                                    message_id: { type: 'string' } },
+                                                    message_id: { type: 'string' },
+                                                    top:        { type:        'integer',
+                                                                  description: 'Replies per page (default 50, max 50)' },
+                                                    max_pages:  { type:        'integer',
+                                                                  description: 'Maximum pages to fetch (default 1)' } },
                                       required:   %w[team_id channel_id message_id] },
                      trigger_words: %w[replies thread]
 
-          def list_channel_message_replies(team_id:, channel_id:, message_id:, top: 50, **)
-            params = { '$top' => top }
-            response = graph_connection(**).get(
+          def list_channel_message_replies(team_id:, channel_id:, message_id:, top: 50, max_pages: 1, **)
+            per_page = [top, 50].min
+            params = { '$top' => per_page }
+            conn = graph_connection(**)
+            response = conn.get(
               "teams/#{team_id}/channels/#{channel_id}/messages/#{message_id}/replies", params
             )
-            { result: response.body }
+            body = response.body
+
+            return { result: body } if max_pages <= 1
+
+            all_values = Array(body['value'] || body[:value])
+            next_link = body['@odata.nextLink'] || body[:'@odata.nextLink']
+            pages_fetched = 1
+
+            while next_link && pages_fetched < max_pages
+              response = conn.get(next_link)
+              page_body = response.body
+              items = page_body['value'] || page_body[:value]
+              all_values.concat(Array(items)) if items
+              next_link = page_body['@odata.nextLink'] || page_body[:'@odata.nextLink']
+              pages_fetched += 1
+            end
+
+            result = { '@odata.context' => body['@odata.context'] || body[:'@odata.context'],
+                       'value'          => all_values }
+            result['@odata.nextLink'] = next_link if next_link
+            { result: result }
           end
 
           definition :edit_channel_message,

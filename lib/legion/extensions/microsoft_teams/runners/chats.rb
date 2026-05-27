@@ -15,18 +15,54 @@ module Legion
           end
 
           definition :list_chats,
-                     desc:          'List Teams chats for the current user',
+                     desc:          'List Teams chats for the current user with pagination, filtering, and expand support',
                      mcp_prefix:    'teams.list_chats',
                      mcp_category:  'teams_chat',
                      mcp_tier:      :standard,
                      idempotent:    true,
+                     inputs:        { properties: { top:       { type:        'integer',
+                                                                 description: 'Number of chats per page (default 50, max 50)' },
+                                                    max_pages: { type:        'integer',
+                                                                 description: 'Maximum pages to fetch (default 1)' },
+                                                    expand:    { type:        'string',
+                                                                 description: 'Expand related entities: members, lastMessagePreview' },
+                                                    filter:    { type:        'string',
+                                                                 description: 'OData $filter expression (e.g. chatType eq \'group\')' },
+                                                    orderby:   { type:        'string',
+                                                                 description: 'Sort order (e.g. lastMessagePreview/createdDateTime desc)' } },
+                                      required:   [] },
                      trigger_words: %w[chats conversations]
 
-          def list_chats(user_id: 'me', top: 50, **)
-            log.debug "list_chats(user_id: #{user_id}, top: #{top})"
-            params = { '$top' => top }
-            response = graph_connection(**).get("#{user_path(user_id)}/chats", params)
-            { result: response.body }
+          def list_chats(user_id: 'me', top: 50, max_pages: 1, expand: nil, filter: nil, orderby: nil, **)
+            log.debug "list_chats(user_id: #{user_id}, top: #{top}, max_pages: #{max_pages})"
+            per_page = [top, 50].min
+            params = { '$top' => per_page }
+            params['$expand'] = expand if expand
+            params['$filter'] = filter if filter
+            params['$orderby'] = orderby if orderby
+            conn = graph_connection(**)
+            response = conn.get("#{user_path(user_id)}/chats", params)
+            body = response.body
+
+            return { result: body } if max_pages <= 1
+
+            all_values = Array(body['value'] || body[:value])
+            next_link = body['@odata.nextLink'] || body[:'@odata.nextLink']
+            pages_fetched = 1
+
+            while next_link && pages_fetched < max_pages
+              response = conn.get(next_link)
+              page_body = response.body
+              items = page_body['value'] || page_body[:value]
+              all_values.concat(Array(items)) if items
+              next_link = page_body['@odata.nextLink'] || page_body[:'@odata.nextLink']
+              pages_fetched += 1
+            end
+
+            result = { '@odata.context' => body['@odata.context'] || body[:'@odata.context'],
+                       'value'          => all_values }
+            result['@odata.nextLink'] = next_link if next_link
+            { result: result }
           end
 
           definition :get_chat,

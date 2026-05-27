@@ -135,13 +135,20 @@ unless defined?(Legion::Extensions::Absorbers)
 end
 
 # Stub Legion::Extensions::Definitions so `definition :method_name, **opts`
-# calls inside runner modules are no-ops in the test environment (the real
+# calls inside runner modules store metadata in the test environment (the real
 # implementation is auto-extended by builders/runners.rb at runtime).
 unless defined?(Legion::Extensions::Definitions)
   module Legion
     module Extensions
       module Definitions
-        def definition(_method_name, **_opts); end
+        def definition(method_name, **opts)
+          @_definitions ||= {}
+          @_definitions[method_name.to_sym] = opts
+        end
+
+        def definitions
+          @_definitions || {}
+        end
       end
     end
   end

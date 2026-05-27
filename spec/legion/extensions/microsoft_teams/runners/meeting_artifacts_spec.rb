@@ -14,7 +14,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::MeetingArtifacts do
     it 'lists artifacts for a meeting using the default user' do
       response = instance_double(Faraday::Response, body: { 'value' => [{ 'id' => 'a1', 'artifactType' => 'recording' }] })
       allow(graph_conn).to receive(:get)
-        .with('me/onlineMeetings/m1/artifacts')
+        .with('me/onlineMeetings/m1/artifacts', { '$top' => 50 })
         .and_return(response)
 
       result = runner.list_meeting_artifacts(meeting_id: 'm1')
@@ -24,7 +24,7 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::MeetingArtifacts do
     it 'uses a specified user_id in the path' do
       response = instance_double(Faraday::Response, body: { 'value' => [] })
       allow(graph_conn).to receive(:get)
-        .with('users/u1/onlineMeetings/m1/artifacts')
+        .with('users/u1/onlineMeetings/m1/artifacts', { '$top' => 50 })
         .and_return(response)
 
       result = runner.list_meeting_artifacts(meeting_id: 'm1', user_id: 'u1')

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.50] - 2026-05-27
+### Added
+- Full OData query parameter support across all Graph API runner methods per Microsoft Graph REST v1.0 docs
+- `max_pages` pagination parameter on all list endpoints — follows `@odata.nextLink` automatically to fetch multiple pages in a single call
+- `$top` exposed in MCP inputs for: list_chat_messages, list_chats, list_channel_messages, list_channel_message_replies, list_message_replies, list_team_members, list_meetings, list_drive_items, list_team_drive_items, list_call_sessions, list_session_segments, list_meeting_artifacts, list_transcripts
+- `$orderby` support for list_chat_messages (lastModifiedDateTime desc, createdDateTime desc) and list_chats (lastMessagePreview/createdDateTime desc)
+- `$filter` support for list_chat_messages, list_chats, list_channels, list_joined_teams, list_team_members, list_meetings, list_drive_items, list_people
+- `$expand` support for list_chats (members, lastMessagePreview), list_channel_messages (replies), list_installed_apps_for_user, list_installed_apps_in_chat, list_call_sessions (segments)
+- `$select` support for list_channels, list_joined_teams, list_drive_items, list_team_drive_items, list_call_sessions, list_people
+- `$search` support for list_people
+- `format` (vtt/docx) exposed in MCP inputs for get_transcript_content
+
+### Fixed
+- Per-page size capped at Graph API maximum (50 for messages/chats, 200 for drive items) regardless of `top` value passed
+
 ## [0.6.48] - 2026-05-18
 ### Added
 - Definition DSL declarations across all runners for proper tool discovery and MCP exposure
