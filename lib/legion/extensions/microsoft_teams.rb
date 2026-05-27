@@ -63,7 +63,7 @@ module Legion
     module MicrosoftTeams
       extend Legion::Extensions::Core if Legion::Extensions.const_defined? :Core, false
 
-      def self.default_settings
+      def self.default_settings # rubocop:disable Metrics/MethodLength
         {
           api_ingest:           {
             enabled:       true,
@@ -107,6 +107,14 @@ module Legion
           },
           cache:                {
             graph_ttl: 300
+          },
+          client:               {
+            throttle_circuit: {
+              soft_percentage: 0.8,
+              soft_ttl:        60,
+              fallback_ttl:    60,
+              insights_ttl:    600
+            }
           }
         }
       end

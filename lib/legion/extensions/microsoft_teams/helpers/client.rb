@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'faraday'
+require 'legion/extensions/microsoft_teams/faraday/throttle_circuit'
 require 'legion/extensions/microsoft_teams/faraday/retry_after'
 
 module Legion
@@ -15,6 +16,7 @@ module Legion
             token ||= entra_delegated_token
             ::Faraday.new(url: api_url) do |conn|
               conn.request :json
+              conn.use Legion::Extensions::MicrosoftTeams::Faraday::ThrottleCircuit, **throttle_circuit_options
               conn.use Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter, **retry_after_options
               conn.response :json, content_type: /\bjson$/
               conn.headers['Authorization'] = "Bearer #{token}" if token
@@ -25,6 +27,7 @@ module Legion
           def bot_connection(token: nil, service_url: 'https://smba.trafficmanager.net/teams/', **_opts)
             ::Faraday.new(url: service_url) do |conn|
               conn.request :json
+              conn.use Legion::Extensions::MicrosoftTeams::Faraday::ThrottleCircuit, **throttle_circuit_options
               conn.use Legion::Extensions::MicrosoftTeams::Faraday::RetryAfter, **retry_after_options
               conn.response :json, content_type: /\bjson$/
               conn.headers['Authorization'] = "Bearer #{token}" if token
@@ -50,6 +53,26 @@ module Legion
           rescue StandardError => e
             handle_exception(e, level: :debug, operation: 'Client#entra_delegated_token')
             nil
+          end
+
+          def throttle_circuit_options
+            cfg = throttle_circuit_settings || {}
+            {
+              soft_percentage: fetch_setting(cfg, :soft_percentage, 0.8),
+              soft_ttl:        fetch_setting(cfg, :soft_ttl,        60),
+              fallback_ttl:    fetch_setting(cfg, :fallback_ttl,    60),
+              insights_ttl:    fetch_setting(cfg, :insights_ttl,    600),
+              logger:          retry_after_logger
+            }
+          end
+
+          def throttle_circuit_settings
+            return nil unless respond_to?(:settings, true)
+
+            section = settings
+            return nil unless section.respond_to?(:dig)
+
+            section.dig(:client, :throttle_circuit) || section.dig('client', 'throttle_circuit')
           end
 
           # Tunable knobs for the Retry-After middleware. Reads from the lex
