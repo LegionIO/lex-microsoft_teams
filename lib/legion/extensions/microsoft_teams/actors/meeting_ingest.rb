@@ -6,6 +6,7 @@ module Legion
       module Actor
         class MeetingIngest < Legion::Extensions::Actors::Every
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
+          include Legion::Extensions::MicrosoftTeams::Helpers::ThrottleAware
 
           def runner_class    = self.class
           def runner_function = 'manual'
@@ -41,6 +42,17 @@ module Legion
 
           def manual
             log.info('MeetingIngest polling for meetings')
+            # Defer the next run when Graph throttles the meetings listing
+            # (the first, fixed call every tick makes); per-meeting throttles
+            # are handled by the inner rescue below and don't change cadence.
+            with_throttle_deferral { ingest_meetings }
+          rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'MeetingIngest#manual')
+          end
+
+          private
+
+          def ingest_meetings
             token = Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
             return if token.nil?
 
@@ -57,15 +69,11 @@ module Legion
                 process_meeting(meeting_id: meeting_id, subject: meeting['subject'], token: token)
                 @processed_meetings.add(meeting_id)
               rescue StandardError => e
-                handle_exception(e, level: :error, operation: 'MeetingIngest#manual',
+                handle_exception(e, level: :error, operation: 'MeetingIngest#ingest_meetings',
                                  meeting_id: meeting_id)
               end
             end
-          rescue StandardError => e
-            handle_exception(e, level: :error, operation: 'MeetingIngest#manual')
           end
-
-          private
 
           def process_meeting(meeting_id:, subject:, token:)
             log.debug("MeetingIngest#process_meeting meeting_id=#{meeting_id} subject=#{subject}")

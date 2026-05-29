@@ -2,6 +2,7 @@
 
 require 'json'
 require 'digest'
+require 'legion/extensions/microsoft_teams/errors'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/helpers/graph_cache'
 require 'legion/extensions/microsoft_teams/helpers/permission_guard'
@@ -104,6 +105,16 @@ module Legion
             { result: { stored: stored, skipped: skipped, people_ingested: people_ingested,
                         people_found: people.length, chats_found: chats.length,
                         apollo: apollo_results } }
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          # Re-raise unlogged: surface the typed throttle to the caller (the
+          # ApiIngest actor) so it can defer its next scheduled run by the
+          # advertised retry_after. The throttle is already logged at the
+          # middleware/circuit layer; folding it into an error result here
+          # would hide the one signal the actor needs to stop re-charging
+          # the shared Graph circuit on its fixed interval.
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ApiIngest#ingest_api')
             { result: { stored: stored || 0, skipped: skipped || 0, error: e.message } }

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'legion/extensions/microsoft_teams/errors'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/helpers/graph_cache'
 require 'legion/extensions/microsoft_teams/helpers/permission_guard'
@@ -36,6 +37,15 @@ module Legion
             teams_result = ingest_teams_and_meetings(token: token)
 
             { self: self_result, people: people_result, conversations: conv_result, teams: teams_result }
+          rescue Errors::Throttled => e
+            # Once Graph throttles us, the shared circuit is open and every
+            # remaining stage would just raise Throttled(attempts: 0)
+            # instantly — a burst of identical errors that ingests nothing.
+            # Stop the fan-out at the first throttled stage and report it.
+            log.warn('[microsoft_teams][profile_ingest] throttled mid-ingest; ' \
+                     'aborting remaining stages (retry_after=' \
+                     "#{e.retry_after_known? ? format('%.1f', e.retry_after) : 'unknown'} path=#{e.request})")
+            { throttled: true, retry_after: e.retry_after, request: e.request }
           end
 
           def ingest_self(token:, **)
@@ -67,6 +77,13 @@ module Legion
             end
 
             { profile: profile, presence: presence }
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          # Re-raise unlogged: full_ingest logs the throttle once and aborts
+          # the fan-out. A throttle is a fleet signal, not a per-stage error;
+          # logging it here too would just duplicate the line per stage.
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_self')
             { error: e.message }
@@ -99,6 +116,13 @@ module Legion
             end
 
             { people: people, count: people.length }
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          # Re-raise unlogged: full_ingest logs the throttle once and aborts
+          # the fan-out. A throttle is a fleet signal, not a per-stage error;
+          # logging it here too would just duplicate the line per stage.
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_people')
             { error: e.message, skipped: false }
@@ -148,6 +172,13 @@ module Legion
             end
 
             { ingested: ingested }
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          # Re-raise unlogged: full_ingest logs the throttle once and aborts
+          # the fan-out. A throttle is a fleet signal, not a per-stage error;
+          # logging it here too would just duplicate the line per stage.
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_conversations')
             { error: e.message, ingested: ingested || 0 }
@@ -194,6 +225,13 @@ module Legion
             end
 
             { teams: teams_count, meetings: meetings_count }
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          # Re-raise unlogged: full_ingest logs the throttle once and aborts
+          # the fan-out. A throttle is a fleet signal, not a per-stage error;
+          # logging it here too would just duplicate the line per stage.
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ProfileIngest#ingest_teams_and_meetings')
             { error: e.message }
@@ -224,6 +262,12 @@ module Legion
               end
             end
             index
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          # Re-raise unlogged: propagate to full_ingest so the per-chat
+          # fan-out stops on the first throttle; full_ingest logs it once.
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ProfileIngest#build_chat_member_index')
             {}
@@ -236,6 +280,12 @@ module Legion
 
             resp = conn.get("chats/#{chat_id}/messages", params)
             (resp.body || {}).fetch('value', [])
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          # Re-raise unlogged: propagate to full_ingest so the per-chat
+          # fan-out stops on the first throttle; full_ingest logs it once.
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ProfileIngest#fetch_new_messages',
                              chat_id: chat_id)
