@@ -89,9 +89,11 @@ end
 
 # NOTE: actor-level integration — verifying that a poller catches Throttled
 # and defers its NEXT scheduled run instead of re-firing on the standard
-# interval — is intentionally out of scope for THIS PR. The follow-up
-# (issue to be filed) will add that behavior to the actor base class plus
-# the five existing pollers. When that lands, replace this comment with a
-# spec that drives the actor through one tick, raises Throttled from the
-# Graph call, and asserts the actor schedules its next run at
-# `Time.now + retry_after` rather than `Time.now + POLL_INTERVAL`.
+# interval — now lives in:
+#   * spec/legion/extensions/microsoft_teams/helpers/throttle_aware_spec.rb
+#     (the deferral mixin in isolation: window open/close, fallback, clamp), and
+#   * spec/legion/extensions/microsoft_teams/actors/presence_poller_spec.rb
+#     (drives PresencePoller#manual through a throttled tick and asserts the
+#     next tick stands down for retry_after seconds rather than re-polling).
+# The behavior is implemented by Helpers::ThrottleAware, included by
+# PresencePoller, MeetingIngest, and ApiIngest.

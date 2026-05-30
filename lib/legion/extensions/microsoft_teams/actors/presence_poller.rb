@@ -6,6 +6,7 @@ module Legion
       module Actor
         class PresencePoller < Legion::Extensions::Actors::Every
           include Legion::Extensions::MicrosoftTeams::Helpers::Client
+          include Legion::Extensions::MicrosoftTeams::Helpers::ThrottleAware
 
           def runner_class    = self.class
           def runner_function = 'manual'
@@ -28,6 +29,18 @@ module Legion
 
           def manual
             log.debug('PresencePoller#manual starting')
+            # Honour a recent Graph throttle by deferring this run; on a
+            # 429 the block raises Errors::Throttled, which the mixin
+            # converts into a deferral window so the next tick stands down
+            # for retry_after seconds instead of re-firing on the interval.
+            with_throttle_deferral { poll_presence }
+          rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'PresencePoller#manual')
+          end
+
+          private
+
+          def poll_presence
             token = delegated_token
             unless token
               log.debug('No token available, skipping presence poll')
@@ -49,11 +62,7 @@ module Legion
               log.info("Presence changed: availability=#{availability}, activity=#{activity}")
               @last_presence = current
             end
-          rescue StandardError => e
-            handle_exception(e, level: :error, operation: 'PresencePoller#manual')
           end
-
-          private
 
           def delegated_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)

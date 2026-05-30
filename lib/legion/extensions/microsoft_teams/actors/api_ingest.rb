@@ -5,6 +5,8 @@ module Legion
     module MicrosoftTeams
       module Actor
         class ApiIngest < Legion::Extensions::Actors::Every
+          include Legion::Extensions::MicrosoftTeams::Helpers::ThrottleAware
+
           def runner_class = Legion::Extensions::MicrosoftTeams::Runners::ApiIngest
 
           def runner_function = 'ingest_api'
@@ -40,6 +42,18 @@ module Legion
 
           def manual
             log.debug('ApiIngest#manual starting')
+            # The runner re-raises Errors::Throttled (rather than folding it
+            # into an error result) precisely so this actor can defer its
+            # next run by the advertised retry_after instead of charging the
+            # shared Graph circuit again on the next interval.
+            with_throttle_deferral { run_ingest }
+          rescue StandardError => e
+            handle_exception(e, level: :error, operation: 'ApiIngest#manual')
+          end
+
+          private
+
+          def run_ingest
             token = resolve_token
             unless token
               log.warn('ApiIngest: no delegated token, skipping')
@@ -57,11 +71,7 @@ module Legion
             )
             log.info("ApiIngest: #{result.inspect[0, 200]}")
             result
-          rescue StandardError => e
-            handle_exception(e, level: :error, operation: 'ApiIngest#manual')
           end
-
-          private
 
           def token_available?
             resolve_token != nil

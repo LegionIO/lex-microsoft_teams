@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.52] - 2026-05-29
+### Fixed
+- **Actors now defer their next scheduled run on a Graph throttle** instead of re-firing on their fixed timer interval — resolves the 0.6.51 "Known follow-up". New `Helpers::ThrottleAware` mixin records a "suppress until" instant of `now + retry_after` when a Graph call raises `Errors::Throttled`; subsequent ticks short-circuit until that window elapses. Wired into `PresencePoller`, `MeetingIngest`, and `ApiIngest`. Falls back to a bounded 60s deferral when the server gave no usable `Retry-After`, and clamps any single deferral to 600s. Previously a poller on a 30–300s interval would walk straight back into the still-open shared circuit every interval, emitting a `[throttle_circuit] hard circuit` ERROR (and a duplicate `Errors::Throttled` WARN/ERROR) each tick while ingesting nothing.
+- **`ProfileIngest#full_ingest` and `ApiIngest#ingest_api` now propagate `Errors::Throttled`** rather than folding it into a per-stage error hash. `full_ingest` catches it once and aborts the remaining fan-out stages — once the shared circuit is open every later stage would only raise `Throttled(attempts: 0)` instantly, so continuing produced a burst of identical errors. The actor that drives `ingest_api` uses the propagated throttle to open its deferral window. Non-throttle errors keep their existing error-result behavior.
+
 ## [0.6.51] - 2026-05-27
 ### Added
 - `Faraday::RetryAfter` middleware honoring `Retry-After` per RFC 9110 §10.2.3 (originally RFC 7231 §7.1.3) in both delta-seconds and HTTP-date forms. Retries HTTP 429 by default; 503/504 opt-in. Bounded by `max_retries` and cumulative `max_wait`; ±jitter on advertised wait to avoid thundering-herd. Configurable via `microsoft_teams.client.retry.{max_retries,max_wait,jitter,fallback_wait,retry_statuses}`; `fetch` semantics preserve explicit falsey values.
@@ -18,7 +23,7 @@
 - Actors that were accidentally re-enabled by `952607c` (rubocop removed `return false` guards) are now properly gated by `settings[:actor_name][:enabled]` — `presence_poller`, `channel_poller`, `direct_chat_poller`, and `observed_chat_poller` all default to `false`.
 
 ### Known follow-up
-- Actors (`*_poller.rb`, `meeting_ingest`, `profile_ingest`) still catch `Errors::Throttled` via the generic `rescue StandardError` block but do not yet *defer their next scheduled run* using the carried `retry_after`. To be addressed in a follow-up issue.
+- Actors (`*_poller.rb`, `meeting_ingest`, `profile_ingest`) still catch `Errors::Throttled` via the generic `rescue StandardError` block but do not yet *defer their next scheduled run* using the carried `retry_after`. To be addressed in a follow-up issue. *(Resolved in [Unreleased] — see `Helpers::ThrottleAware`.)*
 
 ## [0.6.50] - 2026-05-27
 ### Added
