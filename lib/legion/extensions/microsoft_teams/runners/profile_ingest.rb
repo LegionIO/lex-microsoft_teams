@@ -54,28 +54,11 @@ module Legion
             conn = graph_connection(token: token)
             profile = conn.get('me').body
 
-            memory_runner.store_trace(
-              type:            :identity,
-              content_payload: ::JSON.dump(profile),
-              domain_tags:     %w[teams self owner],
-              confidence:      1.0,
-              origin:          :direct_experience
-            )
-
             presence = begin
               conn.get('me/presence').body
             rescue StandardError => e
               handle_exception(e, level: :debug, operation: 'ProfileIngest#ingest_self presence') if defined?(handle_exception)
               {}
-            end
-            unless presence.empty?
-              memory_runner.store_trace(
-                type:            :sensory,
-                content_payload: ::JSON.dump(presence),
-                domain_tags:     %w[teams presence self],
-                confidence:      0.8,
-                origin:          :direct_experience
-              )
             end
 
             { profile: profile, presence: presence }
@@ -104,18 +87,6 @@ module Legion
 
             people = (resp.body || {}).fetch('value', [])
             people.sort_by! { |p| -(p.dig('scoredEmailAddresses', 0, 'relevanceScore') || 0) }
-
-            people.each do |person|
-              name = person['displayName'] || 'Unknown'
-              memory_runner.store_trace(
-                type:            :semantic,
-                content_payload: ::JSON.dump(person.slice('displayName', 'jobTitle', 'department',
-                                                          'officeLocation', 'scoredEmailAddresses')),
-                domain_tags:     ['teams', 'peer', "peer:#{name}"],
-                confidence:      0.7,
-                origin:          :direct_experience
-              )
-            end
 
             { people: people, count: people.length }
           # rubocop:disable Legion/RescueLogging/NoCapture

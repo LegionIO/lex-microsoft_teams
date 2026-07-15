@@ -39,11 +39,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ProfileIngest do
       allow(presence_response).to receive(:body).and_return({})
     end
 
-    it 'stores an identity trace with self tags' do
-      expect(memory_runner).to receive(:store_trace).with(hash_including(
-                                                            type:        :identity,
-                                                            domain_tags: %w[teams self owner]
-                                                          ))
+    it 'does not store identity traces from API fetch (A4)' do
+      expect(memory_runner).not_to receive(:store_trace)
       runner.ingest_self(token: 'tok')
     end
 
@@ -66,10 +63,11 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ProfileIngest do
     before do
       allow(graph_conn).to receive(:get).with('me/people', anything).and_return(response)
       allow(response).to receive(:body).and_return(people_body)
+      allow(response).to receive(:status).and_return(200)
     end
 
-    it 'stores a semantic trace per person' do
-      expect(memory_runner).to receive(:store_trace).twice
+    it 'does not store traces from API fetch (A4)' do
+      expect(memory_runner).not_to receive(:store_trace)
       runner.ingest_people(token: 'tok', top: 25)
     end
 
