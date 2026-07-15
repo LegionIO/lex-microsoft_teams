@@ -92,7 +92,7 @@ module Legion
             total_wait        = 0.0
             last_advertised   = nil
 
-            loop do
+            (@max_retries + 1).times do
               response = @app.call(env.dup)
               return response unless retryable?(response.status)
 

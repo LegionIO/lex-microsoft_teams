@@ -22,7 +22,7 @@ module Legion
               defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'IncrementalSync#enabled?')
+            handle_exception(e, level: :warn, operation: 'IncrementalSync#enabled?')
             false
           end
 

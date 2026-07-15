@@ -23,7 +23,7 @@ module Legion
             settings.dig(:presence_poller, :enabled) &&
               Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'PresencePoller#enabled?')
+            handle_exception(e, level: :warn, operation: 'PresencePoller#enabled?')
             false
           end
 

@@ -28,7 +28,7 @@ module Legion
             settings.dig(:meeting_ingest, :enabled) &&
               Legion::Extensions::Identity::Entra::Helpers::TokenManager.respond_to?(:load_token)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'MeetingIngest#enabled?')
+            handle_exception(e, level: :warn, operation: 'MeetingIngest#enabled?')
             false
           end
 

@@ -162,7 +162,7 @@ module Legion
             params = { '$top' => 50 }
             pages = 0
 
-            loop do
+            MAX_CHAT_PAGES.times do
               resp = conn.get(url, params)
 
               unless (200..299).cover?(resp.status)
@@ -180,7 +180,6 @@ module Legion
 
               next_link = body['@odata.nextLink']
               break unless next_link
-              break if pages >= MAX_CHAT_PAGES
 
               url = next_link
               params = {}
@@ -347,7 +346,7 @@ module Legion
             end
             hashes
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#load_existing_hashes')
+            handle_exception(e, level: :warn, operation: 'ApiIngest#load_existing_hashes')
             Set.new
           end
 
@@ -376,12 +375,12 @@ module Legion
               trace_ids.each_cons(2) do |id_a, id_b|
                 store.record_coactivation(id_a, id_b)
               rescue StandardError => e
-                handle_exception(e, level: :debug, operation: 'ApiIngest#coactivate_thread_traces',
+                handle_exception(e, level: :warn, operation: 'ApiIngest#coactivate_thread_traces',
                                  id_a: id_a, id_b: id_b)
               end
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#coactivate_thread_traces')
+            handle_exception(e, level: :warn, operation: 'ApiIngest#coactivate_thread_traces')
           end
 
           def publish_to_apollo(person_texts)
@@ -440,7 +439,7 @@ module Legion
 
             { success: true, count: result[:entities].length }
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#extract_and_ingest_entities',
+            handle_exception(e, level: :warn, operation: 'ApiIngest#extract_and_ingest_entities',
                              person_name: person_name)
             { success: false, count: 0 }
           end

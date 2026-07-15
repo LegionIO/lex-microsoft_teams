@@ -59,7 +59,7 @@ module Legion
 
             raw.is_a?(Hash) ? raw : ::JSON.parse(raw, symbolize_names: true)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'HighWaterMark#get_extended_hwm',
+            handle_exception(e, level: :warn, operation: 'HighWaterMark#get_extended_hwm',
                              chat_id: chat_id)
             nil
           end

@@ -21,7 +21,7 @@ module Legion
             next_link = nil
             page      = 0
 
-            loop do
+            max_pages.times do
               current_path = next_link || path
               data         = graph_get(current_path, token: token, params: page.zero? ? params : {})
               break if data.nil?

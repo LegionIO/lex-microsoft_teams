@@ -16,6 +16,10 @@ Legion/Extension/EveryActorRequiresTime:
 # RunnerReturnHash fires on private helper methods inside runner modules (false positives)
 Legion/Extension/RunnerReturnHash:
   Enabled: false
+
+# This extension uses trace types (episodic, semantic, procedural) not LLM taxonomy types
+Legion/Llm/TaxonomyEnum:
+  Enabled: false
   
 Metrics/CyclomaticComplexity:
   Max: 25

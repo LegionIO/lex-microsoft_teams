@@ -41,7 +41,7 @@ module Legion
 
             Legion::Extensions::Coldstart::Helpers::Bootstrap.new.imprint_active?
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'CacheBulkIngest#imprint_active?')
+            handle_exception(e, level: :warn, operation: 'CacheBulkIngest#imprint_active?')
             false
           end
         end

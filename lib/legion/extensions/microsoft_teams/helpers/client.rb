@@ -12,7 +12,7 @@ module Legion
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
                                                       Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
-          def graph_connection(token: nil, api_url: 'https://graph.microsoft.com/v1.0', **_opts)
+          def graph_connection(token: nil, api_url: 'https://graph.microsoft.com/v1.0', **)
             token ||= entra_delegated_token
             ::Faraday.new(url: api_url) do |conn|
               conn.request :json
@@ -24,7 +24,7 @@ module Legion
             end
           end
 
-          def bot_connection(token: nil, service_url: 'https://smba.trafficmanager.net/teams/', **_opts)
+          def bot_connection(token: nil, service_url: 'https://smba.trafficmanager.net/teams/', **)
             ::Faraday.new(url: service_url) do |conn|
               conn.request :json
               conn.use Legion::Extensions::MicrosoftTeams::Faraday::ThrottleCircuit, **throttle_circuit_options
@@ -39,7 +39,7 @@ module Legion
             user_id == 'me' ? 'me' : "users/#{user_id}"
           end
 
-          def oauth_connection(tenant_id: 'common', **_opts)
+          def oauth_connection(tenant_id: 'common', **)
             ::Faraday.new(url: "https://login.microsoftonline.com/#{tenant_id}") do |conn|
               conn.request :url_encoded
               conn.response :json, content_type: /\bjson$/
@@ -51,7 +51,7 @@ module Legion
           def entra_delegated_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Client#entra_delegated_token')
+            handle_exception(e, level: :warn, operation: 'Client#entra_delegated_token')
             nil
           end
 

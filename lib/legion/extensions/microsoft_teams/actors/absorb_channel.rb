@@ -14,7 +14,7 @@ module Legion
             defined?(Legion::Extensions::Absorbers::Base) &&
               defined?(Legion::Extensions::MicrosoftTeams::Absorbers::Channel)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'AbsorbChannel#enabled?')
+            handle_exception(e, level: :warn, operation: 'AbsorbChannel#enabled?')
             false
           end
 
@@ -53,7 +53,7 @@ module Legion
 
             data.transform_keys(&:to_sym)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'AbsorbChannel#parse_payload')
+            handle_exception(e, level: :warn, operation: 'AbsorbChannel#parse_payload')
             {}
           end
         end

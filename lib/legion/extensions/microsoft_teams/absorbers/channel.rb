@@ -57,7 +57,7 @@ module Legion
           def graph_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Channel#graph_token')
+            handle_exception(e, level: :warn, operation: 'Channel#graph_token')
             nil
           end
 
@@ -85,7 +85,7 @@ module Legion
 
             { team_id: team_id, channel_id: channel_id, message_id: message_id }
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Channel#extract_ids', url: url)
+            handle_exception(e, level: :warn, operation: 'Channel#extract_ids', url: url)
             nil
           end
 
@@ -202,7 +202,7 @@ module Legion
               "  ↳ [#{timestamp}] #{sender}: #{text}"
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Channel#fetch_reply_lines',
+            handle_exception(e, level: :warn, operation: 'Channel#fetch_reply_lines',
                              team_id: team_id, channel_id: channel_id, message_id: message_id)
             []
           end

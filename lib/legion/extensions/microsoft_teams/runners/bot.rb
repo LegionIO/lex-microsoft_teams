@@ -200,7 +200,7 @@ module Legion
 
             retrieve_context(message: message, owner_id: owner_id, chat_id: chat_id)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Bot#retrieve_trace_context') if defined?(handle_exception)
+            handle_exception(e, level: :warn, operation: 'Bot#retrieve_trace_context') if defined?(handle_exception)
             nil
           end
 
@@ -231,7 +231,7 @@ module Legion
             Legion::Settings.dig(:microsoft_teams, :bot, :observe, :enabled) == true
           end
 
-          def notify_enabled?(**_kwargs)
+          def notify_enabled?(**)
             return false unless defined?(Legion::Settings)
 
             Legion::Settings.dig(:microsoft_teams, :bot, :observe, :notify) == true

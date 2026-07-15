@@ -29,7 +29,7 @@ module Legion
               defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               Legion.const_defined?(:Transport, false)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'DirectChatPoller#enabled?')
+            handle_exception(e, level: :warn, operation: 'DirectChatPoller#enabled?')
             false
           end
 

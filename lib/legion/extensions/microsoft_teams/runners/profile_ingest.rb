@@ -56,7 +56,7 @@ module Legion
             presence = begin
               conn.get('me/presence').body
             rescue StandardError => e
-              handle_exception(e, level: :debug, operation: 'ProfileIngest#ingest_self presence') if defined?(handle_exception)
+              handle_exception(e, level: :warn, operation: 'ProfileIngest#ingest_self presence') if defined?(handle_exception)
               {}
             end
 
@@ -319,7 +319,7 @@ module Legion
               llm_ask(message: "#{definition[:prompt]}\n\nConversation with #{peer_name}:\n#{text}")
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ProfileIngest#extract_conversation')
+            handle_exception(e, level: :warn, operation: 'ProfileIngest#extract_conversation')
             nil
           end
 

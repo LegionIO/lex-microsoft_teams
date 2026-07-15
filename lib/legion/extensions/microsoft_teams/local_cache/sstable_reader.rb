@@ -102,7 +102,7 @@ module Legion
           def decode_varint(data, pos)
             result = 0
             shift = 0
-            loop do
+            10.times do # varint max 10 bytes (64-bit)
               return [nil, pos] if pos >= data.bytesize
 
               byte = data.getbyte(pos)

@@ -34,7 +34,7 @@ module Legion
           def enabled?
             settings.dig(:channel_poller, :enabled)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ChannelPoller#enabled?')
+            handle_exception(e, level: :warn, operation: 'ChannelPoller#enabled?')
             false
           end
 

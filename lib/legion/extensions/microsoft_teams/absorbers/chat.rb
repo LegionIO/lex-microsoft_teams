@@ -46,7 +46,7 @@ module Legion
           def graph_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Chat#graph_token')
+            handle_exception(e, level: :warn, operation: 'Chat#graph_token')
             nil
           end
 
@@ -60,7 +60,7 @@ module Legion
 
             URI.decode_uri_component(match[1])
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Chat#extract_chat_id', url: url)
+            handle_exception(e, level: :warn, operation: 'Chat#extract_chat_id', url: url)
             nil
           end
 
@@ -150,7 +150,7 @@ module Legion
               "  ↳ [#{timestamp}] #{sender}: #{text}"
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Chat#fetch_reply_lines',
+            handle_exception(e, level: :warn, operation: 'Chat#fetch_reply_lines',
                              chat_id: chat_id, message_id: message_id)
             []
           end

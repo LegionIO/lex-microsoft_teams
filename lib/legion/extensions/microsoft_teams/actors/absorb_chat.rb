@@ -14,7 +14,7 @@ module Legion
             defined?(Legion::Extensions::Absorbers::Base) &&
               defined?(Legion::Extensions::MicrosoftTeams::Absorbers::Chat)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'AbsorbChat#enabled?')
+            handle_exception(e, level: :warn, operation: 'AbsorbChat#enabled?')
             false
           end
 
@@ -53,7 +53,7 @@ module Legion
 
             data.transform_keys(&:to_sym)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'AbsorbChat#parse_payload')
+            handle_exception(e, level: :warn, operation: 'AbsorbChat#parse_payload')
             {}
           end
         end

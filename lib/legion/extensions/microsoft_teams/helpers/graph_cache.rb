@@ -21,7 +21,7 @@ module Legion
               resp.body
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'GraphCache#cached_graph_get', path: path)
+            handle_exception(e, level: :warn, operation: 'GraphCache#cached_graph_get', path: path)
             conn.get(path, params).body
           end
 
@@ -35,7 +35,7 @@ module Legion
             key = graph_cache_key(path: path, params: params, shared: shared)
             cache_delete(key)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'GraphCache#invalidate_graph_cache')
+            handle_exception(e, level: :warn, operation: 'GraphCache#invalidate_graph_cache')
           end
 
           private
@@ -55,7 +55,7 @@ module Legion
 
             Legion::Settings[:microsoft_teams] || {}
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'GraphCache#teams_extension_settings')
+            handle_exception(e, level: :warn, operation: 'GraphCache#teams_extension_settings')
             {}
           end
         end

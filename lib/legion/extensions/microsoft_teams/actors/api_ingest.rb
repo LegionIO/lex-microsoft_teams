@@ -24,7 +24,7 @@ module Legion
             base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 9.0
             [base_delay + 5.0, 14].max
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#delay')
+            handle_exception(e, level: :warn, operation: 'ApiIngest#delay')
             14
           end
 
@@ -93,7 +93,7 @@ module Legion
 
             Legion::Extensions::Coldstart::Helpers::Bootstrap.new.imprint_active?
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#imprint_active?')
+            handle_exception(e, level: :warn, operation: 'ApiIngest#imprint_active?')
             false
           end
         end

@@ -131,7 +131,7 @@ module Legion
             return unless defined?(log)
 
             if defined?(handle_exception)
-              handle_exception(error, level: :debug, operation: "TraceRetriever##{method}")
+              handle_exception(error, level: :warn, operation: "TraceRetriever##{method}")
             else
               log.debug("TraceRetriever##{method} failed: #{error.message}")
             end

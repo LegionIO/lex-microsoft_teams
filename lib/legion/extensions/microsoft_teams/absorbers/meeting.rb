@@ -51,7 +51,7 @@ module Legion
           def graph_token
             Legion::Extensions::Identity::Entra::Helpers::TokenManager.load_token(:delegated)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'Meeting#graph_token')
+            handle_exception(e, level: :warn, operation: 'Meeting#graph_token')
             nil
           end
 
@@ -75,7 +75,7 @@ module Legion
             match = uri.path.match(%r{/l/chat/(19:meeting_[^/]+)})
             match&.[](1)
           rescue URI::InvalidURIError => e
-            handle_exception(e, level: :debug, operation: 'Meeting#extract_meeting_thread_id', url: url)
+            handle_exception(e, level: :warn, operation: 'Meeting#extract_meeting_thread_id', url: url)
             nil
           end
 
