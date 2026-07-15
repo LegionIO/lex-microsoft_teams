@@ -196,14 +196,17 @@ module Legion
             []
           end
 
+          CHAT_TYPE_PRIORITY = { 'oneOnOne' => 0, 'group' => 1, 'meeting' => 2 }.freeze
+
           def build_chat_member_index(conn:, chats:)
             by_email = {}
             by_user_id = {}
             by_name = {}
 
-            chats.each do |chat|
+            sorted = chats.sort_by { |c| CHAT_TYPE_PRIORITY[c['chatType']] || 99 }
+            sorted.each do |chat|
               members = cached_graph_get(conn: conn, path: "chats/#{chat['id']}/members",
-                                         shared: true)
+                                         shared: true, ttl: members_cache_ttl)
                         .then { |body| (body || {}).fetch('value', []) }
               members.each do |m|
                 email = m['email']&.downcase
@@ -448,6 +451,16 @@ module Legion
 
           def apollo_knowledge_runner
             @apollo_knowledge_runner ||= Object.new.extend(Legion::Extensions::Apollo::Runners::Knowledge)
+          end
+
+          def members_cache_ttl
+            return @members_cache_ttl if defined?(@members_cache_ttl)
+
+            @members_cache_ttl = if respond_to?(:settings, true) && settings.respond_to?(:dig)
+                                   settings.dig(:cache, :members_ttl) || 86_400
+                                 else
+                                   86_400
+                                 end
           end
 
           def error_result(message)

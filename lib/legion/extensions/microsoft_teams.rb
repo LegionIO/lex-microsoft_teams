@@ -107,7 +107,8 @@ module Legion
             interval: 60
           },
           cache:                {
-            graph_ttl: 300
+            graph_ttl:   300,
+            members_ttl: 86_400
           },
           client:               {
             throttle_circuit: {
