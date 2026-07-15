@@ -153,7 +153,7 @@ module Legion
             profile_traces.map { |t| { type: t[:trace_type], content: t[:content_payload].to_s[0, 200] } }
           rescue StandardError => e
             if defined?(handle_exception)
-              handle_exception(e, level: :debug, operation: 'SessionManager#trace_seed_for',
+              handle_exception(e, level: :warn, operation: 'SessionManager#trace_seed_for',
                                owner_id: owner_id)
             end
             nil

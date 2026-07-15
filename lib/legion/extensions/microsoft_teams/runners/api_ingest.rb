@@ -22,16 +22,12 @@ module Legion
 
           definition :ingest_api, mcp_exposed: false
 
-          # Fetch top contacts via /me/people, then pull recent messages from
-          # their 1:1 chats. Stores each message as an individual memory trace
-          # (same format as CacheIngest) with dedup by content hash.
-          #
-          # Requires a delegated token with Chat.Read and People.Read scopes.
           def ingest_api(token:, top_people: 15, message_depth: 50, skip_bots: true, imprint_active: false, **) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
             log.debug("ApiIngest#ingest_api top_people=#{top_people} message_depth=#{message_depth}")
             return error_result('lex-memory not loaded') unless memory_available?
             return error_result('no token provided') unless token && !token.empty?
 
+            @fetch_failures = 0
             restore_hwm_from_traces
 
             people = fetch_top_people(token: token, top: top_people)
@@ -104,6 +100,7 @@ module Legion
 
             { result: { stored: stored, skipped: skipped, people_ingested: people_ingested,
                         people_found: people.length, chats_found: chats.length,
+                        fetch_failures: @fetch_failures,
                         apollo: apollo_results } }
           # rubocop:disable Legion/RescueLogging/NoCapture
           # Re-raise unlogged: surface the typed throttle to the caller (the
@@ -117,13 +114,15 @@ module Legion
             # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ApiIngest#ingest_api')
-            { result: { stored: stored || 0, skipped: skipped || 0, error: e.message } }
+            { result: { stored: stored || 0, skipped: skipped || 0,
+                        fetch_failures: @fetch_failures || 0, error: e.message } }
           end
 
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
                                                       Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           MAX_CHAT_PAGES = 10
+          CHAT_TYPE_PRIORITY = { 'oneOnOne' => 0, 'group' => 1, 'meeting' => 2 }.freeze
 
           private
 
@@ -135,15 +134,24 @@ module Legion
             resp = conn.get('me/people', { '$top' => top })
 
             log.debug("ApiIngest: fetch_top_people status=#{resp.status} count=#{(resp.body || {}).fetch('value', []).size}")
-            if resp.status == 403
-              record_denial('/me/people', resp.body.dig('error', 'message') || 'Forbidden')
+            unless (200..299).cover?(resp.status)
+              error_code = resp.body&.dig('error', 'code')
+              log.warn('[microsoft_teams][api_ingest] fetch_top_people non-2xx: ' \
+                       "status=#{resp.status} error_code=#{error_code}")
+              record_denial('/me/people', resp.body&.dig('error', 'message') || 'Forbidden') if resp.status == 403
+              @fetch_failures = (@fetch_failures || 0) + 1
               return []
             end
 
             people = (resp.body || {}).fetch('value', [])
             people.sort_by { |p| -(p.dig('scoredEmailAddresses', 0, 'relevanceScore') || 0) }
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_top_people')
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
 
@@ -154,8 +162,17 @@ module Legion
             params = { '$top' => 50 }
             pages = 0
 
-            loop do
+            MAX_CHAT_PAGES.times do
               resp = conn.get(url, params)
+
+              unless (200..299).cover?(resp.status)
+                error_code = resp.body&.dig('error', 'code')
+                log.warn('[microsoft_teams][api_ingest] fetch_one_on_one_chats non-2xx: ' \
+                         "status=#{resp.status} error_code=#{error_code}")
+                @fetch_failures = (@fetch_failures || 0) + 1
+                break
+              end
+
               body = resp.body || {}
               chats = body.fetch('value', [])
               all_chats.concat(chats)
@@ -163,7 +180,6 @@ module Legion
 
               next_link = body['@odata.nextLink']
               break unless next_link
-              break if pages >= MAX_CHAT_PAGES
 
               url = next_link
               params = {}
@@ -173,8 +189,13 @@ module Legion
             filtered = all_chats.select { |c| allowed_types.include?(c['chatType']) }
             log.info("ApiIngest: fetched #{all_chats.size} chats (#{pages} pages), #{filtered.size} eligible (1:1/group/meeting)")
             filtered
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_one_on_one_chats')
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
 
@@ -183,9 +204,10 @@ module Legion
             by_user_id = {}
             by_name = {}
 
-            chats.each do |chat|
+            sorted = chats.sort_by { |c| CHAT_TYPE_PRIORITY[c['chatType']] || 99 }
+            sorted.each do |chat|
               members = cached_graph_get(conn: conn, path: "chats/#{chat['id']}/members",
-                                         shared: true)
+                                         shared: true, ttl: members_cache_ttl)
                         .then { |body| (body || {}).fetch('value', []) }
               members.each do |m|
                 email = m['email']&.downcase
@@ -201,8 +223,13 @@ module Legion
             end
 
             { email: by_email, user_id: by_user_id, name: by_name }
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#build_chat_member_index')
+            @fetch_failures = (@fetch_failures || 0) + 1
             { email: {}, user_id: {}, name: {} }
           end
 
@@ -216,17 +243,41 @@ module Legion
               chat_index[:name][display_name]
           end
 
+          def hwm_client_side_cut(messages:, hwm:)
+            return messages unless hwm&.dig(:last_message_at)
+
+            cutoff = hwm[:last_message_at]
+            seen = Set.new
+            messages.take_while { |m| m['createdDateTime'] && m['createdDateTime'] > cutoff }
+                    .select { |m| seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
+          end
+
           def fetch_chat_messages(conn:, chat_id:, depth: 50)
             hwm = get_extended_hwm(chat_id: chat_id)
             params = { '$top' => depth, '$orderby' => 'createdDateTime desc' }
-            params['$filter'] = "createdDateTime gt #{hwm[:last_message_at]}" if hwm&.dig(:last_message_at)
 
             resp = conn.get("chats/#{chat_id}/messages", params)
-            log.debug("ApiIngest: fetch_messages chat=#{chat_id} count=#{(resp.body || {}).fetch('value', []).size}")
-            (resp.body || {}).fetch('value', [])
+
+            unless (200..299).cover?(resp.status)
+              error_code = resp.body&.dig('error', 'code')
+              log.warn('[microsoft_teams][api_ingest] fetch_chat_messages non-2xx: ' \
+                       "chat_id=#{chat_id} status=#{resp.status} error_code=#{error_code}")
+              @fetch_failures = (@fetch_failures || 0) + 1
+              return []
+            end
+
+            messages = (resp.body || {}).fetch('value', [])
+            messages = hwm_client_side_cut(messages: messages, hwm: hwm)
+            log.debug("ApiIngest: fetch_messages chat=#{chat_id} count=#{messages.size}")
+            messages
+          # rubocop:disable Legion/RescueLogging/NoCapture
+          rescue Errors::Throttled
+            raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_chat_messages',
                              chat_id: chat_id)
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
 
@@ -295,7 +346,7 @@ module Legion
             end
             hashes
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#load_existing_hashes')
+            handle_exception(e, level: :warn, operation: 'ApiIngest#load_existing_hashes')
             Set.new
           end
 
@@ -324,12 +375,12 @@ module Legion
               trace_ids.each_cons(2) do |id_a, id_b|
                 store.record_coactivation(id_a, id_b)
               rescue StandardError => e
-                handle_exception(e, level: :debug, operation: 'ApiIngest#coactivate_thread_traces',
+                handle_exception(e, level: :warn, operation: 'ApiIngest#coactivate_thread_traces',
                                  id_a: id_a, id_b: id_b)
               end
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#coactivate_thread_traces')
+            handle_exception(e, level: :warn, operation: 'ApiIngest#coactivate_thread_traces')
           end
 
           def publish_to_apollo(person_texts)
@@ -388,7 +439,7 @@ module Legion
 
             { success: true, count: result[:entities].length }
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ApiIngest#extract_and_ingest_entities',
+            handle_exception(e, level: :warn, operation: 'ApiIngest#extract_and_ingest_entities',
                              person_name: person_name)
             { success: false, count: 0 }
           end
@@ -405,6 +456,16 @@ module Legion
 
           def apollo_knowledge_runner
             @apollo_knowledge_runner ||= Object.new.extend(Legion::Extensions::Apollo::Runners::Knowledge)
+          end
+
+          def members_cache_ttl
+            return @members_cache_ttl if defined?(@members_cache_ttl)
+
+            @members_cache_ttl = if respond_to?(:settings, true) && settings.respond_to?(:dig)
+                                   settings.dig(:cache, :members_ttl) || 86_400
+                                 else
+                                   86_400
+                                 end
           end
 
           def error_result(message)

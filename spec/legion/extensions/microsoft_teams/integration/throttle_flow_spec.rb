@@ -31,7 +31,7 @@ RSpec.describe 'Throttle flow integration' do
       # Override the connection builder to inject a captured sleeper +
       # deterministic Faraday test adapter while keeping the production
       # middleware stack intact.
-      def graph_connection(token: nil, api_url: 'https://graph.microsoft.com/v1.0', **_opts)
+      def graph_connection(token: nil, api_url: 'https://graph.microsoft.com/v1.0', **)
         token ||= 'integration-token'
 
         Faraday.new(url: api_url) do |conn|

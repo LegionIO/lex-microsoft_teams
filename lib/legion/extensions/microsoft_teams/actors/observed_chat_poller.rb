@@ -28,7 +28,7 @@ module Legion
               defined?(Legion::Extensions::MicrosoftTeams::Runners::Bot) &&
               Legion.const_defined?(:Transport, false)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ObservedChatPoller#enabled?')
+            handle_exception(e, level: :warn, operation: 'ObservedChatPoller#enabled?')
             false
           end
 

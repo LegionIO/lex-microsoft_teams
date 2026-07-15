@@ -16,7 +16,7 @@ module Legion
             base_delay = auth_validator.respond_to?(:delay) ? auth_validator.delay.to_f : 9.0
             base_delay + 5.0
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ProfileIngest#delay')
+            handle_exception(e, level: :warn, operation: 'ProfileIngest#delay')
             14.0
           end
 
@@ -25,7 +25,7 @@ module Legion
               defined?(Legion::Extensions::Agentic::Memory::Trace::Runners::Traces) &&
               token_available?
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ProfileIngest#enabled?')
+            handle_exception(e, level: :warn, operation: 'ProfileIngest#enabled?')
             false
           end
 

@@ -14,7 +14,7 @@ module Legion
             defined?(Legion::Extensions::Absorbers::Base) &&
               defined?(Legion::Extensions::MicrosoftTeams::Absorbers::Meeting)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'AbsorbMeeting#enabled?')
+            handle_exception(e, level: :warn, operation: 'AbsorbMeeting#enabled?')
             false
           end
 
@@ -53,7 +53,7 @@ module Legion
 
             data.transform_keys(&:to_sym)
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'AbsorbMeeting#parse_payload')
+            handle_exception(e, level: :warn, operation: 'AbsorbMeeting#parse_payload')
             {}
           end
         end

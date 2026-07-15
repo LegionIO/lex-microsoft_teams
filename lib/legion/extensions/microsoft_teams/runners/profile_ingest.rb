@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'digest'
 require 'legion/extensions/microsoft_teams/errors'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/helpers/graph_cache'
@@ -52,28 +53,11 @@ module Legion
             conn = graph_connection(token: token)
             profile = conn.get('me').body
 
-            memory_runner.store_trace(
-              type:            :identity,
-              content_payload: ::JSON.dump(profile),
-              domain_tags:     %w[teams self owner],
-              confidence:      1.0,
-              origin:          :direct_experience
-            )
-
             presence = begin
               conn.get('me/presence').body
             rescue StandardError => e
-              handle_exception(e, level: :debug, operation: 'ProfileIngest#ingest_self presence') if defined?(handle_exception)
+              handle_exception(e, level: :warn, operation: 'ProfileIngest#ingest_self presence') if defined?(handle_exception)
               {}
-            end
-            unless presence.empty?
-              memory_runner.store_trace(
-                type:            :sensory,
-                content_payload: ::JSON.dump(presence),
-                domain_tags:     %w[teams presence self],
-                confidence:      0.8,
-                origin:          :direct_experience
-              )
             end
 
             { profile: profile, presence: presence }
@@ -102,18 +86,6 @@ module Legion
 
             people = (resp.body || {}).fetch('value', [])
             people.sort_by! { |p| -(p.dig('scoredEmailAddresses', 0, 'relevanceScore') || 0) }
-
-            people.each do |person|
-              name = person['displayName'] || 'Unknown'
-              memory_runner.store_trace(
-                type:            :semantic,
-                content_payload: ::JSON.dump(person.slice('displayName', 'jobTitle', 'department',
-                                                          'officeLocation', 'scoredEmailAddresses')),
-                domain_tags:     ['teams', 'peer', "peer:#{name}"],
-                confidence:      0.7,
-                origin:          :direct_experience
-              )
-            end
 
             { people: people, count: people.length }
           # rubocop:disable Legion/RescueLogging/NoCapture
@@ -248,13 +220,16 @@ module Legion
                                  top_people: top_people, message_depth: message_depth)
           end
 
+          CHAT_TYPE_PRIORITY = { 'oneOnOne' => 0, 'group' => 1, 'meeting' => 2 }.freeze
+
           private
 
           def build_chat_member_index(conn:, chats:)
             index = {}
-            chats.each do |chat|
+            sorted = chats.sort_by { |c| CHAT_TYPE_PRIORITY[c['chatType']] || 99 }
+            sorted.each do |chat|
               members = cached_graph_get(conn: conn, path: "chats/#{chat['id']}/members",
-                                         shared: true)
+                                         shared: true, ttl: members_cache_ttl)
                         .then { |body| (body || {}).fetch('value', []) }
               members.each do |m|
                 email = m['email']&.downcase
@@ -273,13 +248,32 @@ module Legion
             {}
           end
 
+          def members_cache_ttl
+            return @members_cache_ttl if defined?(@members_cache_ttl)
+
+            @members_cache_ttl = if respond_to?(:settings, true) && settings.respond_to?(:dig)
+                                   settings.dig(:cache, :members_ttl) || 86_400
+                                 else
+                                   86_400
+                                 end
+          end
+
           def fetch_new_messages(conn:, chat_id:, depth: 50)
             hwm = get_extended_hwm(chat_id: chat_id)
             params = { '$top' => depth, '$orderby' => 'createdDateTime desc' }
-            params['$filter'] = "createdDateTime gt #{hwm[:last_message_at]}" if hwm&.dig(:last_message_at)
 
             resp = conn.get("chats/#{chat_id}/messages", params)
-            (resp.body || {}).fetch('value', [])
+
+            unless (200..299).cover?(resp.status)
+              error_code = resp.body&.dig('error', 'code')
+              log.warn('[microsoft_teams][profile_ingest] fetch_new_messages non-2xx: ' \
+                       "chat_id=#{chat_id} status=#{resp.status} error_code=#{error_code}")
+              @fetch_failures = (@fetch_failures || 0) + 1
+              return []
+            end
+
+            messages = (resp.body || {}).fetch('value', [])
+            hwm_client_side_cut(messages: messages, hwm: hwm)
           # rubocop:disable Legion/RescueLogging/NoCapture
           # Re-raise unlogged: propagate to full_ingest so the per-chat
           # fan-out stops on the first throttle; full_ingest logs it once.
@@ -289,7 +283,17 @@ module Legion
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ProfileIngest#fetch_new_messages',
                              chat_id: chat_id)
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
+          end
+
+          def hwm_client_side_cut(messages:, hwm:)
+            return messages unless hwm&.dig(:last_message_at)
+
+            cutoff = hwm[:last_message_at]
+            seen = Set.new
+            messages.take_while { |m| m['createdDateTime'] && m['createdDateTime'] > cutoff }
+                    .select { |m| seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
           end
 
           def extract_conversation(messages:, peer_name:)
@@ -315,7 +319,7 @@ module Legion
               llm_ask(message: "#{definition[:prompt]}\n\nConversation with #{peer_name}:\n#{text}")
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'ProfileIngest#extract_conversation')
+            handle_exception(e, level: :warn, operation: 'ProfileIngest#extract_conversation')
             nil
           end
 

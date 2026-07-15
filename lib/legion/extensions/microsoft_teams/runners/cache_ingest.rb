@@ -123,12 +123,12 @@ module Legion
               trace_ids.each_cons(2) do |id_a, id_b|
                 store.record_coactivation(id_a, id_b)
               rescue StandardError => e
-                handle_exception(e, level: :debug, operation: 'CacheIngest#coactivate_thread_traces',
+                handle_exception(e, level: :warn, operation: 'CacheIngest#coactivate_thread_traces',
                                  id_a: id_a, id_b: id_b)
               end
             end
           rescue StandardError => e
-            handle_exception(e, level: :debug, operation: 'CacheIngest#coactivate_thread_traces')
+            handle_exception(e, level: :warn, operation: 'CacheIngest#coactivate_thread_traces')
           end
         end
       end

@@ -55,7 +55,7 @@ module Legion
             Legion::Extensions::Mesh::Helpers::PreferenceProfile.preference_instructions(profile: profile)
           rescue StandardError => e
             if defined?(handle_exception)
-              handle_exception(e, level: :debug, operation: 'PromptResolver#preference_instructions_for',
+              handle_exception(e, level: :warn, operation: 'PromptResolver#preference_instructions_for',
                                owner_id: owner_id)
             end
             nil
