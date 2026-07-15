@@ -2,7 +2,6 @@
 
 require 'json'
 require 'digest'
-require 'set'
 require 'legion/extensions/microsoft_teams/errors'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/helpers/graph_cache'
@@ -221,9 +220,9 @@ module Legion
                                  top_people: top_people, message_depth: message_depth)
           end
 
-          private
-
           CHAT_TYPE_PRIORITY = { 'oneOnOne' => 0, 'group' => 1, 'meeting' => 2 }.freeze
+
+          private
 
           def build_chat_member_index(conn:, chats:)
             index = {}
@@ -267,7 +266,7 @@ module Legion
 
             unless (200..299).cover?(resp.status)
               error_code = resp.body&.dig('error', 'code')
-              log.warn("[microsoft_teams][profile_ingest] fetch_new_messages non-2xx: " \
+              log.warn('[microsoft_teams][profile_ingest] fetch_new_messages non-2xx: ' \
                        "chat_id=#{chat_id} status=#{resp.status} error_code=#{error_code}")
               @fetch_failures = (@fetch_failures || 0) + 1
               return []
@@ -294,7 +293,7 @@ module Legion
             cutoff = hwm[:last_message_at]
             seen = Set.new
             messages.take_while { |m| m['createdDateTime'] && m['createdDateTime'] > cutoff }
-                    .reject { |m| !seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
+                    .select { |m| seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
           end
 
           def extract_conversation(messages:, peer_name:)

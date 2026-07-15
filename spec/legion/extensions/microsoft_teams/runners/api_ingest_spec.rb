@@ -72,8 +72,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ApiIngest do
       let(:forbidden_resp) do
         instance_double(Faraday::Response,
                         status: 403,
-                        body: { 'error' => { 'code' => 'Authorization_RequestDenied',
-                                             'message' => 'Insufficient privileges' } })
+                        body:   { 'error' => { 'code'    => 'Authorization_RequestDenied',
+                                               'message' => 'Insufficient privileges' } })
       end
 
       before do
@@ -96,8 +96,8 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ApiIngest do
       let(:not_found_resp) do
         instance_double(Faraday::Response,
                         status: 404,
-                        body: { 'error' => { 'code' => 'ResourceNotFound',
-                                             'message' => 'Chat not found' } })
+                        body:   { 'error' => { 'code'    => 'ResourceNotFound',
+                                               'message' => 'Chat not found' } })
       end
 
       before do
@@ -121,19 +121,19 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Runners::ApiIngest do
       let(:people_resp) do
         instance_double(Faraday::Response,
                         status: 200,
-                        body: { 'value' => [{ 'displayName' => 'Bob',
-                                              'scoredEmailAddresses' => [{ 'address' => 'bob@test.com', 'relevanceScore' => 8 }],
-                                              'id' => 'user-1' }] })
+                        body:   { 'value' => [{ 'displayName'          => 'Bob',
+                                                'scoredEmailAddresses' => [{ 'address' => 'bob@test.com', 'relevanceScore' => 8 }],
+                                                'id'                   => 'user-1' }] })
       end
       let(:chats_resp) do
         instance_double(Faraday::Response,
                         status: 200,
-                        body: { 'value' => [{ 'id' => 'chat-1', 'chatType' => 'oneOnOne' }] })
+                        body:   { 'value' => [{ 'id' => 'chat-1', 'chatType' => 'oneOnOne' }] })
       end
       let(:messages_403_resp) do
         instance_double(Faraday::Response,
                         status: 403,
-                        body: { 'error' => { 'code' => 'Forbidden', 'message' => 'Access denied' } })
+                        body:   { 'error' => { 'code' => 'Forbidden', 'message' => 'Access denied' } })
       end
 
       before do

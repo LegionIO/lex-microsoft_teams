@@ -2,7 +2,6 @@
 
 require 'json'
 require 'digest'
-require 'set'
 require 'legion/extensions/microsoft_teams/errors'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/helpers/graph_cache'
@@ -123,6 +122,7 @@ module Legion
                                                       Legion::Extensions::Helpers.const_defined?(:Lex, false)
 
           MAX_CHAT_PAGES = 10
+          CHAT_TYPE_PRIORITY = { 'oneOnOne' => 0, 'group' => 1, 'meeting' => 2 }.freeze
 
           private
 
@@ -136,7 +136,7 @@ module Legion
             log.debug("ApiIngest: fetch_top_people status=#{resp.status} count=#{(resp.body || {}).fetch('value', []).size}")
             unless (200..299).cover?(resp.status)
               error_code = resp.body&.dig('error', 'code')
-              log.warn("[microsoft_teams][api_ingest] fetch_top_people non-2xx: " \
+              log.warn('[microsoft_teams][api_ingest] fetch_top_people non-2xx: ' \
                        "status=#{resp.status} error_code=#{error_code}")
               record_denial('/me/people', resp.body&.dig('error', 'message') || 'Forbidden') if resp.status == 403
               @fetch_failures = (@fetch_failures || 0) + 1
@@ -145,8 +145,10 @@ module Legion
 
             people = (resp.body || {}).fetch('value', [])
             people.sort_by { |p| -(p.dig('scoredEmailAddresses', 0, 'relevanceScore') || 0) }
+          # rubocop:disable Legion/RescueLogging/NoCapture
           rescue Errors::Throttled
             raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_top_people')
             @fetch_failures = (@fetch_failures || 0) + 1
@@ -165,7 +167,7 @@ module Legion
 
               unless (200..299).cover?(resp.status)
                 error_code = resp.body&.dig('error', 'code')
-                log.warn("[microsoft_teams][api_ingest] fetch_one_on_one_chats non-2xx: " \
+                log.warn('[microsoft_teams][api_ingest] fetch_one_on_one_chats non-2xx: ' \
                          "status=#{resp.status} error_code=#{error_code}")
                 @fetch_failures = (@fetch_failures || 0) + 1
                 break
@@ -188,15 +190,15 @@ module Legion
             filtered = all_chats.select { |c| allowed_types.include?(c['chatType']) }
             log.info("ApiIngest: fetched #{all_chats.size} chats (#{pages} pages), #{filtered.size} eligible (1:1/group/meeting)")
             filtered
+          # rubocop:disable Legion/RescueLogging/NoCapture
           rescue Errors::Throttled
             raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_one_on_one_chats')
             @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
-
-          CHAT_TYPE_PRIORITY = { 'oneOnOne' => 0, 'group' => 1, 'meeting' => 2 }.freeze
 
           def build_chat_member_index(conn:, chats:)
             by_email = {}
@@ -222,8 +224,10 @@ module Legion
             end
 
             { email: by_email, user_id: by_user_id, name: by_name }
+          # rubocop:disable Legion/RescueLogging/NoCapture
           rescue Errors::Throttled
             raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#build_chat_member_index')
             @fetch_failures = (@fetch_failures || 0) + 1
@@ -246,7 +250,7 @@ module Legion
             cutoff = hwm[:last_message_at]
             seen = Set.new
             messages.take_while { |m| m['createdDateTime'] && m['createdDateTime'] > cutoff }
-                    .reject { |m| !seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
+                    .select { |m| seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
           end
 
           def fetch_chat_messages(conn:, chat_id:, depth: 50)
@@ -257,7 +261,7 @@ module Legion
 
             unless (200..299).cover?(resp.status)
               error_code = resp.body&.dig('error', 'code')
-              log.warn("[microsoft_teams][api_ingest] fetch_chat_messages non-2xx: " \
+              log.warn('[microsoft_teams][api_ingest] fetch_chat_messages non-2xx: ' \
                        "chat_id=#{chat_id} status=#{resp.status} error_code=#{error_code}")
               @fetch_failures = (@fetch_failures || 0) + 1
               return []
@@ -267,8 +271,10 @@ module Legion
             messages = hwm_client_side_cut(messages: messages, hwm: hwm)
             log.debug("ApiIngest: fetch_messages chat=#{chat_id} count=#{messages.size}")
             messages
+          # rubocop:disable Legion/RescueLogging/NoCapture
           rescue Errors::Throttled
             raise
+            # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_chat_messages',
                              chat_id: chat_id)
