@@ -2,6 +2,7 @@
 
 require 'json'
 require 'digest'
+require 'set'
 require 'legion/extensions/microsoft_teams/errors'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/helpers/graph_cache'
@@ -236,10 +237,18 @@ module Legion
               chat_index[:name][display_name]
           end
 
+          def hwm_client_side_cut(messages:, hwm:)
+            return messages unless hwm&.dig(:last_message_at)
+
+            cutoff = hwm[:last_message_at]
+            seen = Set.new
+            messages.take_while { |m| m['createdDateTime'] && m['createdDateTime'] > cutoff }
+                    .reject { |m| !seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
+          end
+
           def fetch_chat_messages(conn:, chat_id:, depth: 50)
             hwm = get_extended_hwm(chat_id: chat_id)
             params = { '$top' => depth, '$orderby' => 'createdDateTime desc' }
-            params['$filter'] = "createdDateTime gt #{hwm[:last_message_at]}" if hwm&.dig(:last_message_at)
 
             resp = conn.get("chats/#{chat_id}/messages", params)
 
@@ -251,8 +260,10 @@ module Legion
               return []
             end
 
-            log.debug("ApiIngest: fetch_messages chat=#{chat_id} count=#{(resp.body || {}).fetch('value', []).size}")
-            (resp.body || {}).fetch('value', [])
+            messages = (resp.body || {}).fetch('value', [])
+            messages = hwm_client_side_cut(messages: messages, hwm: hwm)
+            log.debug("ApiIngest: fetch_messages chat=#{chat_id} count=#{messages.size}")
+            messages
           rescue Errors::Throttled
             raise
           rescue StandardError => e

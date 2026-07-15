@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'digest'
+require 'set'
 require 'legion/extensions/microsoft_teams/errors'
 require 'legion/extensions/microsoft_teams/helpers/client'
 require 'legion/extensions/microsoft_teams/helpers/graph_cache'
@@ -276,7 +278,6 @@ module Legion
           def fetch_new_messages(conn:, chat_id:, depth: 50)
             hwm = get_extended_hwm(chat_id: chat_id)
             params = { '$top' => depth, '$orderby' => 'createdDateTime desc' }
-            params['$filter'] = "createdDateTime gt #{hwm[:last_message_at]}" if hwm&.dig(:last_message_at)
 
             resp = conn.get("chats/#{chat_id}/messages", params)
 
@@ -288,7 +289,8 @@ module Legion
               return []
             end
 
-            (resp.body || {}).fetch('value', [])
+            messages = (resp.body || {}).fetch('value', [])
+            hwm_client_side_cut(messages: messages, hwm: hwm)
           # rubocop:disable Legion/RescueLogging/NoCapture
           # Re-raise unlogged: propagate to full_ingest so the per-chat
           # fan-out stops on the first throttle; full_ingest logs it once.
@@ -300,6 +302,15 @@ module Legion
                              chat_id: chat_id)
             @fetch_failures = (@fetch_failures || 0) + 1
             []
+          end
+
+          def hwm_client_side_cut(messages:, hwm:)
+            return messages unless hwm&.dig(:last_message_at)
+
+            cutoff = hwm[:last_message_at]
+            seen = Set.new
+            messages.take_while { |m| m['createdDateTime'] && m['createdDateTime'] > cutoff }
+                    .reject { |m| !seen.add?(m['id'] || Digest::SHA256.hexdigest(m.dig('body', 'content').to_s)[0, 16]) }
           end
 
           def extract_conversation(messages:, peer_name:)
