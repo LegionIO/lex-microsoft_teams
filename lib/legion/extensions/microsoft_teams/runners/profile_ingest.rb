@@ -279,6 +279,15 @@ module Legion
             params['$filter'] = "createdDateTime gt #{hwm[:last_message_at]}" if hwm&.dig(:last_message_at)
 
             resp = conn.get("chats/#{chat_id}/messages", params)
+
+            unless (200..299).cover?(resp.status)
+              error_code = resp.body&.dig('error', 'code')
+              log.warn("[microsoft_teams][profile_ingest] fetch_new_messages non-2xx: " \
+                       "chat_id=#{chat_id} status=#{resp.status} error_code=#{error_code}")
+              @fetch_failures = (@fetch_failures || 0) + 1
+              return []
+            end
+
             (resp.body || {}).fetch('value', [])
           # rubocop:disable Legion/RescueLogging/NoCapture
           # Re-raise unlogged: propagate to full_ingest so the per-chat
@@ -289,6 +298,7 @@ module Legion
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ProfileIngest#fetch_new_messages',
                              chat_id: chat_id)
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
 

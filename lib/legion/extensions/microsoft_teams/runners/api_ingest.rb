@@ -22,16 +22,12 @@ module Legion
 
           definition :ingest_api, mcp_exposed: false
 
-          # Fetch top contacts via /me/people, then pull recent messages from
-          # their 1:1 chats. Stores each message as an individual memory trace
-          # (same format as CacheIngest) with dedup by content hash.
-          #
-          # Requires a delegated token with Chat.Read and People.Read scopes.
           def ingest_api(token:, top_people: 15, message_depth: 50, skip_bots: true, imprint_active: false, **) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
             log.debug("ApiIngest#ingest_api top_people=#{top_people} message_depth=#{message_depth}")
             return error_result('lex-memory not loaded') unless memory_available?
             return error_result('no token provided') unless token && !token.empty?
 
+            @fetch_failures = 0
             restore_hwm_from_traces
 
             people = fetch_top_people(token: token, top: top_people)
@@ -104,6 +100,7 @@ module Legion
 
             { result: { stored: stored, skipped: skipped, people_ingested: people_ingested,
                         people_found: people.length, chats_found: chats.length,
+                        fetch_failures: @fetch_failures,
                         apollo: apollo_results } }
           # rubocop:disable Legion/RescueLogging/NoCapture
           # Re-raise unlogged: surface the typed throttle to the caller (the
@@ -117,7 +114,8 @@ module Legion
             # rubocop:enable Legion/RescueLogging/NoCapture
           rescue StandardError => e
             handle_exception(e, level: :error, operation: 'ApiIngest#ingest_api')
-            { result: { stored: stored || 0, skipped: skipped || 0, error: e.message } }
+            { result: { stored: stored || 0, skipped: skipped || 0,
+                        fetch_failures: @fetch_failures || 0, error: e.message } }
           end
 
           include Legion::Extensions::Helpers::Lex if Legion::Extensions.const_defined?(:Helpers, false) &&
@@ -135,15 +133,22 @@ module Legion
             resp = conn.get('me/people', { '$top' => top })
 
             log.debug("ApiIngest: fetch_top_people status=#{resp.status} count=#{(resp.body || {}).fetch('value', []).size}")
-            if resp.status == 403
-              record_denial('/me/people', resp.body.dig('error', 'message') || 'Forbidden')
+            unless (200..299).cover?(resp.status)
+              error_code = resp.body&.dig('error', 'code')
+              log.warn("[microsoft_teams][api_ingest] fetch_top_people non-2xx: " \
+                       "status=#{resp.status} error_code=#{error_code}")
+              record_denial('/me/people', resp.body&.dig('error', 'message') || 'Forbidden') if resp.status == 403
+              @fetch_failures = (@fetch_failures || 0) + 1
               return []
             end
 
             people = (resp.body || {}).fetch('value', [])
             people.sort_by { |p| -(p.dig('scoredEmailAddresses', 0, 'relevanceScore') || 0) }
+          rescue Errors::Throttled
+            raise
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_top_people')
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
 
@@ -156,6 +161,15 @@ module Legion
 
             loop do
               resp = conn.get(url, params)
+
+              unless (200..299).cover?(resp.status)
+                error_code = resp.body&.dig('error', 'code')
+                log.warn("[microsoft_teams][api_ingest] fetch_one_on_one_chats non-2xx: " \
+                         "status=#{resp.status} error_code=#{error_code}")
+                @fetch_failures = (@fetch_failures || 0) + 1
+                break
+              end
+
               body = resp.body || {}
               chats = body.fetch('value', [])
               all_chats.concat(chats)
@@ -173,8 +187,11 @@ module Legion
             filtered = all_chats.select { |c| allowed_types.include?(c['chatType']) }
             log.info("ApiIngest: fetched #{all_chats.size} chats (#{pages} pages), #{filtered.size} eligible (1:1/group/meeting)")
             filtered
+          rescue Errors::Throttled
+            raise
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_one_on_one_chats')
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
 
@@ -201,8 +218,11 @@ module Legion
             end
 
             { email: by_email, user_id: by_user_id, name: by_name }
+          rescue Errors::Throttled
+            raise
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#build_chat_member_index')
+            @fetch_failures = (@fetch_failures || 0) + 1
             { email: {}, user_id: {}, name: {} }
           end
 
@@ -222,11 +242,23 @@ module Legion
             params['$filter'] = "createdDateTime gt #{hwm[:last_message_at]}" if hwm&.dig(:last_message_at)
 
             resp = conn.get("chats/#{chat_id}/messages", params)
+
+            unless (200..299).cover?(resp.status)
+              error_code = resp.body&.dig('error', 'code')
+              log.warn("[microsoft_teams][api_ingest] fetch_chat_messages non-2xx: " \
+                       "chat_id=#{chat_id} status=#{resp.status} error_code=#{error_code}")
+              @fetch_failures = (@fetch_failures || 0) + 1
+              return []
+            end
+
             log.debug("ApiIngest: fetch_messages chat=#{chat_id} count=#{(resp.body || {}).fetch('value', []).size}")
             (resp.body || {}).fetch('value', [])
+          rescue Errors::Throttled
+            raise
           rescue StandardError => e
             handle_exception(e, level: :warn, operation: 'ApiIngest#fetch_chat_messages',
                              chat_id: chat_id)
+            @fetch_failures = (@fetch_failures || 0) + 1
             []
           end
 
