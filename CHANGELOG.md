@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.53] - 2026-07-15
+### Fixed
+- Fix throttle propagation, invalid OData filter, member index priority, stop trace spam from API fetches
+
 ## [0.6.52] - 2026-05-29
 ### Fixed
 - **Actors now defer their next scheduled run on a Graph throttle** instead of re-firing on their fixed timer interval — resolves the 0.6.51 "Known follow-up". New `Helpers::ThrottleAware` mixin records a "suppress until" instant of `now + retry_after` when a Graph call raises `Errors::Throttled`; subsequent ticks short-circuit until that window elapses. Wired into `PresencePoller`, `MeetingIngest`, and `ApiIngest`. Falls back to a bounded 60s deferral when the server gave no usable `Retry-After`, and clamps any single deferral to 600s. Previously a poller on a 30–300s interval would walk straight back into the still-open shared circuit every interval, emitting a `[throttle_circuit] hard circuit` ERROR (and a duplicate `Errors::Throttled` WARN/ERROR) each tick while ingesting nothing.
