@@ -47,6 +47,11 @@ module Legion
             nil
           end
 
+          # H4: Remove after OP3 lands (advisory path serves Teams).
+          # Teams calls Legion::LLM.chat directly (Bot#llm_respond) — it bypasses the legion-llm
+          # executor and advisory pipeline entirely. Until OP3 wires Teams through the executor,
+          # removing this local injection would silently drop preference context from bot responses.
+          # Track: LegionIO/legion-gaia#40
           def preference_instructions_for(owner_id:)
             return nil unless owner_id
             return nil unless defined?(Legion::Extensions::Mesh::Helpers::PreferenceProfile)
