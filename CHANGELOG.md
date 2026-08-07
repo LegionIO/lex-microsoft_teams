@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.6.54] - 2026-07-16
+### Changed
+- **H4 preference convergence — deferred (awaiting OP3):** Investigated Teams `PromptResolver#preference_instructions_for` for H4 channel-agnostic advisory migration. Teams calls `Legion::LLM.chat` directly in `Bot#llm_respond`, bypassing the executor and advisory pipeline entirely. Removing the local `PreferenceProfile` injection now would silently drop partner-model preference context from every bot response. Removal is deferred until OP3 routes Teams through the executor (LegionIO/legion-gaia#40). Added TODO marker and deferral spec to document current behavior and migration acceptance criteria.
+
 ## [0.6.53] - 2026-07-15
 ### Fixed
 - Fix throttle propagation, invalid OData filter, member index priority, stop trace spam from API fetches

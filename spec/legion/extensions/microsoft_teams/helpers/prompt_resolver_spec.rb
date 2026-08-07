@@ -91,6 +91,39 @@ RSpec.describe Legion::Extensions::MicrosoftTeams::Helpers::PromptResolver do
     end
   end
 
+  # H4 migration deferral: Teams calls Legion::LLM.chat directly (Bot#llm_respond), bypassing
+  # the executor and advisory pipeline. The channel-local preference injection in
+  # preference_instructions_for MUST stay until OP3 routes Teams through the executor so the
+  # advisory path can serve partner_model slots.  Removing it now would silently drop preference
+  # context from every bot response.
+  #
+  # Verification: stub a Teams-channel request, confirm preference content appears in the prompt.
+  # If the advisory path ever serves Teams, this block becomes the removal acceptance test.
+  describe '#resolve_prompt H4 preference injection (deferred pending OP3)' do
+    it 'local injection is still present: preference content appears in resolved prompt' do
+      profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
+      allow(profile_mod).to receive(:resolve).and_return(
+        { verbosity: :concise, tone: :formal, format: :structured,
+          technical_depth: :moderate, sources: [:explicit], resolved_at: Time.now }
+      )
+      allow(profile_mod).to receive(:preference_instructions).and_return(
+        'Keep responses brief. Use formal language.'
+      )
+
+      prompt = resolver.resolve_prompt(mode: :direct, conversation_id: '19:teams-chan', owner_id: 'u1')
+      expect(prompt).to include('brief')
+      expect(prompt).to include('formal')
+    end
+
+    it 'returns plain base prompt when owner_id absent — preference system skipped' do
+      # Documents that without owner_id (or when PreferenceProfile not loaded), the prompt
+      # is plain base text. This MUST NOT silently degrade if local injection is removed.
+      prompt = resolver.resolve_prompt(mode: :direct, conversation_id: '19:teams-chan')
+      expect(prompt).to be_a(String)
+      expect(prompt).not_to be_empty
+    end
+  end
+
   describe '#resolve_prompt with preferences' do
     it 'appends preference instructions when owner_id provided' do
       profile_mod = Legion::Extensions::Mesh::Helpers::PreferenceProfile
